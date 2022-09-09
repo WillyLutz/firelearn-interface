@@ -1,6 +1,9 @@
 class Model:
     def __init__(self):
-        self.a = ""
+        self.__loaded_dataset = None
 
-    def pressed(self, is_pressed=True):
-        return is_pressed
+    def set_loaded_dataset(self, ds):
+        self.__loaded_dataset = ds
+
+    def get_loaded_dataset(self):
+        return self.__loaded_dataset
