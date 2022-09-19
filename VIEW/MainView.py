@@ -6,6 +6,7 @@ from PIL import ImageTk, Image
 from functools import partial
 from pandastable import Table, TableModel
 import pandas as pd
+import data.params as p
 
 
 class MainView(tk.Frame):
@@ -45,8 +46,15 @@ class MainView(tk.Frame):
         #######################################################################
         "----------------------ELEMENTS TO UPDATE-----------------------"
         self.dataset_label_text = tk.StringVar()
-        self.dataset_label_text.set(r"path/of/your/dataset/here.csv")
+        self.dataset_label_text.set(p.default_dataset_path)
+        self.dataset_info = tk.StringVar()
+
         self.datatable = pandastable.Table
+
+        self.target_box = tk.ttk.Combobox
+        self.current_target = tk.StringVar()
+        self.current_target.set(p.default_targets[0])
+
 
         ####################################################################
         "-----------------TABS------------------"
@@ -70,10 +78,6 @@ class MainView(tk.Frame):
         self.manage_dataset_tab()
 
         self.controller = None
-
-
-
-
 
     def set_controller(self, controller):
         self.controller = controller
@@ -108,16 +112,44 @@ class MainView(tk.Frame):
         loading_frame = tk.Frame(self.dataset_tab, height=loading_size[0], width=loading_size[1], background='pink')
         loading_frame.place(anchor=tk.NW, relx=0, rely=0)
 
-        load_btn = tk.Button(loading_frame, text='Load', command=self.open_file )
+        load_btn = tk.Button(loading_frame, text='Load', command=self.open_file)
         load_btn.place(relx=0, rely=0, anchor=tk.NW)
+
+        discard_btn = tk.Button(loading_frame, text='discard', command=self.reset_loaded_file)
+        discard_btn.place(relx=0, rely=0.3)
 
         dataset_label = tk.Label(loading_frame, textvariable=self.dataset_label_text)
         dataset_label.place(relx=0.2, rely=0.04)
+
+        dataset_info = tk.Label(loading_frame, textvariable=self.dataset_info)
+        dataset_info.place(relx=0.2, rely=0.3)
         # --------------------OPERATIONS-------------------
         operations_size = (int(self.main_frame.winfo_reqheight() / 5 * 3), int(self.main_frame.winfo_reqwidth() / 2))
         operations_frame = tk.Frame(self.dataset_tab, height=operations_size[0], width=operations_size[1],
                                     background='blue')
         operations_frame.place(anchor=tk.NW, relx=0, rely=0.2)
+
+        delete_rows_btn = tk.Button(operations_frame, text='Delete selected rows', command=self.delete_dataframe_rows)
+        delete_rows_btn.place(relx=0, rely=0)
+        delete_cols_btn = tk.Button(operations_frame, text='Delete selected columns', command=self.delete_dataframe_columns)
+        delete_cols_btn.place(relx=0.34, rely=0)
+
+        self.target_box = tk.ttk.Combobox(operations_frame, values=p.default_targets, state='readonly')
+        self.target_box.place(relx=0, rely=0.3)
+        self.target_box.current(0)
+
+        immu_target_label = tk.Label(operations_frame, text="Selected target: ")
+        immu_target_label.place(relx=0.35, rely=0.3)
+
+        target_label = tk.Label(operations_frame, textvariable=self.current_target)
+        target_label.place(relx=0.58, rely=0.3)
+
+        target_btn = tk.Button(operations_frame, text="Select target", command=self.select_target)
+        target_btn.place(relx=0, rely=0.2)
+        # todo: coloring the target column
+
+        # todo: preprocessing (nan, threshold mean max, mean...)
+        # todo: automatic preprocessing ? detection of abnormal lines etc...
 
         # ---------------------VALIDATION---------------------
         validation_size = (int(self.main_frame.winfo_reqheight() / 5), int(self.main_frame.winfo_reqwidth() / 2))
@@ -125,19 +157,37 @@ class MainView(tk.Frame):
                                     background='green')
         validation_frame.place(anchor=tk.NW, relx=0, rely=0.8)
 
+        # todo: save dataset under, validate dataset
+
         # ----------------------OVERVIEW-----------------------
         overview_size = (int(self.main_frame.winfo_reqheight()), int(self.main_frame.winfo_reqwidth() / 2))
         overview_frame = tk.Frame(self.dataset_tab, height=overview_size[0], width=overview_size[1],
                                   background='purple')
         overview_frame.place(anchor=tk.NW, relx=0.5, rely=0)
 
-        #datatable = pandastable.Table(overview_frame,dataframe=pd.read_csv("data/emptycsv.csv"), showtoolbar=True,
+        # datatable = pandastable.Table(overview_frame,dataframe=pd.read_csv("data/emptycsv.csv"), showtoolbar=True,
         #                                    showstatusbar=True)
         self.datatable = pandastable.Table(overview_frame, showtoolbar=True,
-                                                                          showstatusbar=True)
+                                           showstatusbar=True)
         self.datatable.place(relx=0, rely=0)
         self.datatable.show()
 
     def open_file(self):
         if self.controller:
             self.controller.load_dataset()
+
+    def reset_loaded_file(self):
+        if self.controller:
+            self.controller.reset_loaded_dataset()
+
+    def delete_dataframe_rows(self):
+        if self.controller:
+            self.controller.delete_dataframe_rows()
+
+    def delete_dataframe_columns(self):
+        if self.controller:
+            self.controller.delete_dataframe_columns()
+
+    def select_target(self):
+        if self.controller:
+            self.controller.select_target()
