@@ -4,7 +4,7 @@ from tkinter import ttk
 import pandastable
 from PIL import ImageTk, Image
 from functools import partial
-from pandastable import Table
+from pandastable import Table, TableModel
 import pandas as pd
 
 
@@ -131,9 +131,12 @@ class MainView(tk.Frame):
                                   background='purple')
         overview_frame.place(anchor=tk.NW, relx=0.5, rely=0)
 
-        # self.datatable = pandastable.Table(overview_frame,dataframe=pd.read_csv("data/emptycsv.csv"), showtoolbar=True,
+        #datatable = pandastable.Table(overview_frame,dataframe=pd.read_csv("data/emptycsv.csv"), showtoolbar=True,
         #                                    showstatusbar=True)
-        # self.datatable.place(relx=0, rely=0)
+        self.datatable = pandastable.Table(overview_frame, showtoolbar=True,
+                                                                          showstatusbar=True)
+        self.datatable.place(relx=0, rely=0)
+        self.datatable.show()
 
     def open_file(self):
         if self.controller:
