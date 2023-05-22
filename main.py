@@ -5,18 +5,18 @@
 import tkinter as tk
 from VIEW.MainView import MainView
 from CONTROLLER.MainController import Controller
-from MODEL.MainModel import Model
+from MODEL.MainModel import MainModel
 from data import params
+import customtkinter
 
-
-class App(tk.Tk):
+class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
         self.title(f'FireLearn GUI v{params.version}')
 
         # create a model
-        model = Model()
+        model = MainModel()
 
         # create a view and place it on the root window
         view = MainView(self)

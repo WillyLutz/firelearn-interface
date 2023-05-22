@@ -4,107 +4,106 @@ from tkinter import filedialog as fd, messagebox
 import pandastable
 
 from VIEW.MainView import MainView
+from MODEL.MainModel import MainModel
 import pandas as pd
 from pandastable import Table, TableModel
 import data.params as p
 import io
+import webbrowser
+import VIEW.graphic_params as gp
+import customtkinter as ctk
+from tkinter import filedialog
 
 
 class Controller:
-    def __init__(self, model, view: MainView):
+    def __init__(self, model: MainModel, view: MainView):
         self.view = view
         self.model = model
 
-    def print_pressed(self):
-        if self.model.pressed():
-            print("pressed")
+    def open_web(self, url):
+        webbrowser.open(url, new=1)
 
-    def load_dataset(self):
-        filetypes = (
-            ('csv files', '*.csv'),
-        )
+    def category_enabling_switch(self, switch, parent_widget):
+        children = parent_widget.winfo_children()
+        if switch.get() == 1:
+            for child in children:
+                if type(child) == ctk.CTkLabel:
+                    child.configure(text_color=gp.enabled_label_color)
+                elif type(child) == ctk.CTkEntry:
+                    child.configure(state="normal")
+                elif type(child) == ctk.CTkButton:
+                    child.configure(state="normal")
+                elif type(child) == ctk.CTkOptionMenu:
+                    child.configure(state="normal")
+                elif type(child) == ctk.CTkSwitch and child != switch:
+                    child.configure(state="normal")
+        else:
+            for child in children:
+                if type(child) == ctk.CTkLabel:
+                    child.configure(text_color=gp.disabled_label_color)
+                elif type(child) == ctk.CTkEntry:
+                    child.configure(state="disabled")
+                elif type(child) == ctk.CTkButton:
+                    child.configure(state="disabled")
+                elif type(child) == ctk.CTkOptionMenu:
+                    child.configure(state="disabled")
+                elif type(child) == ctk.CTkSwitch and child != switch:
+                    child.configure(state="disabled")
 
-        f = fd.askopenfile(filetypes=filetypes)
+    def select_parent_directory(self, display_in):
+        dirname = self.open_filedialog(mode='directory')
+        if type(display_in) == ctk.StringVar:
+            display_in.set(dirname)
+            self.model.parent_directory = dirname
 
-        self.model.set_loaded_dataset_path(f.name)
-        path = self.model.get_loaded_dataset_path()
-        df = pd.read_csv(path, sep=",")
+    def add_subtract_to_include_for_processing(self, entry, textbox, mode='add'):
+        to_include = entry.get()
+        local_include = self.model.to_include
+        if mode == 'add':
+            local_include.append(to_include)
+        elif mode == 'subtract':
+            local_include = [x for x in self.model.to_include if x != to_include]
+        self.model.to_include = local_include
+        self.update_textbox(textbox, self.model.to_include)
+        entry.delete(0, ctk.END)
 
-        self.view.dataset_label_text.set(path)
-        self.model.set_loaded_dataset(df)
-        self.update_dataframe(df)
-
-
-        self.update_target_box()
-
-
-    def update_dataframe(self, df):
-        buf = io.StringIO()
-        df.info(buf=buf)
-        lines = buf.getvalue().split("\n")
-        infos = ''
-        null_values = f'Null Count: {str(df.isna().sum().sum())} out of {str(len(df.index) * len(df.columns))}' \
-                      f' ({df.isna().sum().sum() * (len(df.index) * len(df.columns)) / 100}%)'
-        lines_to_consider = [1, 2, -2]
-        for ltc in lines_to_consider:
-            infos = infos + lines[ltc] + "\n"
-        infos += null_values
-        self.view.dataset_info.set(infos)
-
-        self.model.set_loaded_dataset(df)
-        self.view.datatable.updateModel(TableModel(df))
-        self.view.datatable.redraw()
-
-    def reset_loaded_dataset(self):
-        # self.view.datatable.updateModel(TableModel(df))
-        self.view.datatable.clearTable()
-        self.model.set_loaded_dataset_path(p.default_dataset_path)
-        self.view.dataset_label_text.set(self.model.get_loaded_dataset_path())
-        self.model.set_loaded_dataset(pd.DataFrame)
-        self.update_dataframe(pd.DataFrame())
-        self.view.dataset_info.set("")
-
-    def delete_dataframe_rows(self):
-        cols_idx = self.view.datatable.getSelectedColumn()
-        rows_idx = self.view.datatable.getSelectedRow()
-        df = self.model.get_loaded_dataset()
-        ask = True
-        n = True
-        if ask:
-            n = messagebox.askyesno("Delete",
-                                    "Delete Row(s)?")
-        if n:
-            df.drop([rows_idx, ], axis=0, inplace=True)
-
-            self.update_dataframe(df)
+    def add_subtract_to_exclude_for_processing(self, entry, textbox, mode='add'):
+        to_exclude = entry.get()
+        local_exclude = self.model.to_exclude
+        if mode == 'add':
+            local_exclude.append(to_exclude)
+        elif mode == 'subtract':
+            local_exclude = [x for x in self.model.to_exclude if x != to_exclude]
+        self.model.to_exclude = local_exclude
+        self.update_textbox(textbox, self.model.to_exclude)
+        entry.delete(0, ctk.END)
 
 
-    def delete_dataframe_columns(self):
-        cols_idx = self.view.datatable.getSelectedColumn()
-        rows_idx = self.view.datatable.getSelectedRow()
-        df = self.model.get_loaded_dataset()
-        ask = True
-        n = True
-        if ask:
-            n = messagebox.askyesno("Delete",
-                                    "Delete Column(s)?")
-        if n:
-            df.drop(columns=[df.columns[rows_idx], ], axis=1, inplace=True)
+    def update_textbox(self, textbox, elements):
+        textbox.configure(state="normal")
+        textbox.delete(1.0, ctk.END)
+        for elem in elements:
+            elem = elem+"\n"
+            textbox.insert(ctk.INSERT, elem)
+        textbox.configure(state="disabled")
 
-            self.update_dataframe(df)
+    def open_filedialog(self, mode='file'):
+        if mode == 'file':
+            filename = filedialog.askopenfilename(title="Open file",
+                                              filetypes=(("Text files", "*.txt"), ("CSV files", "*.csv"),
+                                                         ("Excel files", "*.xls *.xlsx")))
+            return filename
+        elif mode == 'directory':
+            dirname = filedialog.askdirectory(mustexist=True, title="select directory")
 
-    def select_target(self):
-        selected_target = self.view.target_box.current()
-        self.model.set_selected_target(selected_target)
-        loaded_dataset = self.model.get_loaded_dataset_path()
-        if loaded_dataset != p.default_dataset_path:
-            df = self.model.get_loaded_dataset()
-            self.view.current_target.set(df.columns[selected_target])
-
-    def update_target_box(self):
-        loaded_dataset = self.model.get_loaded_dataset_path()
-        if loaded_dataset != p.default_dataset_path:
-            df = self.model.get_loaded_dataset()
-            self.view.target_box.configure(values=df.columns.tolist())
+            return dirname
 
 
+
+
+    def add_keyword_filename(self, switch, entry):
+        if type(entry) == ctk.CTkEntry:
+            if switch.get() == 1:
+                entry.configure(state="normal")
+            else:
+                entry.configure(state="disabled")
