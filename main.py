@@ -4,10 +4,11 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import tkinter as tk
 from VIEW.MainView import MainView
-from CONTROLLER.MainController import Controller
+from CONTROLLER.MainController import MainController
 from MODEL.MainModel import MainModel
 from data import params
 import customtkinter
+
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -22,14 +23,17 @@ class App(customtkinter.CTk):
         view = MainView(self)
 
         # create a controller
-        controller = Controller(model, view)
+        controller = MainController(model, view)
 
         # set the controller to view
         view.set_controller(controller)
 
 
 if __name__ == '__main__':
+    import warnings
+    warnings.simplefilter('ignore')
     app = App()
 
     app.mainloop()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
