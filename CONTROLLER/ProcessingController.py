@@ -18,6 +18,9 @@ from fiiireflyyy import fireprocess as fp
 
 from CONTROLLER import data_processing as dpr
 
+import pygates
+logic = pygates.Gates
+
 
 class ProcessingController:
     def __init__(self, main_controller, model: ProcessingModel, view: ProcessingView, ):
@@ -27,7 +30,7 @@ class ProcessingController:
         self.main_controller = main_controller
 
     def processing(self, switch_widgets, cbox_widgets, entry_widgets):
-        if self.check_params_validity(switch_widgets, cbox_widgets, entry_widgets):
+        if self.check_params_validity(switch_widgets, entry_widgets):
             self.update_params(switch_widgets)
             self.update_params(cbox_widgets)
             self.update_params(entry_widgets)
@@ -344,31 +347,36 @@ class ProcessingController:
             self.model.cbox_params.update(local_dict)
 
     @staticmethod
-    def check_params_validity(switch_widgets, cbox_widgets, entry_widgets):  # todo : to processing controller
-        # todo : the make dataset option is only available if the signal has been averaged (merge switch is on) and if multi files
+    def check_params_validity(switches, entries):
 
-        # select either multiple or single file processing:
-        if all([switch_widgets["single file"].get(), switch_widgets["sorting"].get()]):
+        # logic gates
+        if switches["make dataset"].get():
+            if not ival.AND([switches["merge"].get(), switches["sorting"].get()]):
+                messagebox.showerror(title="Params validity", message="The 'make dataset' option is available only if "
+                                                                      "'Merge' and 'Multiple files analysis' are both True.", )
+            return False
+
+        if all([switches["single file"].get(), switches["sorting"].get()]):
             messagebox.showerror(title="Params validity", message="You can only chose one between Single file "
                                                                   "analysis or Multiple files analysis.", )
             return False
-        if not any([switch_widgets["single file"].get(), switch_widgets["sorting"].get()]):
+        if not any([switches["single file"].get(), switches["sorting"].get()]):
             messagebox.showerror(title="Params validity", message="You have to select one between Single file "
                                                                   "analysis or Multiple files analysis.", )
             return False
 
         # valid number format
-        for widget in ["info header", "n electrodes", "sampling", "filter order", "filter fs", "first frequency",
-                       "second frequency", "harmonic", "nth harmonic", "sampling fft", "n smoothing"]:
-            if ival.widget_value_is_positive_int_or_empty(entry_widgets[widget]) is False:
+        for widget in ["raw mea", "n electrodes", "sampling", "filter order", "filter sampling", "first frequency",
+                       "second frequency", "harmonic", "nth harmonic", "fft sampling", "smoothing"]:
+            if ival.widget_value_is_positive_int_or_empty(entries[widget]) is False:
                 return False
 
         # correct values
-        if entry_widgets["harmonic"].get():
-            if entry_widgets["nth harmonic"].get():
-                harmonic = int(entry_widgets["harmonic"].get())
-                nth = int(entry_widgets["nth harmonic"].get())
-                frequency = int(entry_widgets["filter fs"].get())
+        if entries["harmonic"].get():
+            if entries["nth harmonic"].get():
+                harmonic = int(entries["harmonic"].get())
+                nth = int(entries["nth harmonic"].get())
+                frequency = int(entries["filter fs"].get())
                 if harmonic * nth > frequency / 2:
                     messagebox.showerror("Value Error",
                                          "The chosen nth harmonic is superior to half the sampling frequency."
@@ -380,16 +388,49 @@ class ProcessingController:
                 return False
 
         # forbidden characters
-        if ival.widget_value_has_forbidden_character(entry_widgets["keyword"]) is False:
+        if ival.widget_value_has_forbidden_character(entries["keyword"]) is False:
             return False
 
         # invalid paths
-        if entry_widgets["save under"].get() == '':
+        if entries["save under"].get() == '':
             messagebox.showwarning('Path warning', 'You have to select a directory where to save your file(n_sample).')
             return False
-        elif os.path.isdir(entry_widgets["save under"].get()) is False:
-            messagebox.showerror('Path error', f'The selected path {entry_widgets["save under"].get()} does not exist.')
+        elif os.path.isdir(entries["save under"].get()) is False:
+            messagebox.showerror('Path error', f'The selected path {entries["save under"].get()} does not exist.')
             return False
+
+        for switch in switches:
+            if switch == "sorting":
+                if not entries["sorting"]:
+                    messagebox.showerror("Missing Value", "You have to select a parent directory to run multi-file processing.")
+                    return False
+
+            if switch == "single file":
+                if not entries["single file"]:
+                    messagebox.showerror("Missing Value", "You have to select a file to run single file processing.")
+                    return False
+
+            if switch == "raw mea":
+                if not entries["raw mea"]:
+                    messagebox.showerror("Missing Value", "You have to indicate a number of rows to remove from the raw MEA files.")
+                    return False
+
+            if switch == "select electrodes":
+                if not entries["n electrodes"]:
+                    messagebox.showerror("Missing Value", "You have to indicate a number of electrodes to keep.")
+                    return False
+
+            if switch == "sampling":
+                if not entries["sampling"]:
+                    messagebox.showerror("Missing Value", "You have to indicate a number of samples.")
+                    return False
+
+            if switch == "filter":
+                if not ival.AND([entries[x] for x in ["filter order", "filter sampling", "first frequency",]]):
+                    messagebox.showerror("Missing Value", "You have to fill at least the filter order, sampling "
+                                                          "frequency, and first frequency to use the filtering function.")
+                    return False
+                # todo : check f2 depending on the filter type
         # todo : check that all entries are filled if switch is on
         return True
 
@@ -411,14 +452,15 @@ class ProcessingController:
         file_level_tasks = mea + electrodes + sampling
         sample_level_tasks = average + smoothing
         column_level_tasks = filtering * n_col + fft * n_col
+
         total_tasks = n_file * (file_level_tasks + n_sample * (sample_level_tasks + column_level_tasks))
         if make_dataset:
             total_tasks += n_file * n_sample
 
         return total_tasks
 
-    def save_model(self, switch_widgets, cbox_widgets, entry_widgets):
-        if self.check_params_validity(switch_widgets, cbox_widgets, entry_widgets):
+    def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widget):
+        if self.check_params_validity(switch_widgets, entry_widgets):
             self.update_params(switch_widgets)
             self.update_params(cbox_widgets)
             self.update_params(entry_widgets)
@@ -426,8 +468,7 @@ class ProcessingController:
             f = filedialog.asksaveasfilename(defaultextension=".mdl", filetypes=[("Models", "*.mdl"), ])
             self.model.save_model(path=f, )
 
-    def load_model(self, switch_widgets, cbox_widgets, entry_widgets,
-                   textbox_widgets):
+    def load_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Model", "*.mdl"),))
         if f:
             if self.model.load_model(path=f):

@@ -3,6 +3,54 @@ from tkinter import messagebox
 
 # todo : when adding include exclude target, check if not empty
 # todo : need to add unit tests
+
+
+def AND(elements):  # todo : logic gates to fiiireflyyy
+    if all(elements):
+        return 1
+    else:
+        return 0
+
+
+def NAND(elements):  # todo : logic gates to fiiireflyyy
+    if all(elements):
+        return 0
+    else:
+        return 1
+
+
+def OR(elements):  # todo : logic gates to fiiireflyyy
+    if any(elements):
+        return 1
+    else:
+        return 0
+
+
+def XOR(elementA, elementB):  # todo : logic gates to fiiireflyyy
+    if elementA != elementB:
+        return 1
+    else:
+        return 0
+
+
+def INVERTER(element):  # todo : logic gates to fiiireflyyy
+    return not element
+
+
+def NOR(elements):  # todo : logic gates to fiiireflyyy
+    if any(elements):
+        return 0
+    else:
+        return 1
+
+
+def XNOR(elementA, elementB):  # todo : logic gates to fiiireflyyy
+    if elementA == elementB:
+        return 1
+    else:
+        return 0
+
+
 def widget_value_has_forbidden_character(widget):
     # forbidden_characters = "<>:\"/\\|?*[]" with slashes
     forbidden_characters = "<>:\"|?*[]"

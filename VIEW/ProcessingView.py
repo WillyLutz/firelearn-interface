@@ -25,9 +25,17 @@ class ProcessingView(ctk.CTkFrame):
         self.master = master
         self.controller = controller
 
+        self.switches = {}
+        self.entries = {}
+        self.cboxes = {}
+        self.strvars = {}
+        self.buttons = {}
+        self.textboxes = {}
+
         self.manage_processing_tab()
 
     def manage_processing_tab(self):
+
         # ------- FRAMES ------------------
         sorting_frame = ctk.CTkFrame(master=self.master, )
         sorting_frame.place(relwidth=0.3, relheight=0.85)
@@ -59,12 +67,16 @@ class ProcessingView(ctk.CTkFrame):
         sorting_files_switch.place(relx=0, rely=0)
         sorting_label = ctk.CTkLabel(master=sorting_frame, text="Path to parent directory:",
                                      text_color=gp.disabled_label_color)
+        self.switches["sorting"] = sorting_files_switch
+
         sorting_label.place(relx=0, rely=0.05)
         sorting_sv = ctk.StringVar()
         sorting_entry = ctk.CTkEntry(master=sorting_frame, state='disabled', textvariable=sorting_sv)
         sorting_entry.place(relx=0, rely=0.1, relwidth=0.8)
         sorting_button = ctk.CTkButton(master=sorting_frame, text="Open", state='disabled')
         sorting_button.place(relx=0.8, rely=0.1, relwidth=0.15)
+        self.strvars["sorting"] = sorting_sv
+        self.entries["sorting"] = sorting_entry
 
         to_include_label = ctk.CTkLabel(master=sorting_frame, text="To include:", text_color=gp.disabled_label_color)
         to_include_label.place(relx=0.05, rely=0.2)
@@ -77,10 +89,14 @@ class ProcessingView(ctk.CTkFrame):
         subtract_include_button.place(relx=0.85, rely=0.2)
         include_textbox = ctk.CTkTextbox(master=sorting_frame, corner_radius=10, state='disabled')
         include_textbox.place(relx=0.05, rely=0.25, relwidth=0.9, relheight=0.15)
+        self.strvars["to include"] = include_sv
+        self.entries["to include"] = include_entry
+        self.textboxes["to include"] = include_textbox
 
         to_exclude_label = ctk.CTkLabel(master=sorting_frame, text="To exclude:", text_color=gp.disabled_label_color)
         to_exclude_label.place(relx=0.05, rely=0.45)
-        exclude_entry = ctk.CTkEntry(master=sorting_frame, state='disabled')
+        exclude_sv = ctk.StringVar()
+        exclude_entry = ctk.CTkEntry(master=sorting_frame, state='disabled', textvariable=exclude_sv)
         exclude_entry.place(relx=0.3, rely=0.45, relwidth=0.4)
         add_exclude_button = ctk.CTkButton(master=sorting_frame, text="+", width=25, height=25, state='disabled')
         add_exclude_button.place(relx=0.75, rely=0.45)
@@ -88,6 +104,9 @@ class ProcessingView(ctk.CTkFrame):
         subtract_exclude_button.place(relx=0.85, rely=0.45)
         exclude_textbox = ctk.CTkTextbox(master=sorting_frame, corner_radius=10, state='disabled')
         exclude_textbox.place(relx=0.05, rely=0.5, relwidth=0.9, relheight=0.15)
+        self.strvars["to exclude"] = exclude_sv
+        self.entries["to exclude"] = exclude_entry
+        self.textboxes["to exclude"] = exclude_textbox
 
         id_target_label = ctk.CTkLabel(master=sorting_frame, text="Target'n_sample ID:",
                                        text_color=gp.disabled_label_color)
@@ -107,6 +126,11 @@ class ProcessingView(ctk.CTkFrame):
         subtract_target_button.place(relx=0.85, rely=0.75)
         target_textbox = ctk.CTkTextbox(master=sorting_frame, corner_radius=10, state='disabled')
         target_textbox.place(relx=0.05, rely=0.8, relwidth=0.9, relheight=0.15)
+        self.strvars["key target"] = id_target_sv
+        self.strvars["value target"] = rename_target_sv
+        self.entries["key target"] = id_target_entry
+        self.entries["value target"] = rename_target_entry
+        self.textboxes["target"] = target_textbox
 
         # -------- SINGLE FILE ------------
         single_file_switch = ctk.CTkSwitch(master=single_file_frame, text="Single file analysis")
@@ -119,6 +143,9 @@ class ProcessingView(ctk.CTkFrame):
         single_file_entry.place(relx=0.2, rely=0.5, relwidth=0.6)
         single_file_button = ctk.CTkButton(master=single_file_frame, text="Open", state='disabled')
         single_file_button.place(relx=0.8, rely=0.5, relwidth=0.15)
+        self.switches["single file"] = single_file_switch
+        self.strvars["single file"] = single_file_sv
+        self.entries["single file"] = single_file_entry
 
         # ------- RAW MEA ------------------
         raw_mea_switch = ctk.CTkSwitch(master=raw_mea_frame, text="Raw MEA recording files", )
@@ -129,6 +156,9 @@ class ProcessingView(ctk.CTkFrame):
         raw_mea_sv = ctk.StringVar()
         raw_mea_entry = ctk.CTkEntry(master=raw_mea_frame, state='disabled', textvariable=raw_mea_sv)
         raw_mea_entry.place(relx=0.4, rely=0.5, relwidth=0.5)
+        self.switches["raw mea"] = raw_mea_switch
+        self.strvars["raw mea"] = raw_mea_sv
+        self.entries["raw mea"] = raw_mea_entry
 
         # --------- SELECT ELECTRODES -------
         electrode_switch = ctk.CTkSwitch(master=select_elec_frame, text="Select electrodes", )
@@ -150,6 +180,11 @@ class ProcessingView(ctk.CTkFrame):
         n_electrode_sv = ctk.StringVar()
         n_electrodes_entry = ctk.CTkEntry(master=select_elec_frame, state='disabled', textvariable=n_electrode_sv)
         n_electrodes_entry.place(relx=0.66, rely=0.66, relwidth=0.2)
+        self.switches["select electrodes"] = electrode_switch
+        self.cboxes["select electrode mode"] = mode_electrode_cbox
+        self.cboxes["select electrode metric"] = metric_electrode_cbox
+        self.strvars["n electrodes"] = n_electrode_sv
+        self.entries["n electrodes"] = n_electrodes_entry
 
         # ------- SAMPLING ------------------------
         sampling_switch = ctk.CTkSwitch(master=sampling_frame, text="Down sampling recordings")
@@ -162,6 +197,9 @@ class ProcessingView(ctk.CTkFrame):
         sampling_entry.place(relx=0.40, rely=0.33, relwidth=0.2)
         sampling_pieces_label = ctk.CTkLabel(master=sampling_frame, text="pieces", text_color=gp.disabled_label_color)
         sampling_pieces_label.place(relx=0.7, rely=0.33)
+        self.switches["sampling"] = sampling_switch
+        self.entries["sampling"] = sampling_entry
+        self.strvars["sampling"] = sampling_sv
 
         # ------- FILTERING ------------------------
         sub_filterframe = ctk.CTkFrame(master=filter_frame, height=280)
@@ -233,6 +271,20 @@ class ProcessingView(ctk.CTkFrame):
         nth_harmonics_entry = ctk.CTkEntry(master=sub_filterframe, state='disabled', textvariable=nth_hamronics_sv)
         nth_harmonics_entry.place(relx=0.7, rely=0.85, relwidth=0.2)
 
+        self.switches["filter"] = name_filter_switch
+        self.entries["filter order"] = order_filter_entry
+        self.strvars["filter order"] = order_filter_sv
+        self.entries["filter sampling"] = sampling_filter_entry
+        self.strvars["filter sampling"] = sampling_filter_sv
+        self.entries["first frequency"] = frequency1_filter_entry
+        self.entries["second frequency"] = frequency2_filter_entry
+        self.cboxes["filter type"] = type_filter_cbox
+        self.cboxes["harmonic type"] = type_harmonics_cbox
+        self.strvars["harmonic frequency"] = freq_hamronics_sv
+        self.entries["harmonic frequency"] = frequency_harmonics_entry
+        self.strvars["nth harmonic"] = nth_hamronics_sv
+        self.entries["nth harmonic"] = nth_harmonics_entry
+
         # ------- FREQUENTIAL PROCESSING -----------
         fft_switch = ctk.CTkSwitch(master=frequential_frame, text="Fast Fourier Transform")
         fft_switch.place(relx=0.0, rely=0)
@@ -252,6 +304,14 @@ class ProcessingView(ctk.CTkFrame):
         smooth_sv = ctk.StringVar()
         smooth_entry = ctk.CTkEntry(master=frequential_frame, state='disabled', textvariable=smooth_sv)
         smooth_entry.place(relx=0, rely=0.85)
+
+        self.switches["fft"] = fft_switch
+        self.strvars["fft sampling"] = sampling_fft_sv
+        self.entries["fft sampling"] = sampling_fft_entry
+        self.switches["merge"] = merge_switch
+        self.switches["smoothing"] = smooth_switch
+        self.strvars["smoothing"] = smooth_sv
+        self.entries["smoothing"] = smooth_entry
 
         # ------- EXECUTE PROCESSING ---------------
         random_key_exec_switch = ctk.CTkSwitch(master=exec_frame, text="Add random key to file names")
@@ -285,6 +345,14 @@ class ProcessingView(ctk.CTkFrame):
         process_exec_button = ctk.CTkButton(master=exec_frame, fg_color="green", text="Process")
         process_exec_button.place(relx=0.7, rely=0.85, relwidth=0.3, relheight=0.15)
 
+        self.switches["random key"] = random_key_exec_switch
+        self.switches["timestamp"] = timestamp_exec_switch
+        self.switches["keyword"] = keyword_exec_switch
+        self.switches["make dataset"] = make_dataset_switch
+        self.entries["keyword"] = keyword_exec_entry
+        self.entries["save files"] = save_exec_entry
+        self.strvars["keyword"] = keyword_sv
+        self.strvars["save files"] = save_exec_sv
         # ------- CONFIGURE SWITCH COMMANDS -----------------
         sorting_files_switch.configure(
             command=partial(self.controller.main_controller.category_enabling_switch, sorting_files_switch,
@@ -329,29 +397,12 @@ class ProcessingView(ctk.CTkFrame):
 
         save_exec_button.configure(command=partial(self.select_save_directory, save_exec_sv))
 
-        switch_widgets = {"sorting": sorting_files_switch, "single file": single_file_switch, "raw mea": raw_mea_switch,
-                          "select electrodes": electrode_switch, "sampling": sampling_switch,
-                          "filter": name_filter_switch,
-                          "fft": fft_switch, "average": merge_switch, "smoothing": smooth_switch,
-                          "random key": random_key_exec_switch, "timestamp": timestamp_exec_switch,
-                          "keyword": keyword_exec_switch, "make dataset": make_dataset_switch}
-        cbox_widgets = {"mode electrode": mode_electrode_cbox, "metric electrode": metric_electrode_cbox,
-                        "filter type": type_filter_cbox, "harmonic type": type_harmonics_cbox}
-        entry_widgets = {"parent directory": sorting_entry, "single file": single_file_entry,
-                         "info header": raw_mea_entry, "n electrodes": n_electrodes_entry, "sampling": sampling_entry,
-                         "filter order": order_filter_entry, "filter fs": sampling_filter_entry,
-                         "first frequency": frequency1_filter_entry,
-                         "second frequency": frequency2_filter_entry, "harmonic": frequency_harmonics_entry,
-                         "nth harmonic": nth_harmonics_entry,
-                         "sampling fft": sampling_fft_entry, "n smoothing": smooth_entry, "keyword": keyword_exec_entry,
-                         "save under": save_exec_entry, }
-        textbox_widgets = {"to include": include_textbox, "to exclude": exclude_textbox, "targets": target_textbox}
-        process_exec_button.configure(command=partial(self.processing, switch_widgets, cbox_widgets,
-                                                      entry_widgets))
-        save_model_button.configure(command=partial(self.save_model, switch_widgets, cbox_widgets,
-                                                    entry_widgets))
-        load_model_button.configure(command=partial(self.save_model, switch_widgets, cbox_widgets,
-                                                    entry_widgets, textbox_widgets))
+        process_exec_button.configure(command=partial(self.processing, self.switches, self.cboxes,
+                                                      self.entries))
+        save_model_button.configure(command=partial(self.save_model, self.switches, self.cboxes,
+                                                    self.entries, self.textboxes))
+        load_model_button.configure(command=partial(self.save_model, self.switches, self.cboxes,
+                                                    self.entries, self.textboxes))
 
     def select_save_directory(self, strvar):
         if self.controller:
@@ -389,15 +440,15 @@ class ProcessingView(ctk.CTkFrame):
     def check_params_validity(self, switch_widgets, cbox_widgets,
                               entry_widgets):
         if self.controller:
-            self.controller.check_params_validity(switch_widgets, cbox_widgets, entry_widgets)
+            self.controller.check_params_validity(switch_widgets, entry_widgets)
 
     def update_number_of_tasks(self, n_file, n_col, ):
         if self.controller:
             self.controller.update_number_of_tasks(n_file, n_col)
 
-    def save_model(self, switch_widgets, cbox_widgets, entry_widgets):
+    def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textboxes):
         if self.controller:
-            self.controller.save_model(switch_widgets, cbox_widgets, entry_widgets)
+            self.controller.save_model(switch_widgets, cbox_widgets, entry_widgets, textboxes)
 
     def load_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
         if self.controller:
