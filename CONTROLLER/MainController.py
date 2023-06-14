@@ -10,7 +10,6 @@ from tkinter import messagebox
 
 import customtkinter as ctk
 import fiiireflyyy.firefiles as ff
-import fiiireflyyy.fireprocess
 import fiiireflyyy.fireprocess as fp
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier

@@ -15,11 +15,10 @@ import tkinter as tk
 from tkinter import ttk
 from fiiireflyyy import firefiles as ff
 from fiiireflyyy import fireprocess as fp
+from fiiireflyyy import logic_gates as gates
 
 from CONTROLLER import data_processing as dpr
 
-import pygates
-logic = pygates.Gates
 
 
 class ProcessingController:
@@ -349,7 +348,6 @@ class ProcessingController:
     @staticmethod
     def check_params_validity(switches, entries):
 
-        # logic gates
         if switches["make dataset"].get():
             if not ival.AND([switches["merge"].get(), switches["sorting"].get()]):
                 messagebox.showerror(title="Params validity", message="The 'make dataset' option is available only if "
