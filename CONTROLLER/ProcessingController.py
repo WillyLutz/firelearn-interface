@@ -20,7 +20,6 @@ from fiiireflyyy import logic_gates as gates
 from CONTROLLER import data_processing as dpr
 
 
-
 class ProcessingController:
     def __init__(self, main_controller, model: ProcessingModel, view: ProcessingView, ):
         self.processing_progress = None
@@ -29,7 +28,7 @@ class ProcessingController:
         self.main_controller = main_controller
 
     def processing(self, switch_widgets, cbox_widgets, entry_widgets):
-        if self.check_params_validity(switch_widgets, entry_widgets):
+        if self.check_params_validity(switch_widgets, entry_widgets, cbox_widgets):
             self.update_params(switch_widgets)
             self.update_params(cbox_widgets)
             self.update_params(entry_widgets)
@@ -97,7 +96,7 @@ class ProcessingController:
             if not local_switch["random key"] and not local_switch["keyword"] and not local_switch["timestamp"]:
                 processing_basename.append("FL_processed")
 
-            harmonics = self.main_controller.generate_harmonics(int(local_entry["harmonic"]),
+            harmonics = self.main_controller.generate_harmonics(int(local_entry["harmonic frequency"]),
                                                                 int(local_entry["nth harmonic"]),
                                                                 local_cbox["harmonic type"])
             # file processing
@@ -157,7 +156,7 @@ class ProcessingController:
                                                             btype='bandpass',
                                                             lowcut=int(local_entry["first frequency"]),
                                                             highcut=int(local_entry["second frequency"]))
-                            if local_entry["harmonic"]:
+                            if local_entry["harmonic frequency"]:
                                 for h in harmonics:
                                     df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_entry["filter order"]),
                                                                 btype='bandstop', lowcut=h - 2,
@@ -204,7 +203,7 @@ class ProcessingController:
                     filename_constructor.append(".csv")
 
                     if local_switch["make dataset"] == 0:
-                        df_s_processed.to_csv(os.path.join(local_entry["save under"], '_'.join(filename_constructor)),
+                        df_s_processed.to_csv(os.path.join(local_entry["save files"], '_'.join(filename_constructor)),
                                               index=False)
                     else:
                         processed_files_to_make_dataset.append((df_s_processed, file))
@@ -258,7 +257,7 @@ class ProcessingController:
                 if not local_switch["random key"] and not local_switch["keyword"] and not local_switch["timestamp"]:
                     processing_basename.append("FL_processed")
 
-                dataset.to_csv(os.path.join(local_entry["save under"], '_'.join(processing_basename) + '.csv'),
+                dataset.to_csv(os.path.join(local_entry["save files"], '_'.join(processing_basename) + '.csv'),
                                index=False)
 
     def select_save_directory(self, strvar):
@@ -346,7 +345,7 @@ class ProcessingController:
             self.model.cbox_params.update(local_dict)
 
     @staticmethod
-    def check_params_validity(switches, entries):
+    def check_params_validity(switches, entries, cboxes):
 
         if switches["make dataset"].get():
             if not ival.AND([switches["merge"].get(), switches["sorting"].get()]):
@@ -365,14 +364,14 @@ class ProcessingController:
 
         # valid number format
         for widget in ["raw mea", "n electrodes", "sampling", "filter order", "filter sampling", "first frequency",
-                       "second frequency", "harmonic", "nth harmonic", "fft sampling", "smoothing"]:
+                       "second frequency", "harmonic frequency", "nth harmonic", "fft sampling", "smoothing"]:
             if ival.widget_value_is_positive_int_or_empty(entries[widget]) is False:
                 return False
 
         # correct values
-        if entries["harmonic"].get():
+        if entries["harmonic frequency"].get():
             if entries["nth harmonic"].get():
-                harmonic = int(entries["harmonic"].get())
+                harmonic = int(entries["harmonic frequency"].get())
                 nth = int(entries["nth harmonic"].get())
                 frequency = int(entries["filter fs"].get())
                 if harmonic * nth > frequency / 2:
@@ -390,46 +389,70 @@ class ProcessingController:
             return False
 
         # invalid paths
-        if entries["save under"].get() == '':
+        if entries["save files"].get() == '':
             messagebox.showwarning('Path warning', 'You have to select a directory where to save your file(n_sample).')
             return False
-        elif os.path.isdir(entries["save under"].get()) is False:
-            messagebox.showerror('Path error', f'The selected path {entries["save under"].get()} does not exist.')
+        elif os.path.isdir(entries["save files"].get()) is False:
+            messagebox.showerror('Path error', f'The selected path {entries["save files"].get()} does not exist.')
             return False
 
         for switch in switches:
             if switch == "sorting":
-                if not entries["sorting"]:
-                    messagebox.showerror("Missing Value", "You have to select a parent directory to run multi-file processing.")
+                if not entries["sorting"].get():
+                    messagebox.showerror("Missing Value",
+                                         "You have to select a parent directory to run multi-file processing.")
                     return False
 
-            if switch == "single file":
-                if not entries["single file"]:
+            if switch == "single file" and switches[switch].get():
+                if not entries["single file"].get():
                     messagebox.showerror("Missing Value", "You have to select a file to run single file processing.")
                     return False
 
-            if switch == "raw mea":
-                if not entries["raw mea"]:
-                    messagebox.showerror("Missing Value", "You have to indicate a number of rows to remove from the raw MEA files.")
+            if switch == "raw mea" and switches[switch].get():
+                if not entries["raw mea"].get():
+                    messagebox.showerror("Missing Value",
+                                         "You have to indicate a number of rows to remove from the raw MEA files.")
                     return False
 
-            if switch == "select electrodes":
-                if not entries["n electrodes"]:
+            if switch == "select electrodes" and switches[switch].get():
+                if not entries["n electrodes"].get():
                     messagebox.showerror("Missing Value", "You have to indicate a number of electrodes to keep.")
                     return False
 
-            if switch == "sampling":
-                if not entries["sampling"]:
+            if switch == "sampling" and switches[switch].get():
+                if not entries["sampling"].get():
                     messagebox.showerror("Missing Value", "You have to indicate a number of samples.")
                     return False
 
-            if switch == "filter":
-                if not ival.AND([entries[x] for x in ["filter order", "filter sampling", "first frequency",]]):
+            if switch == "filter" and switches[switch].get():
+                if not ival.AND([entries[x].get() for x in ["filter order", "filter sampling", "first frequency", ]]):
                     messagebox.showerror("Missing Value", "You have to fill at least the filter order, sampling "
                                                           "frequency, and first frequency to use the filtering function.")
                     return False
-                # todo : check f2 depending on the filter type
-        # todo : check that all entries are filled if switch is on
+
+                if entries["second frequency"].get() and (cboxes["filter type"].get() not in ["Bandstop", "Bandpass"]):
+                    messagebox.showerror("Missing Value", f"The second frequency is not needed when using a "
+                                                          f"{cboxes['filter type'].get()} filter.")
+                    return False
+                if cboxes["filter type"].get() in ["Bandstop", "Bandpass"] and not gates.AND(
+                        [entries["second frequency"].get(), entries["first frequency"].get()]):
+                    messagebox.showerror("Missing Value", f"Both low cut and high cut frequencies are needed when"
+                                                          f" using a f{cboxes['filter type'].get()} filter")
+                    return False
+
+            if switch == "fft" and switches[switch].get():
+                if not entries["fft"].get():
+                    messagebox.showerror("Missing Value",
+                                         "Sampling frequency rate needed to perform Fast Fourier Transform.")
+                    return False
+            if switch == "smoothing" and switches[switch].get():
+                if not entries["smoothing"].get():
+                    messagebox.showerror("Missing Value", "Number of final values needed to perform smoothing.")
+                    return False
+            if switch == "keyword" and switches[switch].get():
+                if not entries["keyword"].get():
+                    messagebox.showerror("Missing Value", "Keyword needed.")
+                    return False
         return True
 
     def update_number_of_tasks(self, n_file, n_col, ):
@@ -457,17 +480,17 @@ class ProcessingController:
 
         return total_tasks
 
-    def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widget):
-        if self.check_params_validity(switch_widgets, entry_widgets):
+    def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
+        if self.check_params_validity(switch_widgets, entry_widgets, cbox_widgets):
             self.update_params(switch_widgets)
             self.update_params(cbox_widgets)
             self.update_params(entry_widgets)
 
-            f = filedialog.asksaveasfilename(defaultextension=".mdl", filetypes=[("Models", "*.mdl"), ])
+            f = filedialog.asksaveasfilename(defaultextension=".cfg", filetypes=[("Configuration", "*.cfg"), ])
             self.model.save_model(path=f, )
 
     def load_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
-        f = filedialog.askopenfilename(title="Open file", filetypes=(("Model", "*.mdl"),))
+        f = filedialog.askopenfilename(title="Open file", filetypes=(("Configuration", "*.cfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model(switch_widgets, cbox_widgets, entry_widgets, textbox_widgets)

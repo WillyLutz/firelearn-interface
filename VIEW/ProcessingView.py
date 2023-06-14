@@ -130,7 +130,7 @@ class ProcessingView(ctk.CTkFrame):
         self.strvars["value target"] = rename_target_sv
         self.entries["key target"] = id_target_entry
         self.entries["value target"] = rename_target_entry
-        self.textboxes["target"] = target_textbox
+        self.textboxes["targets"] = target_textbox
 
         # -------- SINGLE FILE ------------
         single_file_switch = ctk.CTkSwitch(master=single_file_frame, text="Single file analysis")
@@ -171,11 +171,11 @@ class ProcessingView(ctk.CTkFrame):
         n_electrode_label = ctk.CTkLabel(master=select_elec_frame, text="n electrodes: ",
                                          text_color=gp.disabled_label_color)
         n_electrode_label.place(relx=0.66, rely=0.3, )
-        mode_electrode_cbox = tk.ttk.Combobox(master=select_elec_frame, values=["max", ], state='disabled')
-        mode_electrode_cbox.set("max")
+        mode_electrode_cbox = tk.ttk.Combobox(master=select_elec_frame, values=["None", "max", ], state='disabled')
+        mode_electrode_cbox.set("None")
         mode_electrode_cbox.place(relx=0.0, rely=0.66, relwidth=0.3)
-        metric_electrode_cbox = tk.ttk.Combobox(master=select_elec_frame, values=["std", ], state='disabled')
-        metric_electrode_cbox.set("std")
+        metric_electrode_cbox = tk.ttk.Combobox(master=select_elec_frame, values=["None", "std", ], state='disabled')
+        metric_electrode_cbox.set("None")
         metric_electrode_cbox.place(relx=0.33, rely=0.66, relwidth=0.3)
         n_electrode_sv = ctk.StringVar()
         n_electrodes_entry = ctk.CTkEntry(master=select_elec_frame, state='disabled', textvariable=n_electrode_sv)
@@ -234,9 +234,9 @@ class ProcessingView(ctk.CTkFrame):
                                                text_color=gp.disabled_label_color)
         frequency2_filter_label.place(relx=0.8, rely=0.35)
         type_filter_cbox = tk.ttk.Combobox(master=sub_filterframe,
-                                           values=["Highpass", "Lowpass", "Bandstop", "Bandpass"],
+                                           values=["None", "Highpass", "Lowpass", "Bandstop", "Bandpass"],
                                            state="disabled")
-        type_filter_cbox.set("Highpass")
+        type_filter_cbox.set("None")
         type_filter_cbox.place(relx=0, rely=0.45, relwidth=0.4)
         f1_filter_sv = ctk.StringVar()
         frequency1_filter_entry = ctk.CTkEntry(master=sub_filterframe, state='disabled', textvariable=f1_filter_sv)
@@ -259,9 +259,9 @@ class ProcessingView(ctk.CTkFrame):
         nth_harmonics_label.place(relx=0.7, rely=0.75)
 
         type_harmonics_cbox = tk.ttk.Combobox(master=sub_filterframe,
-                                              values=["All", "Even", "Odd", ],
+                                              values=["Non", "All", "Even", "Odd", ],
                                               state="disabled")
-        type_harmonics_cbox.set("All")
+        type_harmonics_cbox.set("None")
         type_harmonics_cbox.place(relx=0, rely=0.85, relwidth=0.25)
         freq_hamronics_sv = ctk.StringVar()
         frequency_harmonics_entry = ctk.CTkEntry(master=sub_filterframe, state='disabled',
@@ -377,7 +377,7 @@ class ProcessingView(ctk.CTkFrame):
                             sub_filterframe))
 
         # -------- CONFIGURE BUTTON COMMANDS ----------------
-        sorting_button.configure(command=partial(self.select_parent_directory, display_sv=sorting_sv))
+        sorting_button.configure(command=partial(self.select_parent_directory, sorting_sv))
         add_include_button.configure(
             command=partial(self.add_subtract_to_include, include_entry, include_textbox, mode='add'))
         subtract_include_button.configure(
@@ -401,7 +401,7 @@ class ProcessingView(ctk.CTkFrame):
                                                       self.entries))
         save_model_button.configure(command=partial(self.save_model, self.switches, self.cboxes,
                                                     self.entries, self.textboxes))
-        load_model_button.configure(command=partial(self.save_model, self.switches, self.cboxes,
+        load_model_button.configure(command=partial(self.load_model, self.switches, self.cboxes,
                                                     self.entries, self.textboxes))
 
     def select_save_directory(self, strvar):
@@ -440,15 +440,15 @@ class ProcessingView(ctk.CTkFrame):
     def check_params_validity(self, switch_widgets, cbox_widgets,
                               entry_widgets):
         if self.controller:
-            self.controller.check_params_validity(switch_widgets, entry_widgets)
+            self.controller.check_params_validity(switch_widgets, entry_widgets, cbox_widgets)
 
     def update_number_of_tasks(self, n_file, n_col, ):
         if self.controller:
             self.controller.update_number_of_tasks(n_file, n_col)
 
-    def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textboxes):
+    def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
         if self.controller:
-            self.controller.save_model(switch_widgets, cbox_widgets, entry_widgets, textboxes)
+            self.controller.save_model(switch_widgets, cbox_widgets, entry_widgets, textbox_widgets)
 
     def load_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
         if self.controller:

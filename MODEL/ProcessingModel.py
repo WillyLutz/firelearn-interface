@@ -1,4 +1,5 @@
 import pickle
+from tkinter import messagebox
 
 from data import params
 
@@ -112,11 +113,31 @@ class ProcessingModel:
 
     def load_model(self, path):
         # todo : load model
-        pass
+        try:
+            attr_dict = pickle.load(open(path, "rb"))
+            if attr_dict["version"] == self.version:
+                self.__dict__.update(attr_dict)
+                messagebox.showinfo("Info", f"Processing configuration correctly loaded.\nVersion {self.version}")
+                return True
+            else:
+                messagebox.showerror("Error", f"You can not load a configuration version ({attr_dict['version']})"
+                                              f" other than the current one in use ({self.version})")
+                return False
+        except Exception as e:
+            messagebox.showerror("Error", "Error while loading processing configuration.\n\n"
+                                          f"{e}")
+            return False
 
     def save_model(self, path):
         # todo : save model
-        pass
+        try:
+            attr_dict = self.__dict__
+            pickle.dump(attr_dict, open(path, "wb"))
+            messagebox.showinfo("Info", f"Processing configuration correctly saved.\nVersion {self.version}")
+        except Exception as e:
+            messagebox.showerror("Error", "Error while saving processing configuration.\n\n"
+                                          f"{e}")
+
 
 
 
