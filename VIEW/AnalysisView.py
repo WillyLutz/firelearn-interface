@@ -16,7 +16,6 @@ import tkterminal
 from tkterminal import Terminal
 import VIEW.graphic_params as gp
 from sklearn.ensemble import RandomForestClassifier
-from VIEW.CustomTable import CustomTable
 
 
 class AnalysisView(ctk.CTkFrame):

@@ -5,14 +5,17 @@ import threading
 import time
 
 
-class ProgressBar(threading.Thread):
+class ProgressBar(threading.Thread, ):
     def __init__(self, name, app):
         super().__init__()
+        self.daemon = True
+        self.task = ""
         self.completed_tasks = 0
         self.total_tasks = 0
         self.progress_stringvar = tkinter.StringVar()
         self.name = name
         self.app = app
+        self._stop_event = threading.Event()
 
         progress_window = ctk.CTkToplevel(master=self.app)
         progress_window.title(self.name)
@@ -23,10 +26,20 @@ class ProgressBar(threading.Thread):
         self.progress_label = ctk.CTkLabel(progress_window, textvariable=self.progress_stringvar)
         self.progress_label.place(anchor=tkinter.CENTER, relx=0.5, rely=0.7)
 
-    def update_progress(self, taskname):
-        if self.progress_bar.get() < 1:
+        progress_window.focus_force()
+
+        # todo : make the processing stop when the thread is killed
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+    def update_progress(self):
+        if self.progress_bar.get() <= 1:
             self.progress_bar.set((self.completed_tasks / self.total_tasks))
-            self.update_progress_stringvar(taskname)
+            self.update_progress_stringvar(self.task)
         self.app.update()
 
     def update_progress_stringvar(self, taskname):
@@ -42,6 +55,13 @@ class ProgressBar(threading.Thread):
 
     def increment_progress(self, n=1):
         self.completed_tasks = self.completed_tasks + n
+        self.update_progress()
+        return self
 
-    # todo : for the HEAVY PROCESSING TEST, completed tasks > total tasks
+    def update_task(self, task):
+        self.task = task
+        self.update_progress()
+        return self
+
+
     # todo : after processing when closing the windows, 'while executing --- ("after" script) probably due to daemon threading

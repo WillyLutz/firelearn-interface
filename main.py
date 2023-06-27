@@ -9,7 +9,6 @@ from MODEL.MainModel import MainModel
 from data import params
 import customtkinter
 
-
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()

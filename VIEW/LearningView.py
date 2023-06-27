@@ -3,6 +3,7 @@ from functools import partial
 from tkinter import ttk
 
 import customtkinter as ctk
+from PIL import Image
 from sklearn.ensemble import RandomForestClassifier
 
 import VIEW.graphic_params as gp
@@ -13,11 +14,15 @@ class LearningView(ctk.CTkFrame):
         super().__init__(master=app)
         self.master = master
         self.controller = controller
+        self.app = app
 
         self.entries = {}
         self.buttons = {}
-        self.cboxes = {}
+        self.cbboxes = {}
         self.strvars = {}
+        self.switches = {}
+        self.checkboxes = {}
+        self.checkvars = {}
         self.rfc_params_stringvar = {}
         self.textboxes = {}
 
@@ -31,8 +36,6 @@ class LearningView(ctk.CTkFrame):
         self.controller = controller
 
     def manage_tab(self):
-        # todo : managing learning tab
-
         params_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
         params_frame.place(relx=0, rely=0, relwidth=0.30, relheight=1)
         manage_dataset_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
@@ -75,111 +78,192 @@ class LearningView(ctk.CTkFrame):
 
         # ------------ MANAGE DATASET ------------------
         load_dataset_button = ctk.CTkButton(master=manage_dataset_frame, text="Load dataset")
-        load_dataset_button.place(relx=0, rely=0)
+        load_dataset_button.place(relx=0, rely=0, relwidth=0.2)
         self.buttons["load dataset"] = load_dataset_button
 
         load_dataset_strvar = tk.StringVar()
         load_dataset_entry = ctk.CTkEntry(master=manage_dataset_frame, state='normal', textvariable=load_dataset_strvar)
-        load_dataset_entry.place(relx=0, rely=0.06, relwidth=0.8)
+        load_dataset_entry.place(relx=0.25, rely=0, relwidth=0.7)
         self.entries["load dataset"] = load_dataset_entry
         self.strvars["load dataset"] = load_dataset_strvar
 
         label_column_label = ctk.CTkLabel(master=manage_dataset_frame, text="Select targets column")
-        label_column_label.place(relx=0, rely=0.15)
+        label_column_label.place(relx=0, rely=0.1)
 
-        label_column_cbox = tk.ttk.Combobox(master=manage_dataset_frame, state='disabled', values=["None", ])
-        label_column_cbox.set("None")
-        label_column_cbox.place(relx=0, rely=0.2, relwidth=0.8)
-        self.cboxes["target column"] = label_column_cbox
+        label_column_cbbox = tk.ttk.Combobox(master=manage_dataset_frame, state='disabled', values=["None", ])
+        label_column_cbbox.set("None")
+        label_column_cbbox.place(relx=0, rely=0.15, relwidth=0.8)
+        self.cbboxes["target column"] = label_column_cbbox
+
+        key_target_label = ctk.CTkLabel(master=manage_dataset_frame, text="Training targets:",
+                                        text_color=gp.enabled_label_color)
+        key_target_label.place(relx=0.05, rely=0.22)
+
+        id_target_sv = ctk.StringVar()
+        id_target_entry = ctk.CTkEntry(master=manage_dataset_frame, state='normal', textvariable=id_target_sv)
+        id_target_entry.place(relx=0.05, rely=0.28, relwidth=0.4)
+        self.entries["key target"] = id_target_entry
+        self.strvars["key target"] = id_target_sv
+        add_target_button = ctk.CTkButton(master=manage_dataset_frame, text="+", width=25, height=25, state='normal')
+        add_target_button.place(relx=0.5, rely=0.28)
+        subtract_target_button = ctk.CTkButton(master=manage_dataset_frame, text="-", width=25, height=25, state='normal')
+        subtract_target_button.place(relx=0.6, rely=0.28)
+        self.buttons["add target"] = add_target_button
+        self.buttons["subtract target"] = subtract_target_button
+
+        training_textbox = ctk.CTkTextbox(master=manage_dataset_frame, corner_radius=10, state='disabled')
+        training_textbox.place(relx=0.05, rely=0.35, relwidth=0.4, relheight=0.43)
+        self.textboxes["targets"] = training_textbox
+
+
+        n_iter_label = ctk.CTkLabel(master=manage_dataset_frame, text="Train / test iterations:")
+        n_iter_label.place(relx=0.5, rely=0.4)
+        n_iter_sv = tk.StringVar()
+        self.strvars["n iter"] = n_iter_sv
+        n_iter_sv.set("0")
+        n_iter_entry = ctk.CTkEntry(master=manage_dataset_frame, textvariable=n_iter_sv, state='normal')
+        n_iter_entry.place(relx=0.5, rely=0.45, relwidth=0.1)
+        self.entries["n iter"] = n_iter_entry
+
+        get_metrics_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Get advanced \nclassification metrics")
+        get_metrics_switch.place(relx=0.5, rely=0.55)
+        self.switches["get metrics"] = get_metrics_switch
+
+        load_rfc_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Load pre-trained\nclassifier",
+                                        command=self.load_classifier)
+        load_rfc_switch.place(relx=0.5, rely=0.65)
+        self.switches["load rfc"] = load_rfc_switch
+
+        load_clf_button = ctk.CTkButton(master=manage_dataset_frame, text="Load classifier", state='disabled')
+        load_clf_button.place(relx=0.5, rely=0.73, relwidth=0.3)
+        self.buttons["load rfc"] = load_clf_button
+
+        save_rfc_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Save classifier after training",
+                                        command=self.save_classifier)
+        save_rfc_switch.place(relx=0, rely=0.80)
+        self.switches["save rfc"] = save_rfc_switch
 
         save_files_label = ctk.CTkLabel(master=manage_dataset_frame, text="Save Classifier under:",
                                         text_color=gp.enabled_label_color)
-        save_files_label.place(relx=0, rely=0.8)
+        save_files_label.place(relx=0, rely=0.87)
         save_rfc_strvar = ctk.StringVar()
         save_entry = ctk.CTkEntry(master=manage_dataset_frame, textvariable=save_rfc_strvar)
-        save_entry.place(relx=0, rely=0.85, relwidth=0.7)
+        save_entry.place(relx=0, rely=0.92, relwidth=0.65)
         self.entries["save rfc"] = save_entry
         self.strvars["save rfc"] = save_rfc_strvar
 
-        save_rfc_button = ctk.CTkButton(master=manage_dataset_frame, text="Open")
-        save_rfc_button.place(relx=0.8, rely=0.85, relwidth=0.15)
+        save_rfc_button = ctk.CTkButton(master=manage_dataset_frame, text="Save classifier as", state='disabled')
+        save_rfc_button.place(relx=0.66, rely=0.92,)
         self.buttons["save rfc"] = save_rfc_button
 
         # ----------- DISPLAY CLASSIFIER -----------------
 
         rfc_path_sv = tk.StringVar()
-        rfc_path_sv.set("Classifier path:")
         self.strvars["rfc path"] = rfc_path_sv
-        rfc_path_label = ctk.CTkLabel(master=classifier_frame, textvariable=rfc_path_sv)
+        rfc_path_label = ctk.CTkLabel(master=classifier_frame, text="Classifier path:")
         rfc_path_label.place(relx=0, rely=0)
+        rfc_path_entry = ctk.CTkEntry(master=classifier_frame, textvariable=rfc_path_sv, state='disabled')
+        rfc_path_entry.place(relx=0.25, rely=0, relwidth=0.7)
+        self.entries["rfc path"] = rfc_path_entry
 
         rfc_name_sv = tk.StringVar()
-        rfc_name_sv.set("Classifier name:")
         self.strvars["rfc name"] = rfc_name_sv
-        rfc_name_label = ctk.CTkLabel(master=classifier_frame, textvariable=rfc_name_sv)
+        rfc_name_label = ctk.CTkLabel(master=classifier_frame, text="Classifier name:")
         rfc_name_label.place(relx=0, rely=0.1)
+        rfc_name_entry = ctk.CTkEntry(master=classifier_frame, textvariable=rfc_name_sv, state='disabled')
+        rfc_name_entry.place(relx=0.25, rely=0.1, relwidth=0.3)
+        self.entries["rfc name"] = rfc_name_entry
 
         rfc_status_sv = tk.StringVar()
-        rfc_status_sv.set("Trained:")
         self.strvars["rfc status"] = rfc_status_sv
-        rfc_status_label = ctk.CTkLabel(master=classifier_frame, textvariable=rfc_status_sv)
+        rfc_status_label = ctk.CTkLabel(master=classifier_frame, text="Pre-Trained:")
         rfc_status_label.place(relx=0, rely=0.2)
+        rfc_status_entry = ctk.CTkEntry(master=classifier_frame, textvariable=rfc_status_sv, state='disabled')
+        rfc_status_entry.place(relx=0.25, rely=0.2, relwidth=0.3)
+        self.entries["rfc status"] = rfc_status_entry
 
-        rfc_train_sv = tk.StringVar()
-        rfc_train_sv.set("Train score:")
-        self.strvars["rfc train"] = rfc_train_sv
-        rfc_train_label = ctk.CTkLabel(master=classifier_frame, textvariable=rfc_train_sv)
-        rfc_train_label.place(relx=0, rely=0.3)
+        metrics_textbox = ctk.CTkTextbox(master=classifier_frame, state='disabled')
+        metrics_textbox.place(relx=0.05, rely=0.3, relwidth=0.9, relheight=0.6)
+        self.textboxes["metrics"] = metrics_textbox
 
-        rfc_test_sv = tk.StringVar()
-        rfc_test_sv.set("Test score:")
-        self.strvars["rfc test"] = rfc_test_sv
-        rfc_test_label = ctk.CTkLabel(master=classifier_frame, textvariable=rfc_test_sv)
-        rfc_test_label.place(relx=0, rely=0.4)
+        export_button = ctk.CTkButton(master=classifier_frame, text="Export results", fg_color="green")
+        export_button.place(anchor=tk.SE, relx=1, rely=1)
+        self.buttons["export"] = export_button
 
         # ----------- LOADING FRAME -------------------
-        load_params_button = ctk.CTkButton(master=loading_frame, text="Load configuration")
-        load_params_button.place(anchor=tk.CENTER, relx=0.25, rely=0.5)
-        self.buttons["load config"] = load_params_button
+        save_config_button = ctk.CTkButton(master=loading_frame, text="Save config", fg_color="lightslategray")
+        save_config_button.place(anchor=tk.CENTER, relx=0.2, rely=0.5, relwidth=0.18)
+        self.buttons["save config"] = save_config_button
 
-        load_clf_button = ctk.CTkButton(master=loading_frame, text="Load classifier")
-        load_clf_button.place(anchor=tk.CENTER, relx=0.5, rely=0.5)
-        self.buttons["load rfc"] = load_clf_button
+        load_config_button = ctk.CTkButton(master=loading_frame, text="Load config", fg_color="lightslategray")
+        load_config_button.place(anchor=tk.CENTER, relx=0.4, rely=0.5, relwidth=0.18)
+        self.buttons["load config"] = load_config_button
+
+
 
         learning_button = ctk.CTkButton(master=loading_frame, text="Learning", fg_color="green")
-        learning_button.place(anchor=tk.CENTER, relx=0.75, rely=0.5)
+        learning_button.place(anchor=tk.CENTER, relx=0.8, rely=0.5, relwidth=0.18, relheight=0.8)
         self.buttons["learning"] = learning_button
 
         # ------------ CONFIGURE COMMANDS ---------------
 
-        reload_button.configure(command=partial(self.reload_rfc_params, self.rfc_params_stringvar))
-        # todo : command configure load dataset
-        load_dataset_button.configure(command=partial(self.load_dataset, self.strvars["load dataset"],
-                                                      label_column_cbox))
-        # todo : command configure open clf
+        reload_button.configure(command=self.reload_rfc_params)
+        load_dataset_button.configure(command=self.load_dataset)
         save_rfc_button.configure(command=partial(self.savepath_rfc, self.strvars["save rfc"]))
-        load_clf_button.configure(command=partial(self.load_rfc, self.rfc_params_stringvar, self.strvars))
-        # todo : command configure load config / save config
-        # todo : command configure  learning
-        learning_button.configure(command=partial(self.learning, self.entries, self.cboxes, self.rfc_params_stringvar,
-                                                  self.strvars))
+        load_clf_button.configure(command=self.load_rfc)
+        load_config_button.configure(command=self.load_model)
+        save_config_button.configure(command=self.save_model)
+        learning_button.configure(command=self.learning)
+        export_button.configure(command=self.export)
+        add_target_button.configure(command=partial(self.add_subtract_target, mode='add'))
+        subtract_target_button.configure(command=partial(self.add_subtract_target, mode='subtract'))
 
-    def learning(self, entries, cboxes, rfc_params_string_var, strvars):
+    def add_subtract_target(self, mode='add'):
         if self.controller:
-            self.controller.learning(entries, cboxes, rfc_params_string_var, strvars)
+            self.controller.add_subtract_target(mode)
+
+    def load_classifier(self):
+        if self.switches["load rfc"].get():
+            self.buttons["load rfc"].configure(state='normal')
+        else:
+            self.buttons["load rfc"].configure(state='disabled')
+
+    def save_classifier(self):
+        if self.switches["save rfc"].get():
+            self.buttons["save rfc"].configure(state='normal')
+        else:
+            self.buttons["save rfc"].configure(state='disabled')
+
+    def export(self):
+        if self.controller:
+            self.controller.export()
+
+    def save_model(self):
+        if self.controller:
+            self.controller.save_model()
+
+    def load_model(self):
+        if self.controller:
+            self.controller.load_model()
+
+    def learning(self, ):
+        if self.controller:
+            self.controller.learning(self.entries, self.cbboxes, self.switches, self.rfc_params_stringvar, self.strvars)
 
     def savepath_rfc(self, strvar):
         if self.controller:
             self.controller.savepath_rfc(strvar)
 
-    def load_rfc(self, rfc_params_string_var, strvars):
+    def load_rfc(self):
         if self.controller:
-            self.controller.load_rfc(rfc_params_string_var, strvars)
+            self.controller.load_rfc(self.rfc_params_stringvar, self.strvars)
 
-    def reload_rfc_params(self, rfc_params_string_var):
+    def reload_rfc_params(self):
         if self.controller:
-            self.controller.reload_rfc_params(rfc_params_string_var)
+            self.controller.reload_rfc_params(self.rfc_params_stringvar)
 
-    def load_dataset(self, strvar, label_cbox):
+    def load_dataset(self):
         if self.controller:
-            self.controller.load_dataset(strvar, label_cbox)
+            self.controller.load_dataset()
+
+# todo : add helpers

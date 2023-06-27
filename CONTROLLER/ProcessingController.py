@@ -33,9 +33,9 @@ class ProcessingController:
             self.update_params(cbox_widgets)
             self.update_params(entry_widgets)
 
-            local_entry = self.model.entry_params
-            local_switch = self.model.switch_params
-            local_cbox = self.model.cbox_params
+            local_entry = self.model.entries
+            local_switch = self.model.switches
+            local_cbox = self.model.cbboxes
 
             all_files = []
             if local_switch["sorting"]:
@@ -51,7 +51,7 @@ class ProcessingController:
             n_files = int(len(all_files))
             skiprow = 0
             if local_switch["raw mea"]:
-                skiprow = int(local_entry["info header"])
+                skiprow = int(local_entry["raw mea"])
 
             example_dataframe = pd.read_csv(all_files[0], index_col=False, skiprows=skiprow)
             if local_switch["select electrodes"]:
@@ -60,7 +60,6 @@ class ProcessingController:
                 n_columns = int(len([col for col in example_dataframe.columns if "time" not in col.lower()]))
 
             self.processing_progress = ProgressBar("Processing progression", app=self.view.app)
-            self.processing_progress.daemon = True
             self.processing_progress.total_tasks = self.update_number_of_tasks(n_files, n_columns)
             self.processing_progress.start()
 
@@ -70,8 +69,8 @@ class ProcessingController:
             processing_basename = []
             characters = string.ascii_letters + string.digits
             if local_switch["select electrodes"]:
-                processing_basename.append(f"Sel{local_cbox['mode electrode'].capitalize()}"
-                                           f"{local_cbox['metric electrode'].capitalize()}"
+                processing_basename.append(f"Sel{local_cbox['select electrode mode'].capitalize()}"
+                                           f"{local_cbox['select electrode metric'].capitalize()}"
                                            f"{local_entry['n electrodes']}")
             if local_switch["sampling"]:
                 processing_basename.append(f"Ds{local_entry['sampling']}sample{local_entry['sampling']}")
@@ -79,14 +78,14 @@ class ProcessingController:
                 processing_basename.append(
                     f"O{local_entry['filter order']}{local_cbox['filter type']}"
                     f"{local_entry['first frequency']}-{local_entry['second frequency']}"
-                    f"H{local_cbox['harmonic type']}{local_entry['harmonic']}-"
+                    f"H{local_cbox['harmonic type']}{local_entry['harmonic frequency']}-"
                     f"{local_entry['nth harmonic']}")
             if local_switch["fft"]:
                 processing_basename.append("FFT")
-            if local_switch["average"]:
+            if local_switch["merge"]:
                 processing_basename.append("avg")
             if local_switch["smoothing"]:
-                processing_basename.append(f"Sm{local_entry['n smoothing']}")
+                processing_basename.append(f"Sm{local_entry['smoothing']}")
             if local_switch["random key"]:
                 processing_basename.append(''.join(random.choice(characters) for _ in range(5)))
             if local_switch["keyword"]:
@@ -100,10 +99,11 @@ class ProcessingController:
                                                                 int(local_entry["nth harmonic"]),
                                                                 local_cbox["harmonic type"])
             # file processing
+
             for file in all_files:
                 samples = []
                 if local_switch["raw mea"]:
-                    self.processing_progress.update_progress("Beheading raw files")
+                    self.processing_progress.update_task("Beheading raw files")
                     df = pd.read_csv(file, index_col=False, skiprows=skiprow)
                     self.processing_progress.increment_progress(1)
                 else:
@@ -111,14 +111,14 @@ class ProcessingController:
 
                 # select electrodes
                 if local_switch["select electrodes"]:
-                    self.processing_progress.update_progress("Selecting columns")
+                    self.processing_progress.update_task("Selecting columns")
                     df = dpr.top_n_electrodes(df, int(local_entry["n electrodes"]), "TimeStamp")
                     self.processing_progress.increment_progress(1)
 
                 # down sampling recordings
 
                 if local_switch["sampling"]:
-                    self.processing_progress.update_progress("Down sampling file")
+                    self.processing_progress.update_task("Down sampling file")
                     samples = fp.equal_samples(df, int(local_entry["sampling"]))
                     self.processing_progress.increment_progress(1)
                 else:
@@ -131,7 +131,7 @@ class ProcessingController:
 
                     if local_switch["filter"]:
                         for ch in [col for col in df_s.columns if "time" not in col.lower()]:
-                            self.processing_progress.update_progress("Filtering")
+                            self.processing_progress.update_task("Filtering")
                             df_s_ch = df_s[ch]
                             if local_cbox["filter type"] == 'Highpass' and local_entry["first frequency"]:
                                 df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_entry["filter order"]),
@@ -167,29 +167,29 @@ class ProcessingController:
 
                     if local_switch["fft"]:
                         for ch in [col for col in df_s.columns if "time" not in col.lower()]:
-                            self.processing_progress.update_progress("Fast Fourier Transform")
+                            self.processing_progress.update_task("Fast Fourier Transform")
                             df_s_ch = df_s[ch]
                             # fast fourier
 
-                            clean_fft, clean_freqs = dpr.fast_fourier(df_s_ch, int(local_entry["sampling fft"]))
+                            clean_fft, clean_freqs = dpr.fast_fourier(df_s_ch, int(local_entry["fft sampling"]))
                             if "Frequency [Hz]" not in df_s_fft.columns:
                                 df_s_fft["Frequency [Hz]"] = clean_freqs
                             df_s_fft[ch] = clean_fft
                             self.processing_progress.increment_progress(1)
                         df_s = df_s_fft
 
-                    # average signal
-                    if local_switch["average"]:
-                        self.processing_progress.update_progress("Averaging signal")
+                    # merge signal
+                    if local_switch["merge"]:
+                        self.processing_progress.update_task("Averaging signal")
                         df_s = dpr.merge_all_columns_to_mean(df_s, "Frequency [Hz]").round(3)
                         self.processing_progress.increment_progress(1)
 
                     # smoothing signal
                     df_s_processed = pd.DataFrame()
                     if local_switch["smoothing"]:
-                        self.processing_progress.update_progress("Smoothing signal")
+                        self.processing_progress.update_task("Smoothing signal")
                         for ch in df_s.columns:
-                            df_s_processed[ch] = fp.smoothing(df_s[ch], int(local_entry["n smoothing"]), 'mean')
+                            df_s_processed[ch] = fp.smoothing(df_s[ch], int(local_entry["smoothing"]), 'mean')
                         self.processing_progress.increment_progress(1)
                     else:
                         df_s_processed = df_s
@@ -213,7 +213,7 @@ class ProcessingController:
                 dataset = pd.DataFrame(columns=[str(x) for x in range(len(first_df.values))])
                 targets = pd.DataFrame(columns=["label", ])
                 for data in processed_files_to_make_dataset:
-                    self.processing_progress.update_progress("Making dataset")
+                    self.processing_progress.update_task("Making dataset")
                     dataframe = data[0]
                     file = data[1]
                     for col in dataframe.columns:
@@ -231,8 +231,8 @@ class ProcessingController:
                 processing_basename = ["DATASET", ]
                 characters = string.ascii_letters + string.digits
                 if local_switch["select electrodes"]:
-                    processing_basename.append(f"Sel{local_cbox['mode electrode'].capitalize()}"
-                                               f"{local_cbox['metric electrode'].capitalize()}"
+                    processing_basename.append(f"Sel{local_cbox['select electrode mode'].capitalize()}"
+                                               f"{local_cbox['select electrode metric'].capitalize()}"
                                                f"{local_entry['n electrodes']}")
                 if local_switch["sampling"]:
                     processing_basename.append(f"Ds{local_entry['sampling']}sample{local_entry['sampling']}")
@@ -240,14 +240,14 @@ class ProcessingController:
                     processing_basename.append(
                         f"O{local_entry['filter order']}{local_cbox['filter type']}"
                         f"{local_entry['first frequency']}-{local_entry['second frequency']}"
-                        f"H{local_cbox['harmonic type']}{local_entry['harmonic']}-"
+                        f"H{local_cbox['harmonic type']}{local_entry['harmonic frequency']}-"
                         f"{local_entry['nth harmonic']}")
                 if local_switch["fft"]:
                     processing_basename.append("FFT")
-                if local_switch["average"]:
+                if local_switch["merge"]:
                     processing_basename.append("avg")
                 if local_switch["smoothing"]:
-                    processing_basename.append(f"Sm{local_entry['n smoothing']}")
+                    processing_basename.append(f"Sm{local_entry['smoothing']}")
                 if local_switch["random key"]:
                     processing_basename.append(''.join(random.choice(characters) for i in range(5)))
                 if local_switch["keyword"]:
@@ -284,30 +284,36 @@ class ProcessingController:
             return False
 
         to_include = entry.get()
-        local_include = self.model.to_include
-        if mode == 'add':
-            local_include.append(to_include)
-        elif mode == 'subtract':
-            local_include = [x for x in self.model.to_include if x != to_include]
-        self.model.to_include = local_include
-        self.main_controller.update_textbox(textbox, self.model.to_include)
-        entry.delete(0, ctk.END)
+        if to_include:
+            local_include = self.model.to_include
+            if mode == 'add':
+                local_include.append(to_include)
+            elif mode == 'subtract':
+                local_include = [x for x in self.model.to_include if x != to_include]
+            self.model.to_include = local_include
+            self.main_controller.update_textbox(textbox, self.model.to_include)
+            entry.delete(0, ctk.END)
+        else:
+            messagebox.showerror("Missing Value", "You need te indicate a value to include.")
 
     def add_subtract_to_exclude(self, entry, textbox, mode='add'):
         if ival.widget_value_has_forbidden_character(entry) is False:
             entry.delete(0, ctk.END)
             return False
         to_exclude = entry.get()
-        local_exclude = self.model.to_exclude
-        if mode == 'add':
-            local_exclude.append(to_exclude)
-        elif mode == 'subtract':
-            local_exclude = [x for x in self.model.to_exclude if x != to_exclude]
-        self.model.to_exclude = local_exclude
-        self.main_controller.update_textbox(textbox, self.model.to_exclude)
-        entry.delete(0, ctk.END)
+        if to_exclude:
+            local_exclude = self.model.to_exclude
+            if mode == 'add':
+                local_exclude.append(to_exclude)
+            elif mode == 'subtract':
+                local_exclude = [x for x in self.model.to_exclude if x != to_exclude]
+            self.model.to_exclude = local_exclude
+            self.main_controller.update_textbox(textbox, self.model.to_exclude)
+            entry.delete(0, ctk.END)
+        else:
+            messagebox.showerror("Missing Value", "You need te indicate a value to exclude.")
 
-    def add_subtract_target(self, key_entry, value_entry, textbox, mode='add'):  # todo : to processing controller
+    def add_subtract_target(self, key_entry, value_entry, textbox, mode='add'):
         if ival.widget_value_has_forbidden_character(key_entry) is False:
             key_entry.delete(0, ctk.END)
             value_entry.delete(0, ctk.END)
@@ -318,16 +324,21 @@ class ProcessingController:
             return False
         key = key_entry.get()
         value = value_entry.get()
+
         local_targets = self.model.targets
         if mode == 'add':
             if key and value:
                 local_targets[key] = value
+            else:
+                messagebox.showerror("Missing Value", "You need to indicate the key and the value to add a target.")
         elif mode == 'subtract':
             if key:
                 try:
                     del local_targets[key]
                 except KeyError:
                     pass
+            else:
+                messagebox.showerror("Missing Value", "You need to indicate at least the key to delete a target.")
         self.model.targets = local_targets
         self.main_controller.update_textbox(textbox, self.model.targets)
         key_entry.delete(0, ctk.END)
@@ -338,20 +349,20 @@ class ProcessingController:
         for key, value in widgets.items():
             local_dict[key] = value.get()
         if type(list(widgets.values())[0]) == ctk.CTkSwitch:
-            self.model.switch_params.update(local_dict)
+            self.model.switches.update(local_dict)
         if type(list(widgets.values())[0]) == ctk.CTkEntry:
-            self.model.entry_params.update(local_dict)
+            self.model.entries.update(local_dict)
         if type(list(widgets.values())[0]) == tk.ttk.Combobox:
-            self.model.cbox_params.update(local_dict)
+            self.model.cbboxes.update(local_dict)
 
     @staticmethod
-    def check_params_validity(switches, entries, cboxes):
+    def check_params_validity(switches, entries, cbboxes):
 
         if switches["make dataset"].get():
-            if not ival.AND([switches["merge"].get(), switches["sorting"].get()]):
+            if not gates.AND([switches["merge"].get(), switches["sorting"].get()]):
                 messagebox.showerror(title="Params validity", message="The 'make dataset' option is available only if "
                                                                       "'Merge' and 'Multiple files analysis' are both True.", )
-            return False
+                return False
 
         if all([switches["single file"].get(), switches["sorting"].get()]):
             messagebox.showerror(title="Params validity", message="You can only chose one between Single file "
@@ -373,7 +384,7 @@ class ProcessingController:
             if entries["nth harmonic"].get():
                 harmonic = int(entries["harmonic frequency"].get())
                 nth = int(entries["nth harmonic"].get())
-                frequency = int(entries["filter fs"].get())
+                frequency = int(entries["filter sampling"].get())
                 if harmonic * nth > frequency / 2:
                     messagebox.showerror("Value Error",
                                          "The chosen nth harmonic is superior to half the sampling frequency."
@@ -425,23 +436,23 @@ class ProcessingController:
                     return False
 
             if switch == "filter" and switches[switch].get():
-                if not ival.AND([entries[x].get() for x in ["filter order", "filter sampling", "first frequency", ]]):
+                if not gates.AND([entries[x].get() for x in ["filter order", "filter sampling", "first frequency", ]]):
                     messagebox.showerror("Missing Value", "You have to fill at least the filter order, sampling "
                                                           "frequency, and first frequency to use the filtering function.")
                     return False
 
-                if entries["second frequency"].get() and (cboxes["filter type"].get() not in ["Bandstop", "Bandpass"]):
+                if entries["second frequency"].get() and (cbboxes["filter type"].get() not in ["Bandstop", "Bandpass"]):
                     messagebox.showerror("Missing Value", f"The second frequency is not needed when using a "
-                                                          f"{cboxes['filter type'].get()} filter.")
+                                                          f"{cbboxes['filter type'].get()} filter.")
                     return False
-                if cboxes["filter type"].get() in ["Bandstop", "Bandpass"] and not gates.AND(
+                if cbboxes["filter type"].get() in ["Bandstop", "Bandpass"] and not gates.AND(
                         [entries["second frequency"].get(), entries["first frequency"].get()]):
                     messagebox.showerror("Missing Value", f"Both low cut and high cut frequencies are needed when"
-                                                          f" using a f{cboxes['filter type'].get()} filter")
+                                                          f" using a f{cbboxes['filter type'].get()} filter")
                     return False
 
             if switch == "fft" and switches[switch].get():
-                if not entries["fft"].get():
+                if not entries["fft sampling"].get():
                     messagebox.showerror("Missing Value",
                                          "Sampling frequency rate needed to perform Fast Fourier Transform.")
                     return False
@@ -456,22 +467,22 @@ class ProcessingController:
         return True
 
     def update_number_of_tasks(self, n_file, n_col, ):
-        local_switch = self.model.switch_params
-        local_entry = self.model.entry_params
+        local_switch = self.model.switches
+        local_entry = self.model.entries
 
         n_sample = int(local_entry["sampling"])
 
         mea = int(local_switch["raw mea"])
         electrodes = int(local_switch["select electrodes"])
         sampling = int(local_switch["sampling"])
-        average = int(local_switch["average"])
+        merge = int(local_switch["merge"])
         smoothing = int(local_switch["smoothing"])
         make_dataset = int(local_switch["make dataset"])
         filtering = int(local_switch["filter"])
         fft = int(local_switch["fft"])
 
         file_level_tasks = mea + electrodes + sampling
-        sample_level_tasks = average + smoothing
+        sample_level_tasks = merge + smoothing
         column_level_tasks = filtering * n_col + fft * n_col
 
         total_tasks = n_file * (file_level_tasks + n_sample * (sample_level_tasks + column_level_tasks))
@@ -486,11 +497,13 @@ class ProcessingController:
             self.update_params(cbox_widgets)
             self.update_params(entry_widgets)
 
-            f = filedialog.asksaveasfilename(defaultextension=".cfg", filetypes=[("Configuration", "*.cfg"), ])
-            self.model.save_model(path=f, )
+            f = filedialog.asksaveasfilename(defaultextension=".pcfg",
+                                             filetypes=[("Processing configuration", "*.pcfg"), ])
+            if f:
+                self.model.save_model(path=f, )
 
     def load_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
-        f = filedialog.askopenfilename(title="Open file", filetypes=(("Configuration", "*.cfg"),))
+        f = filedialog.askopenfilename(title="Open file", filetypes=(("Processing configuration", "*.pcfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model(switch_widgets, cbox_widgets, entry_widgets, textbox_widgets)
@@ -498,26 +511,26 @@ class ProcessingController:
     def update_view_from_model(self, switch_widgets, cbox_widgets, entry_widgets,
                                textbox_widgets):
         for key, widget in switch_widgets.items():
-            if self.model.switch_params[key] == 1:
+            if self.model.switches[key] == 1:
                 if widget.get() == 1:
                     pass
                 else:
                     widget.toggle()
         for key, widget in cbox_widgets.items():
             if widget.cget('state') == "normal":
-                widget.set(self.model.cbox_params[key])
+                widget.set(self.model.cbboxes[key])
             else:
                 widget.configure(state='normal')
-                widget.set(self.model.cbox_params[key])
-                widget.configure(state='disabled')
+                widget.set(self.model.cbboxes[key])
+                widget.configure(state='readonly')
                 pass
         for key, widget in entry_widgets.items():
             if widget.cget('state') == 'normal':
                 widget.delete(0, ctk.END)
-                widget.insert(0, self.model.entry_params[key])
+                widget.insert(0, self.model.entries[key])
             else:
                 widget.configure(state='normal')
-                widget.insert(0, self.model.entry_params[key])
+                widget.insert(0, self.model.entries[key])
                 widget.configure(state='disabled')
 
         self.main_controller.update_textbox(textbox_widgets["to include"], self.model.to_include)

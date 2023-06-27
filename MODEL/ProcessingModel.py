@@ -18,18 +18,10 @@ class ProcessingModel:
         self.__targets = {}
         self.__n_filters = 0
 
-        self.__entry_params = {}
-        self.__cbox_params = {}
-        self.__switch_params = {}
-        self.__strvar_params = {}
-
-    @property
-    def entry_params(self):
-        return self.__entry_params
-
-    @entry_params.setter
-    def entry_params(self, value):
-        self.__entry_params = value
+        self.__entries = {}
+        self.__cbboxes = {}
+        self.__switches = {}
+        self.__strvars = {}
 
     @property
     def targets(self):
@@ -40,6 +32,22 @@ class ProcessingModel:
         self.__targets = value
 
     @property
+    def entries(self):
+        return self.__entries
+
+    @entries.setter
+    def entries(self, value):
+        self.__entries = value
+
+    @property
+    def strvars(self):
+        return self.__strvars
+
+    @strvars.setter
+    def strvars(self, value):
+        self.__strvars = value
+
+    @property
     def n_filters(self):
         return self.__n_filters
 
@@ -48,20 +56,20 @@ class ProcessingModel:
         self.__n_filters = value
 
     @property
+    def switches(self):
+        return self.__switches
+
+    @switches.setter
+    def switches(self, value):
+        self.__switches = value
+
+    @property
     def to_include(self):
         return self.__to_include
 
     @to_include.setter
     def to_include(self, value):
         self.__to_include = value
-
-    @property
-    def cbox_params(self):
-        return self.__cbox_params
-
-    @cbox_params.setter
-    def cbox_params(self, value):
-        self.__cbox_params = value
 
     @property
     def parent_directory(self):
@@ -88,22 +96,6 @@ class ProcessingModel:
         self.__save_directory = value
 
     @property
-    def strvar_params(self):
-        return self.__strvar_params
-
-    @strvar_params.setter
-    def strvar_params(self, value):
-        self.__strvar_params = value
-
-    @property
-    def switch_params(self):
-        return self.__switch_params
-
-    @switch_params.setter
-    def switch_params(self, value):
-        self.__switch_params = value
-
-    @property
     def single_file(self):
         return self.__single_file
 
@@ -111,8 +103,15 @@ class ProcessingModel:
     def single_file(self, value):
         self.__single_file = value
 
+    @property
+    def cbboxes(self):
+        return self.__cbboxes
+
+    @cbboxes.setter
+    def cbboxes(self, value):
+        self.__cbboxes = value
+
     def load_model(self, path):
-        # todo : load model
         try:
             attr_dict = pickle.load(open(path, "rb"))
             if attr_dict["version"] == self.version:
@@ -129,7 +128,6 @@ class ProcessingModel:
             return False
 
     def save_model(self, path):
-        # todo : save model
         try:
             attr_dict = self.__dict__
             pickle.dump(attr_dict, open(path, "wb"))

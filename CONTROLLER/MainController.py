@@ -29,14 +29,19 @@ from tkinter import ttk
 
 from CONTROLLER.ProcessingController import ProcessingController
 from CONTROLLER.LearningController import LearningController
-
+from VIEW.LearningView import LearningView
+from VIEW.ProcessingView import ProcessingView
 
 class MainController:
     def __init__(self, model: MainModel, view: MainView):
         self.view = view
         self.model = model
-        self.processing_controller = ProcessingController(self, self.model.processing_model, self.view)
-        self.learning_controller = LearningController(self, self.model.learning_model, self.view)
+        self.processing_controller = ProcessingController(self, self.model.processing_model, self.view.processing_view)
+        self.learning_controller = LearningController(self, self.model.learning_model, self.view.learning_view)
+
+    def set_subviews(self, processing_view, learning_view):
+        self.processing_controller.view = processing_view
+        self.learning_controller.view = learning_view
 
     # --------- STATIC METHODS ----------------
     @staticmethod
@@ -104,6 +109,10 @@ class MainController:
             filename = filedialog.asksaveasfilename(title="Save as",
                                                     filetypes=(("Random Forest Classifier", "*.rfc"),))
             return filename
+        elif mode == 'saveascsv':
+            filename = filedialog.asksaveasfilename(title="Save as",
+                                                    filetypes=(("Coma Separated Value", "*.csv"),))
+            return filename
         elif mode == 'aimodel':
             filename = filedialog.askopenfilename(title="Open file",
                                                   filetypes=(("AI model", "*.rfc"),))
@@ -118,7 +127,7 @@ class MainController:
                 entry.configure(state="disabled")
 
     @staticmethod
-    def generate_harmonics(freq, nth, mode):  # todo : to firesignal ?
+    def generate_harmonics(freq, nth, mode):
         harmonics = []
         step = freq
         if mode == 'All':
@@ -139,34 +148,3 @@ class MainController:
 
 
 
-    def learning_reload_rfc_params(self, rfc_params_string_var):
-        if self.learning_controller:
-            self.learning_controller.reload_rfc_params(rfc_params_string_var)
-
-    def learning_load_dataset(self, strvar, label_cbox):
-        if self.learning_controller:
-            self.learning_controller.load_dataset(strvar, label_cbox)
-
-    def learning_savepath_rfc(self, strvar):
-        if self.learning_controller:
-            self.learning_controller.savepath_rfc(strvar)
-
-    def learning_load_rfc(self, rfc_params_string_var, learning_strvars):
-        if self.learning_controller:
-            self.learning_controller.load_rfc(rfc_params_string_var, learning_strvars)
-
-    def learning(self, entries, cboxes, rfc_params_string_var, learning_strvars):
-        if self.learning_controller:
-            self.learning_controller.learning(entries, cboxes, rfc_params_string_var, learning_strvars)
-
-    def label_encoding(self, y):
-        if self.learning_controller:
-            self.learning_controller.label_encoding(y)
-
-    def check_learning_params_validity(self, entries, cboxes):
-        if self.learning_controller:
-            self.learning_controller.check_learning_params_validity(entries, cboxes)
-
-    def update_learning_params(self, widgets: dict, ):
-        if self.learning_controller:
-            self.learning_controller.update_learning_params(widgets)

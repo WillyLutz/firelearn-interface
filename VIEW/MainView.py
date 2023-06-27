@@ -16,20 +16,19 @@ import tkterminal
 from tkterminal import Terminal
 import VIEW.graphic_params as gp
 from sklearn.ensemble import RandomForestClassifier
-from VIEW.CustomTable import CustomTable
 
 from VIEW.ProcessingView import ProcessingView
 from VIEW.LearningView import LearningView
 from VIEW.AnalysisView import AnalysisView
 
 
-class MainView(ctk.CTkFrame):  # todo : use sub views
+class MainView(ctk.CTkFrame):
     def __init__(self, app):
         super().__init__(master=app)
 
         self.app = app
-        self.app.geometry("1080x720")
-        self.app.resizable(0, 0)
+        self.app.geometry("1920x1080")
+        self.app.resizable(1, 1)
         self.app.configure(height=720, width=1080)
 
         self.master_frame = ctk.CTkFrame(master=self.app, )
@@ -44,7 +43,7 @@ class MainView(ctk.CTkFrame):  # todo : use sub views
 
         self.help_menu = tk.Menu(self.menu_bar)
         self.help_menu.add_command(label="Getting Started", command='')
-        self.help_menu.add_command(label="Help ?", command=self.help)
+        self.help_menu.add_command(label="Help ?", command='')
         self.help_menu.add_command(label="About", command='')
 
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
@@ -69,30 +68,12 @@ class MainView(ctk.CTkFrame):  # todo : use sub views
         self.learning_view = None
         self.processing_view = None
         self.analysis_view = None
+        self.helper_view = None
 
         self.controller = None
         self.terminal = None
 
-    def help(self):
-        help_window = ctk.CTkToplevel(master=self.app)
-        help_window.title("Help")
 
-        help_window.geometry("600x900")
-        help_window.resizable(width=False, height=False)
-
-        help_master_frame = ctk.CTkFrame(master=help_window, )
-        help_master_frame.place(relwidth=1.0, relheight=1.0)
-
-        tabs_help = ctk.CTkTabview(master=help_master_frame, border_color='red', corner_radius=10)
-        tabs_help.place(relx=0, rely=0, relwidth=1.0, relheight=1.0)
-        tabs_help.add("Processing")
-        tabs_help.add("Learning")
-        tabs_help.add("Analysis")
-        tabs_help.add("Terminal")
-
-        processing_sframe = ctk.CTkScrollableFrame(master=tabs_help.tab('Processing'), corner_radius=10, )
-        processing_sframe.place(relwidth=1, relheight=1)
-        self.manage_help_processing(processing_sframe)
 
     def open_web(self, url):
         if self.controller:
@@ -106,6 +87,8 @@ class MainView(ctk.CTkFrame):  # todo : use sub views
         self.learning_view = LearningView(self.app, self.tabs_view.tab("Learning"), self.controller.learning_controller)
         self.processing_view = ProcessingView(self.app, self.tabs_view.tab("Processing"),
                                               self.controller.processing_controller)
+
+        self.controller.set_subviews(self.processing_view, self.learning_view)
         # self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"), self.controller.analysis_controller)
 
         # self.analysis_view.set_controller(self.controller.analysis_controller)
@@ -114,7 +97,7 @@ class MainView(ctk.CTkFrame):  # todo : use sub views
         term_frame = ctk.CTkFrame(master=self.tabs_view.tab("Terminal"), )
         term_frame.place(relwidth=1, relheight=1)
         # self.terminal = Terminal(parent=self.tabs_view.tab("Terminal"))
-        # self.terminal.place(relwidth=1, relheight=1, anchor=ctk.NW) todo: fix this
+        # self.terminal.place(relwidth=1, relheight=1, anchor=ctk.NW)
 
     def manage_home_tab(self):
         welcome_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=f"Welcome to FireLearn", font=('', 18, 'bold'))
@@ -149,6 +132,3 @@ class MainView(ctk.CTkFrame):  # todo : use sub views
         # todo : create the helpers sections
         pass
 
-    def manage_generate_dataset_tab(self):
-        # todo: generate dataset tab
-        pass
