@@ -342,7 +342,6 @@ class LearningController:
         return y
 
     def check_params_validity(self, ):
-        # todo : check validity
         if self.view.switches["load rfc"].get() and not self.model.rfc:
             messagebox.showerror("X Doubt", "Invalid Loaded classifier")
             return False
@@ -355,9 +354,9 @@ class LearningController:
                 return False
 
         if not ival.widget_value_is_positive_int_or_empty(self.view.entries["n iter"]) or \
-                int(self.view.entries["n iter"].get) == 0:
+                int(self.view.entries["n iter"].get()) == 0:
             messagebox.showerror("Value error", "Value for Train / test iterations needs to be a positive integer"
-                                                "and superior to zero.")
+                                                " and superior to zero.")
             return False
         if not self.model.dataset_path:
             messagebox.showerror("Missing Value", "No dataset loaded.")

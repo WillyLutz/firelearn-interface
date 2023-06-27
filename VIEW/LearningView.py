@@ -82,7 +82,7 @@ class LearningView(ctk.CTkFrame):
         self.buttons["load dataset"] = load_dataset_button
 
         load_dataset_strvar = tk.StringVar()
-        load_dataset_entry = ctk.CTkEntry(master=manage_dataset_frame, state='normal', textvariable=load_dataset_strvar)
+        load_dataset_entry = ctk.CTkEntry(master=manage_dataset_frame, state='disabled', textvariable=load_dataset_strvar)
         load_dataset_entry.place(relx=0.25, rely=0, relwidth=0.7)
         self.entries["load dataset"] = load_dataset_entry
         self.strvars["load dataset"] = load_dataset_strvar

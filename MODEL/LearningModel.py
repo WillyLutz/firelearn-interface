@@ -11,7 +11,7 @@ class LearningModel:
         self.version = self.main_model.version
         self.dataset_path = ""
         self.save_rfc_directory = ""
-        self.rfc = None  # todo : change it to Clftester ?
+        self.rfc = None
 
         self.entries = {}
         self.switches = {}
