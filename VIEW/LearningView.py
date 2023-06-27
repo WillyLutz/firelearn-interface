@@ -7,6 +7,7 @@ from PIL import Image
 from sklearn.ensemble import RandomForestClassifier
 
 import VIEW.graphic_params as gp
+from VIEW.Helper import Helper
 
 
 class LearningView(ctk.CTkFrame):
@@ -46,6 +47,9 @@ class LearningView(ctk.CTkFrame):
         classifier_frame.place(relx=0.66, rely=0, relwidth=0.3, relheight=0.85)
 
         # ----------- PARAMETERS -----------------
+        clf_params_helper = Helper(master=params_frame, event_key="clf params")
+        clf_params_helper.place(anchor=tk.NE, relx=1, rely=0)
+
         params_label = ctk.CTkLabel(master=params_frame, text="Classifier parameters")
         params_sframe = ctk.CTkScrollableFrame(master=params_frame, corner_radius=10)
         params_label.place(relx=0, rely=0)
@@ -77,15 +81,21 @@ class LearningView(ctk.CTkFrame):
             self.entries[f"params {param_stringvar.get()}"] = param_entry
 
         # ------------ MANAGE DATASET ------------------
+        load_dataset_helper = Helper(master=manage_dataset_frame, event_key="load dataset")
+        load_dataset_helper.place(anchor=tk.NE, relx=1, rely=0)
+
         load_dataset_button = ctk.CTkButton(master=manage_dataset_frame, text="Load dataset")
         load_dataset_button.place(relx=0, rely=0, relwidth=0.2)
         self.buttons["load dataset"] = load_dataset_button
 
         load_dataset_strvar = tk.StringVar()
         load_dataset_entry = ctk.CTkEntry(master=manage_dataset_frame, state='disabled', textvariable=load_dataset_strvar)
-        load_dataset_entry.place(relx=0.25, rely=0, relwidth=0.7)
+        load_dataset_entry.place(relx=0.25, rely=0, relwidth=0.65)
         self.entries["load dataset"] = load_dataset_entry
         self.strvars["load dataset"] = load_dataset_strvar
+
+        select_target_helper = Helper(master=manage_dataset_frame, event_key="select targets")
+        select_target_helper.place(relx=0.25, rely=0.1)
 
         label_column_label = ctk.CTkLabel(master=manage_dataset_frame, text="Select targets column")
         label_column_label.place(relx=0, rely=0.1)
@@ -94,6 +104,9 @@ class LearningView(ctk.CTkFrame):
         label_column_cbbox.set("None")
         label_column_cbbox.place(relx=0, rely=0.15, relwidth=0.8)
         self.cbboxes["target column"] = label_column_cbbox
+
+        training_targets_helper = Helper(master=manage_dataset_frame, event_key="training targets")
+        training_targets_helper.place(relx=0.25, rely=0.22)
 
         key_target_label = ctk.CTkLabel(master=manage_dataset_frame, text="Training targets:",
                                         text_color=gp.enabled_label_color)
@@ -120,14 +133,20 @@ class LearningView(ctk.CTkFrame):
         n_iter_label.place(relx=0.5, rely=0.4)
         n_iter_sv = tk.StringVar()
         self.strvars["n iter"] = n_iter_sv
-        n_iter_sv.set("0")
+        n_iter_sv.set("1")
         n_iter_entry = ctk.CTkEntry(master=manage_dataset_frame, textvariable=n_iter_sv, state='normal')
         n_iter_entry.place(relx=0.5, rely=0.45, relwidth=0.1)
         self.entries["n iter"] = n_iter_entry
 
+        get_advanced_metrics_helper = Helper(master=manage_dataset_frame, event_key="get advanced metrics")
+        get_advanced_metrics_helper.place(relx=0.9, rely=0.55)
+
         get_metrics_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Get advanced \nclassification metrics")
         get_metrics_switch.place(relx=0.5, rely=0.55)
         self.switches["get metrics"] = get_metrics_switch
+
+        load_classifier_helper = Helper(master=manage_dataset_frame, event_key="load clf")
+        load_classifier_helper.place(relx=0.9, rely=0.65)
 
         load_rfc_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Load pre-trained\nclassifier",
                                         command=self.load_classifier)
@@ -138,9 +157,12 @@ class LearningView(ctk.CTkFrame):
         load_clf_button.place(relx=0.5, rely=0.73, relwidth=0.3)
         self.buttons["load rfc"] = load_clf_button
 
+        save_clf_helper = Helper(master=manage_dataset_frame, event_key="save clf")
+        save_clf_helper.place(relx=0.45, rely=0.83)
+
         save_rfc_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Save classifier after training",
                                         command=self.save_classifier)
-        save_rfc_switch.place(relx=0, rely=0.80)
+        save_rfc_switch.place(relx=0, rely=0.83)
         self.switches["save rfc"] = save_rfc_switch
 
         save_files_label = ctk.CTkLabel(master=manage_dataset_frame, text="Save Classifier under:",
@@ -181,6 +203,9 @@ class LearningView(ctk.CTkFrame):
         rfc_status_entry = ctk.CTkEntry(master=classifier_frame, textvariable=rfc_status_sv, state='disabled')
         rfc_status_entry.place(relx=0.25, rely=0.2, relwidth=0.3)
         self.entries["rfc status"] = rfc_status_entry
+
+        advanced_metrics_helper = Helper(master=classifier_frame, event_key="advanced metrics")
+        advanced_metrics_helper.place(anchor=tk.SE, relx=1, rely=0.3)
 
         metrics_textbox = ctk.CTkTextbox(master=classifier_frame, state='disabled')
         metrics_textbox.place(relx=0.05, rely=0.3, relwidth=0.9, relheight=0.6)

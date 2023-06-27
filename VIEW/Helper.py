@@ -5,7 +5,7 @@ from functools import partial
 import customtkinter as ctk
 from PIL import ImageTk, Image
 from PIL.ImageTk import PhotoImage
-from VIEW.HelperTopLevels import ProcessingHelper
+from VIEW.HelperTopLevels import ProcessingHelper, LearningHelper
 
 
 class Helper(ctk.CTkLabel):
@@ -32,4 +32,21 @@ class Helper(ctk.CTkLabel):
             ProcessingHelper.fft()
         elif event_key == "exec":
             ProcessingHelper.exec()
+
+        elif event_key == "clf params":
+            LearningHelper.clf_params()
+        elif event_key == "load dataset":
+            LearningHelper.load_dataset()
+        elif event_key == "select targets":
+            LearningHelper.select_targets()
+        elif event_key == "training targets":
+            LearningHelper.training_targets()
+        elif event_key == "get advanced metrics":
+            LearningHelper.get_advanced_metrics()
+        elif event_key == "load clf":
+            LearningHelper.load_clf()
+        elif event_key == "save clf":
+            LearningHelper.save_clf()
+        elif event_key == "advanced metrics":
+            LearningHelper.advanced_metrics()
 
