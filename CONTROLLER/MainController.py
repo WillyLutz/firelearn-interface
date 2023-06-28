@@ -29,8 +29,10 @@ from tkinter import ttk
 
 from CONTROLLER.ProcessingController import ProcessingController
 from CONTROLLER.LearningController import LearningController
+from CONTROLLER.AnalysisController import AnalysisController
 from VIEW.LearningView import LearningView
 from VIEW.ProcessingView import ProcessingView
+from VIEW.AnalysisView import AnalysisView
 
 class MainController:
     def __init__(self, model: MainModel, view: MainView):
@@ -38,10 +40,12 @@ class MainController:
         self.model = model
         self.processing_controller = ProcessingController(self, self.model.processing_model, self.view.processing_view)
         self.learning_controller = LearningController(self, self.model.learning_model, self.view.learning_view)
+        self.analysis_controller = AnalysisController(self, self.model.analysis_model, self.view.analysis_view)
 
-    def set_subviews(self, processing_view, learning_view):
+    def set_subviews(self, processing_view, learning_view, analysis_view):
         self.processing_controller.view = processing_view
         self.learning_controller.view = learning_view
+        self.analysis_controller.view = analysis_view
 
     # --------- STATIC METHODS ----------------
     @staticmethod

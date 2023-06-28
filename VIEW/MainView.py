@@ -88,7 +88,9 @@ class MainView(ctk.CTkFrame):
         self.processing_view = ProcessingView(self.app, self.tabs_view.tab("Processing"),
                                               self.controller.processing_controller)
 
-        self.controller.set_subviews(self.processing_view, self.learning_view)
+        self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"),
+                                          self.controller.analysis_controller)
+        self.controller.set_subviews(self.processing_view, self.learning_view, self.analysis_view)
         # self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"), self.controller.analysis_controller)
 
         # self.analysis_view.set_controller(self.controller.analysis_controller)

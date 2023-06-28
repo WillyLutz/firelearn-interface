@@ -106,7 +106,7 @@ class LearningView(ctk.CTkFrame):
         self.cbboxes["target column"] = label_column_cbbox
 
         training_targets_helper = Helper(master=manage_dataset_frame, event_key="training targets")
-        training_targets_helper.place(relx=0.25, rely=0.22)
+        training_targets_helper.place(relx=0.28, rely=0.22)
 
         key_target_label = ctk.CTkLabel(master=manage_dataset_frame, text="Training targets:",
                                         text_color=gp.enabled_label_color)
