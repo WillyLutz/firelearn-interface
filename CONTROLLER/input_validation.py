@@ -16,6 +16,14 @@ def widget_value_has_forbidden_character(widget):
             return False
 
 
+def is_number(num):
+    try:
+        float(num)
+        int(num)
+        return True
+    except ValueError:
+        return False
+
 def isfloat(num):
     try:
         float(num)
@@ -31,6 +39,12 @@ def isint(num):
     except ValueError:
         return False
 
+
+def value_is_empty_or_none(val):
+    if val == '' or val is None:
+        return True
+    else:
+        return False
 
 def widget_value_is_positive_int_or_empty(widget):
     value = widget.get()

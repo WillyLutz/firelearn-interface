@@ -8,6 +8,15 @@ default_targets = ["alpha", "beta", "gamma"]
 MODEL_EXTENSIONS = {"rfc": "Random Forest Classifier"}
 
 DEFAULT_FONT = "DejaVu Sans"
+DEFAULT_FONTSIZE = 12
+DEFAULT_LINEALPHA = 1
+DEFAULT_FILLALPHA = 0.5
+DEFAULT_FIGUREHEIGHT = 8
+DEFAULT_FIGUREWIDTH = 8
+DEFAULT_FONTROTATION = 0
+DEFAULT_NTICKS = 7
+DEFAULT_ROUND = 2
+
 font_manager.get_font_names()
 FONTS = sorted(font_manager.get_font_names())
 
