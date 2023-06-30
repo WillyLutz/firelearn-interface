@@ -1,12 +1,7 @@
-import os
-from tkinter import messagebox
-
 import data.params as params
-import pandas as pd
-import pickle
+from MODEL.AnalysisModel import AnalysisModel
 from MODEL.LearningModel import LearningModel
 from MODEL.ProcessingModel import ProcessingModel
-from MODEL.AnalysisModel import AnalysisModel
 
 
 class MainModel:

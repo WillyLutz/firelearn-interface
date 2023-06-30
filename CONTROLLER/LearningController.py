@@ -1,21 +1,19 @@
 import os
 import pickle
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
 
-import fiiireflyyy.firelearn
+import customtkinter as ctk
 import numpy as np
 import pandas as pd
-import sklearn.preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
-from VIEW.LearningView import LearningView
-from MODEL.LearningModel import LearningModel
-import customtkinter as ctk
 from CONTROLLER import input_validation as ival
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
 from CONTROLLER.ProgressBar import ProgressBar
 from MODEL.ClfTester import ClfTester
+from MODEL.LearningModel import LearningModel
+from VIEW.LearningView import LearningView
 
 
 class LearningController:

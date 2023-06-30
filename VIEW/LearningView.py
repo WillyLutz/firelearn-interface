@@ -3,7 +3,6 @@ from functools import partial
 from tkinter import ttk
 
 import customtkinter as ctk
-from PIL import Image
 from sklearn.ensemble import RandomForestClassifier
 
 import VIEW.graphic_params as gp

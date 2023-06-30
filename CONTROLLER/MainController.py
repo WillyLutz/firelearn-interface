@@ -1,38 +1,18 @@
-import os.path
 import pickle
-import random
-import string
-import time
-import tkinter.filedialog
 import webbrowser
 from tkinter import filedialog
-from tkinter import messagebox
 
 import customtkinter as ctk
-import fiiireflyyy.firefiles as ff
-import fiiireflyyy.fireprocess as fp
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-
-import CONTROLLER.data_processing as dpr
 import VIEW.graphic_params as gp
-from CONTROLLER.ProgressBar import ProgressBar
 from MODEL.MainModel import MainModel
 from VIEW.MainView import MainView
 
-import CONTROLLER.input_validation as ival
-
-from data import params
 import tkinter as tk
 from tkinter import ttk
 
 from CONTROLLER.ProcessingController import ProcessingController
 from CONTROLLER.LearningController import LearningController
 from CONTROLLER.AnalysisController import AnalysisController
-from VIEW.LearningView import LearningView
-from VIEW.ProcessingView import ProcessingView
-from VIEW.AnalysisView import AnalysisView
 
 class MainController:
     def __init__(self, model: MainModel, view: MainView):

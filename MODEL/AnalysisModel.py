@@ -1,7 +1,4 @@
 import pickle
-from tkinter import messagebox
-
-from data import params
 
 
 class AnalysisModel:

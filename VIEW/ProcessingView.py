@@ -1,23 +1,10 @@
 import tkinter as tk
-
-import customtkinter
-import customtkinter as ctk
-from tkinter import ttk, messagebox
-
-import fiiireflyyy.firelearn
-import pandastable
-import sklearn.ensemble
-from PIL import ImageTk, Image
 from functools import partial
+from tkinter import ttk
 
-from PIL.ImageTk import PhotoImage
-from pandastable import Table, TableModel
-import pandas as pd
-import data.params as p
-import tkterminal
-from tkterminal import Terminal
+import customtkinter as ctk
+
 import VIEW.graphic_params as gp
-from sklearn.ensemble import RandomForestClassifier
 from VIEW.Helper import Helper
 
 
