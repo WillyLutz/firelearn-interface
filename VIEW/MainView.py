@@ -5,9 +5,13 @@ import customtkinter
 import customtkinter as ctk
 from PIL import Image
 
+from CONTROLLER.MainController import MainController
 from VIEW.AnalysisView import AnalysisView
 from VIEW.LearningView import LearningView
 from VIEW.ProcessingView import ProcessingView
+
+import params as p
+
 
 
 class MainView(ctk.CTkFrame):
@@ -21,6 +25,8 @@ class MainView(ctk.CTkFrame):
 
         self.master_frame = ctk.CTkFrame(master=self.app, )
         self.master_frame.place(relwidth=1.0, relheight=1.0)
+
+
 
         # ------------ MENU BAR ------------------------
         self.menu_bar = tk.Menu()
@@ -53,12 +59,14 @@ class MainView(ctk.CTkFrame):
         self.manage_terminal_tab()
 
         # ------------- SETTING CONTROLLER -------------
-        self.learning_view = None
-        self.processing_view = None
-        self.analysis_view = None
-        self.helper_view = None
+        self.controller = MainController(self)
+        self.learning_view = LearningView(app=self.app, master=self.tabs_view.tab("Learning"),
+                                          parent_view=self)
+        self.processing_view = ProcessingView(app=self.app, master=self.tabs_view.tab("Processing"),
+                                              parent_view=self)
+        self.analysis_view = AnalysisView(app=self.app, master=self.tabs_view.tab("Analysis"),
+                                          parent_view=self)
 
-        self.controller = None
         self.terminal = None
 
 
@@ -67,21 +75,20 @@ class MainView(ctk.CTkFrame):
         if self.controller:
             self.controller.open_web(url)
 
-    def set_controller(self, controller):
-        self.controller = controller
-        self.set_subviews()
 
-    def set_subviews(self):
-        self.learning_view = LearningView(self.app, self.tabs_view.tab("Learning"), self.controller.learning_controller)
-        self.processing_view = ProcessingView(self.app, self.tabs_view.tab("Processing"),
-                                              self.controller.processing_controller)
 
-        self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"),
-                                          self.controller.analysis_controller)
-        self.controller.set_subviews(self.processing_view, self.learning_view, self.analysis_view)
-        # self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"), self.controller.analysis_controller)
-
-        # self.analysis_view.set_controller(self.controller.analysis_controller)
+    # def set_subviews(self):
+    #     self.learning_view = LearningView(self.app, self.tabs_view.tab("Learning"), self.controller.learning_controller)
+    #     self.processing_view = ProcessingView(self.app, self.tabs_view.tab("Processing"),
+    #                                           self.controller.processing_controller)
+    #
+    #
+    #     self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"),)
+    #
+    #     self.controller.set_subviews(self.processing_view, self.learning_view, self.analysis_view)
+    #     # self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"), self.main_controller.analysis_controller)
+    #
+    #     # self.analysis_view.set_controller(self.main_controller.analysis_controller)
 
     def manage_terminal_tab(self):
         term_frame = ctk.CTkFrame(master=self.tabs_view.tab("Terminal"), )
@@ -118,7 +125,32 @@ class MainView(ctk.CTkFrame):
                                                       "https://github.com/WillyLutz/firelearn-interface"))
         github_button.place(relx=0.1, rely=0.6)
 
-    def manage_help_processing(self, sframe):
-        # todo : create the helpers sections
-        pass
+
+    @staticmethod
+    def update_slider_value(value, var):
+        var.set(str(round(value, 2)))
+
+    def select_color(self, selection_button_name):
+        color_window = ctk.CTkToplevel()
+        color_window.title("Color Selection")
+        max_col = 8
+        col = 0
+        row = 0
+        for c in p.COLORS:
+            color_button = ctk.CTkButton(master=color_window, text=c, text_color="black",
+                                         height=30, width=130, fg_color=c,
+                                         )
+            color_button.grid(row=row, column=col, padx=3, pady=3)
+            color_button.configure(command=partial(self.chose_color, color_button, selection_button_name))
+
+            if col >= max_col:
+                col = 0
+                row += 1
+            else:
+                col += 1
+
+    @staticmethod
+    def chose_color(view, color_button, selection_button_name):
+        view.buttons[selection_button_name].configure(fg_color=color_button.cget('fg_color'))
+        view.vars[selection_button_name].set(color_button.cget('text'))
 

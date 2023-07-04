@@ -13,14 +13,14 @@ from CONTROLLER import input_validation as ival
 from CONTROLLER.ProgressBar import ProgressBar
 from MODEL.ClfTester import ClfTester
 from MODEL.LearningModel import LearningModel
-from VIEW.LearningView import LearningView
-
+from CONTROLLER.MainController import MainController
 
 class LearningController:
-    def __init__(self, main_controller, model: LearningModel, view: LearningView, ):
-        self.model = model
+    def __init__(self, view,):
+        self.model = LearningModel()
         self.view = view
-        self.main_controller = main_controller
+        self.view.controller = self  # set controller
+
         self.progress = None
 
     @staticmethod
@@ -30,8 +30,9 @@ class LearningController:
             rfc_params_string_var[name].set(value)
 
     def load_dataset(self):
-        filename = self.main_controller.open_filedialog(mode='file')
-        strvar = self.view.strvars["load dataset"]
+        filename = filedialog.askopenfilename(title="Open file",
+                                              filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
+        strvar = self.view.vars["load dataset"]
         label_cbbox = self.view.cbboxes["target column"]
         if filename:
             strvar.set(filename)
@@ -67,17 +68,19 @@ class LearningController:
                 messagebox.showerror("Missing Value", "You need to indicate at least the key to delete a target.")
         self.model.targets = targets
 
-        self.main_controller.update_textbox(self.view.textboxes["targets"], self.model.targets)
+        MainController.update_textbox(self.view.textboxes["targets"], self.model.targets)
         self.view.entries["key target"].delete(0, ctk.END)
 
     def savepath_rfc(self, strvar):
-        filename = self.main_controller.open_filedialog(mode='saveas')
+        filename = filedialog.asksaveasfilename(title="Save as",
+                                                filetypes=(("Random Forest Classifier", "*.rfc"),))
         if filename:
             strvar.set(filename)
             self.model.save_rfc_directory = filename
 
     def load_rfc(self, rfc_params_string_var, strvars):
-        filename = self.main_controller.open_filedialog(mode="aimodel")
+        filename = filedialog.askopenfilename(title="Open file",
+                                              filetypes=(("AI model", "*.rfc"),))
         if filename:
             clf = pickle.load(open(filename, "rb"))
             self.model.rfc = clf
@@ -89,20 +92,20 @@ class LearningController:
             strvars["rfc name"].set(os.path.basename(filename))
             strvars["rfc status"].set("True")
 
-    def learning(self, entries, cbboxes, switches, rfc_params_string_var, strvars):
+    def learning(self, ):
         if self.check_params_validity():
-            self.update_params(entries)
-            self.update_params(cbboxes)
-            self.update_params(switches)
+            self.update_params(self.view.entries)
+            self.update_params(self.view.cbboxes)
+            self.update_params(self.view.switches)
 
             self.progress = ProgressBar("Learning", self.view.app)
             self.progress.daemon = True
-            self.progress.total_tasks = 1 + 1 + 2 * int(strvars["n iter"].get())
+            self.progress.total_tasks = 1 + 1 + 2 * int(self.view.vars["n iter"].get())
             self.progress.start()
 
             self.progress.update_task("Loading datatset")
 
-            rfc_params = self.extract_rfc_params(rfc_params_string_var)
+            rfc_params = self.extract_rfc_params(self.view.rfc_params_stringvar)
 
             df = pd.read_csv(self.model.dataset_path, index_col=False)
 
@@ -126,7 +129,7 @@ class LearningController:
                 rfc = RandomForestClassifier()
                 rfc.set_params(**rfc_params)
 
-            for iteration in range(int(entries["n iter"].get())):
+            for iteration in range(int(self.view.entries["n iter"].get())):
                 self.progress.update_task(f"Training iteration {iteration + 1}")
                 clf_tester = ClfTester(rfc)
                 if self.model.switches["load rfc"]:
@@ -150,17 +153,17 @@ class LearningController:
 
             # accuracies computation
 
-            # self.main_controller.update_textbox(self.model.textboxes)
+            # MainController.update_textbox(self.model.textboxes)
 
             metrics_elements = []
-            metrics_elements = self.learning_display_computed_metrics(metrics_elements, entries,
+            metrics_elements = self.learning_display_computed_metrics(metrics_elements, self.view.entries,
                                                                       all_train_metrics,
                                                                       all_test_metrics, all_train_scores,
                                                                       all_test_scores)
 
             self.update_metrics_textbox(metrics_elements)
-            if switches["save rfc"].get():
-                self.main_controller.save_object(rfc, entries["save rfc"].get())  # todo : save rfc not functional
+            if self.view.switches["save rfc"].get():
+                MainController.save_object(rfc, self.view.entries["save rfc"].get())  # todo : save rfc not functional
 
     @staticmethod
     def extract_rfc_params(rfc_params_string_var):
@@ -277,7 +280,8 @@ class LearningController:
         advanced_metrics = pd.DataFrame(columns=["Phase", "Target", "N true", "Mean CUP true", "Std CUP true",
                                                  "N false", "Mean CUP false", "Std CUP false"])
 
-        filename = self.main_controller.open_filedialog(mode='saveascsv')
+        filename = filedialog.asksaveasfilename(title="Save as",
+                                                filetypes=(("Coma Separated Value", "*.csv"),))
         text = self.view.textboxes["metrics"].get('1.0', tk.END)
         classification_text = text.split("TRAINING")[0]
         classification_lines = classification_text.split("\n")
@@ -433,4 +437,22 @@ class LearningController:
                     widget.deselect()
 
         for key, widget in self.view.textboxes.items():
-            self.main_controller.update_textbox(widget, self.model.textboxes[key].split("\n"))
+            MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
+
+    def save_config(self, ):
+        if self.check_params_validity():
+            self.update_params(self.view.entries)
+            self.update_params(self.view.cbboxes)
+            self.update_params(self.view.vars)
+            self.update_params(self.view.switches)
+
+            f = filedialog.asksaveasfilename(defaultextension=".lcfg",
+                                             filetypes=[("Learning - Random forest", "*.lcfg"), ])
+            if f:
+                self.model.save_model(path=f, )
+
+    def load_config(self, ):
+        f = filedialog.askopenfilename(title="Open file", filetypes=(("Learning - Random forest", "*.lcfg"),))
+        if f:
+            if self.model.load_model(path=f):
+                self.update_view_from_model()

@@ -6,23 +6,24 @@ import customtkinter as ctk
 from sklearn.ensemble import RandomForestClassifier
 
 import VIEW.graphic_params as gp
+from CONTROLLER.LearningController import LearningController
 from VIEW.Helper import Helper
 
 
 class LearningView(ctk.CTkFrame):
-    def __init__(self, app, master, controller):
+    def __init__(self, app, master, parent_view):
         super().__init__(master=app)
         self.master = master
-        self.controller = controller
         self.app = app
+        self.parent_view = parent_view
+        self.controller = LearningController(self, )
 
         self.entries = {}
         self.buttons = {}
         self.cbboxes = {}
-        self.strvars = {}
+        self.vars = {}
         self.switches = {}
         self.checkboxes = {}
-        self.checkvars = {}
         self.rfc_params_stringvar = {}
         self.textboxes = {}
 
@@ -88,10 +89,11 @@ class LearningView(ctk.CTkFrame):
         self.buttons["load dataset"] = load_dataset_button
 
         load_dataset_strvar = tk.StringVar()
-        load_dataset_entry = ctk.CTkEntry(master=manage_dataset_frame, state='disabled', textvariable=load_dataset_strvar)
+        load_dataset_entry = ctk.CTkEntry(master=manage_dataset_frame, state='disabled',
+                                          textvariable=load_dataset_strvar)
         load_dataset_entry.place(relx=0.25, rely=0, relwidth=0.65)
         self.entries["load dataset"] = load_dataset_entry
-        self.strvars["load dataset"] = load_dataset_strvar
+        self.vars["load dataset"] = load_dataset_strvar
 
         select_target_helper = Helper(master=manage_dataset_frame, event_key="select targets")
         select_target_helper.place(relx=0.25, rely=0.1)
@@ -115,10 +117,11 @@ class LearningView(ctk.CTkFrame):
         id_target_entry = ctk.CTkEntry(master=manage_dataset_frame, state='normal', textvariable=id_target_sv)
         id_target_entry.place(relx=0.05, rely=0.28, relwidth=0.4)
         self.entries["key target"] = id_target_entry
-        self.strvars["key target"] = id_target_sv
+        self.vars["key target"] = id_target_sv
         add_target_button = ctk.CTkButton(master=manage_dataset_frame, text="+", width=25, height=25, state='normal')
         add_target_button.place(relx=0.5, rely=0.28)
-        subtract_target_button = ctk.CTkButton(master=manage_dataset_frame, text="-", width=25, height=25, state='normal')
+        subtract_target_button = ctk.CTkButton(master=manage_dataset_frame, text="-", width=25, height=25,
+                                               state='normal')
         subtract_target_button.place(relx=0.6, rely=0.28)
         self.buttons["add target"] = add_target_button
         self.buttons["subtract target"] = subtract_target_button
@@ -127,11 +130,10 @@ class LearningView(ctk.CTkFrame):
         training_textbox.place(relx=0.05, rely=0.35, relwidth=0.4, relheight=0.43)
         self.textboxes["targets"] = training_textbox
 
-
         n_iter_label = ctk.CTkLabel(master=manage_dataset_frame, text="Train / test iterations:")
         n_iter_label.place(relx=0.5, rely=0.4)
         n_iter_sv = tk.StringVar()
-        self.strvars["n iter"] = n_iter_sv
+        self.vars["n iter"] = n_iter_sv
         n_iter_sv.set("1")
         n_iter_entry = ctk.CTkEntry(master=manage_dataset_frame, textvariable=n_iter_sv, state='normal')
         n_iter_entry.place(relx=0.5, rely=0.45, relwidth=0.1)
@@ -171,16 +173,16 @@ class LearningView(ctk.CTkFrame):
         save_entry = ctk.CTkEntry(master=manage_dataset_frame, textvariable=save_rfc_strvar)
         save_entry.place(relx=0, rely=0.92, relwidth=0.65)
         self.entries["save rfc"] = save_entry
-        self.strvars["save rfc"] = save_rfc_strvar
+        self.vars["save rfc"] = save_rfc_strvar
 
         save_rfc_button = ctk.CTkButton(master=manage_dataset_frame, text="Save classifier as", state='disabled')
-        save_rfc_button.place(relx=0.66, rely=0.92,)
+        save_rfc_button.place(relx=0.66, rely=0.92, )
         self.buttons["save rfc"] = save_rfc_button
 
         # ----------- DISPLAY CLASSIFIER -----------------
 
         rfc_path_sv = tk.StringVar()
-        self.strvars["rfc path"] = rfc_path_sv
+        self.vars["rfc path"] = rfc_path_sv
         rfc_path_label = ctk.CTkLabel(master=classifier_frame, text="Classifier path:")
         rfc_path_label.place(relx=0, rely=0)
         rfc_path_entry = ctk.CTkEntry(master=classifier_frame, textvariable=rfc_path_sv, state='disabled')
@@ -188,7 +190,7 @@ class LearningView(ctk.CTkFrame):
         self.entries["rfc path"] = rfc_path_entry
 
         rfc_name_sv = tk.StringVar()
-        self.strvars["rfc name"] = rfc_name_sv
+        self.vars["rfc name"] = rfc_name_sv
         rfc_name_label = ctk.CTkLabel(master=classifier_frame, text="Classifier name:")
         rfc_name_label.place(relx=0, rely=0.1)
         rfc_name_entry = ctk.CTkEntry(master=classifier_frame, textvariable=rfc_name_sv, state='disabled')
@@ -196,7 +198,7 @@ class LearningView(ctk.CTkFrame):
         self.entries["rfc name"] = rfc_name_entry
 
         rfc_status_sv = tk.StringVar()
-        self.strvars["rfc status"] = rfc_status_sv
+        self.vars["rfc status"] = rfc_status_sv
         rfc_status_label = ctk.CTkLabel(master=classifier_frame, text="Pre-Trained:")
         rfc_status_label.place(relx=0, rely=0.2)
         rfc_status_entry = ctk.CTkEntry(master=classifier_frame, textvariable=rfc_status_sv, state='disabled')
@@ -223,8 +225,6 @@ class LearningView(ctk.CTkFrame):
         load_config_button.place(anchor=tk.CENTER, relx=0.4, rely=0.5, relwidth=0.18)
         self.buttons["load config"] = load_config_button
 
-
-
         learning_button = ctk.CTkButton(master=loading_frame, text="Learning", fg_color="green")
         learning_button.place(anchor=tk.CENTER, relx=0.8, rely=0.5, relwidth=0.18, relheight=0.8)
         self.buttons["learning"] = learning_button
@@ -233,10 +233,10 @@ class LearningView(ctk.CTkFrame):
 
         reload_button.configure(command=self.reload_rfc_params)
         load_dataset_button.configure(command=self.load_dataset)
-        save_rfc_button.configure(command=partial(self.savepath_rfc, self.strvars["save rfc"]))
+        save_rfc_button.configure(command=partial(self.savepath_rfc, self.vars["save rfc"]))
         load_clf_button.configure(command=self.load_rfc)
         load_config_button.configure(command=self.load_model)
-        save_config_button.configure(command=self.save_model)
+        save_config_button.configure(command=self.save_config)
         learning_button.configure(command=self.learning)
         export_button.configure(command=self.export)
         add_target_button.configure(command=partial(self.add_subtract_target, mode='add'))
@@ -262,17 +262,17 @@ class LearningView(ctk.CTkFrame):
         if self.controller:
             self.controller.export()
 
-    def save_model(self):
+    def save_config(self):
         if self.controller:
-            self.controller.save_model()
+            self.controller.save_config()
 
     def load_model(self):
         if self.controller:
-            self.controller.load_model()
+            self.controller.load_config()
 
     def learning(self, ):
         if self.controller:
-            self.controller.learning(self.entries, self.cbboxes, self.switches, self.rfc_params_stringvar, self.strvars)
+            self.controller.learning()
 
     def savepath_rfc(self, strvar):
         if self.controller:
@@ -280,7 +280,7 @@ class LearningView(ctk.CTkFrame):
 
     def load_rfc(self):
         if self.controller:
-            self.controller.load_rfc(self.rfc_params_stringvar, self.strvars)
+            self.controller.load_rfc(self.rfc_params_stringvar, self.vars)
 
     def reload_rfc_params(self):
         if self.controller:
@@ -289,5 +289,3 @@ class LearningView(ctk.CTkFrame):
     def load_dataset(self):
         if self.controller:
             self.controller.load_dataset()
-
-# todo : add helpers

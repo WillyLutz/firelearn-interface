@@ -1,31 +1,22 @@
 import pickle
+import tkinter as tk
 import webbrowser
 from tkinter import filedialog
-
-import customtkinter as ctk
-import VIEW.graphic_params as gp
-from MODEL.MainModel import MainModel
-from VIEW.MainView import MainView
-
-import tkinter as tk
 from tkinter import ttk
 
-from CONTROLLER.ProcessingController import ProcessingController
-from CONTROLLER.LearningController import LearningController
-from CONTROLLER.AnalysisController import AnalysisController
+import customtkinter as ctk
+
+import VIEW.graphic_params as gp
+from MODEL.MainModel import MainModel
+
 
 class MainController:
-    def __init__(self, model: MainModel, view: MainView):
+    def __init__(self, view):
         self.view = view
-        self.model = model
-        self.processing_controller = ProcessingController(self, self.model.processing_model, self.view.processing_view)
-        self.learning_controller = LearningController(self, self.model.learning_model, self.view.learning_view)
-        self.analysis_controller = AnalysisController(self, self.model.analysis_model, self.view.analysis_view)
+        self.model = MainModel()  # set model
+        self.view.controller = self  # set controller to view
 
-    def set_subviews(self, processing_view, learning_view, analysis_view):
-        self.processing_controller.view = processing_view
-        self.learning_controller.view = learning_view
-        self.analysis_controller.view = analysis_view
+        # self.view.analysis_view.set_controller(self.analysis_controller)
 
     # --------- STATIC METHODS ----------------
     @staticmethod
@@ -80,27 +71,6 @@ class MainController:
                 textbox.insert(ctk.INSERT, elem)
         textbox.configure(state="disabled")
 
-    @staticmethod
-    def open_filedialog(mode='file'):
-        if mode == 'file':
-            filename = filedialog.askopenfilename(title="Open file",
-                                                  filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
-            return filename
-        elif mode == 'directory':
-            dirname = filedialog.askdirectory(mustexist=True, title="select directory")
-            return dirname
-        elif mode == 'saveas':
-            filename = filedialog.asksaveasfilename(title="Save as",
-                                                    filetypes=(("Random Forest Classifier", "*.rfc"),))
-            return filename
-        elif mode == 'saveascsv':
-            filename = filedialog.asksaveasfilename(title="Save as",
-                                                    filetypes=(("Coma Separated Value", "*.csv"),))
-            return filename
-        elif mode == 'aimodel':
-            filename = filedialog.askopenfilename(title="Open file",
-                                                  filetypes=(("AI model", "*.rfc"),))
-            return filename
 
     @staticmethod
     def modulate_entry_state_by_switch(switch, entry):
@@ -129,6 +99,3 @@ class MainController:
                     harmonics.append(freq)
                     freq = freq + step
         return harmonics
-
-
-

@@ -1,6 +1,6 @@
 from matplotlib import font_manager
 
-version = "0.0.7"
+version = "0.1.0"
 default_dataset_path = "path/of/your/dataset/here.csv"
 default_dataset_info = "Dataset information here"
 selected_target = "No target selected"
@@ -16,6 +16,9 @@ DEFAULT_FIGUREWIDTH = 8
 DEFAULT_FONTROTATION = 0
 DEFAULT_NTICKS = 7
 DEFAULT_ROUND = 2
+
+LEGEND_POS = ['best', 'upper left', 'upper right', 'lower left', 'lower right',
+              'upper center', 'lower center', 'center left', 'center right', 'center']
 
 font_manager.get_font_names()
 FONTS = sorted(font_manager.get_font_names())

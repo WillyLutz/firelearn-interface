@@ -4,15 +4,16 @@ from tkinter import messagebox
 import params
 
 
-class LearningModel:
+class FeatureImportanceModel:
 
     def __init__(self,):
         self.version = params.version
-        self.dataset_path = ""
-        self.save_rfc_directory = ""
-        self.rfc = None
 
-        self.rfc_params_stringvar = {}
+        self.clf = None
+
+        self.plot = None
+
+        self.dataset_paths = {}
 
         self.entries = {}
         self.buttons = {}
@@ -26,21 +27,19 @@ class LearningModel:
         self.figures = {}
         self.targets = []
 
-        self.targets = []
-
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
             if attr_dict["version"] == self.version:
                 self.__dict__.update(attr_dict)
-                messagebox.showinfo("Info", f"Learning configuration correctly loaded.\nVersion {self.version}")
+                messagebox.showinfo("Info", f"Analysis configuration correctly loaded.\nVersion {self.version}")
                 return True
             else:
                 messagebox.showerror("Error", f"You can not load a configuration version ({attr_dict['version']})"
                                               f" other than the current one in use ({self.version})")
                 return False
         except Exception as e:
-            messagebox.showerror("Error", "Error while loading learning configuration.\n\n"
+            messagebox.showerror("Error", "Error while loading analysis configuration.\n\n"
                                           f"{e}")
             return False
 
@@ -48,7 +47,7 @@ class LearningModel:
         try:
             attr_dict = self.__dict__
             pickle.dump(attr_dict, open(path, "wb"))
-            messagebox.showinfo("Info", f"Learning configuration correctly saved.\nVersion {self.version}")
+            messagebox.showinfo("Info", f"Analysis configuration correctly saved.\nVersion {self.version}")
         except Exception as e:
-            messagebox.showerror("Error", "Error while saving learning configuration.\n\n"
+            messagebox.showerror("Error", "Error while saving analysis configuration.\n\n"
                                           f"{e}")

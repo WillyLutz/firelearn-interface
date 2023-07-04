@@ -7,7 +7,6 @@ from tkinter import filedialog, messagebox
 import pandas as pd
 
 from CONTROLLER.ProgressBar import ProgressBar
-from VIEW.ProcessingView import ProcessingView
 from MODEL.ProcessingModel import ProcessingModel
 import customtkinter as ctk
 from CONTROLLER import input_validation as ival
@@ -18,20 +17,21 @@ from fiiireflyyy import fireprocess as fp
 from fiiireflyyy import logic_gates as gates
 
 from CONTROLLER import data_processing as dpr
+from CONTROLLER.MainController import MainController
 
 
 class ProcessingController:
-    def __init__(self, main_controller, model: ProcessingModel, view: ProcessingView, ):
+    def __init__(self, view):
         self.processing_progress = None
-        self.model = model
+        self.model = ProcessingModel()
         self.view = view
-        self.main_controller = main_controller
+        self.view.controller = self  # set controller
 
-    def processing(self, switch_widgets, cbox_widgets, entry_widgets):
-        if self.check_params_validity(switch_widgets, entry_widgets, cbox_widgets):
-            self.update_params(switch_widgets)
-            self.update_params(cbox_widgets)
-            self.update_params(entry_widgets)
+    def processing(self, ):
+        if self.check_params_validity():
+            self.update_params(self.view.switches)
+            self.update_params(self.view.cbboxes)
+            self.update_params(self.view.entries)
 
             local_entry = self.model.entries
             local_switch = self.model.switches
@@ -95,9 +95,9 @@ class ProcessingController:
             if not local_switch["random key"] and not local_switch["keyword"] and not local_switch["timestamp"]:
                 processing_basename.append("FL_processed")
 
-            harmonics = self.main_controller.generate_harmonics(int(local_entry["harmonic frequency"]),
-                                                                int(local_entry["nth harmonic"]),
-                                                                local_cbox["harmonic type"])
+            harmonics = MainController.generate_harmonics(int(local_entry["harmonic frequency"]),
+                                                          int(local_entry["nth harmonic"]),
+                                                          local_cbox["harmonic type"])
             # file processing
 
             for file in all_files:
@@ -261,19 +261,20 @@ class ProcessingController:
                                index=False)
 
     def select_save_directory(self, strvar):
-        dirname = self.main_controller.open_filedialog(mode='directory')
+        dirname = filedialog.askdirectory(mustexist=True, title="select directory")
         if type(strvar) == ctk.StringVar:
             strvar.set(dirname)
             self.model.save_directory = dirname
 
     def select_parent_directory(self, strvar):
-        dirname = self.main_controller.open_filedialog(mode='directory')
+        dirname = filedialog.askdirectory(mustexist=True, title="select directory")
         if type(strvar) == ctk.StringVar:
             strvar.set(dirname)
             self.model.parent_directory = dirname
 
     def select_single_file(self, display_in):
-        filename = self.main_controller.open_filedialog(mode='file')
+        filename = filedialog.askopenfilename(title="Open file",
+                                              filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
         if type(display_in) == ctk.StringVar:
             display_in.set(filename)
             self.model.single_file = filename
@@ -291,7 +292,7 @@ class ProcessingController:
             elif mode == 'subtract':
                 local_include = [x for x in self.model.to_include if x != to_include]
             self.model.to_include = local_include
-            self.main_controller.update_textbox(textbox, self.model.to_include)
+            MainController.update_textbox(textbox, self.model.to_include)
             entry.delete(0, ctk.END)
         else:
             messagebox.showerror("Missing Value", "You need te indicate a value to include.")
@@ -308,7 +309,7 @@ class ProcessingController:
             elif mode == 'subtract':
                 local_exclude = [x for x in self.model.to_exclude if x != to_exclude]
             self.model.to_exclude = local_exclude
-            self.main_controller.update_textbox(textbox, self.model.to_exclude)
+            MainController.update_textbox(textbox, self.model.to_exclude)
             entry.delete(0, ctk.END)
         else:
             messagebox.showerror("Missing Value", "You need te indicate a value to exclude.")
@@ -340,7 +341,7 @@ class ProcessingController:
             else:
                 messagebox.showerror("Missing Value", "You need to indicate at least the key to delete a target.")
         self.model.targets = local_targets
-        self.main_controller.update_textbox(textbox, self.model.targets)
+        MainController.update_textbox(textbox, self.model.targets)
         key_entry.delete(0, ctk.END)
         value_entry.delete(0, ctk.END)
 
@@ -355,20 +356,19 @@ class ProcessingController:
         if type(list(widgets.values())[0]) == tk.ttk.Combobox:
             self.model.cbboxes.update(local_dict)
 
-    @staticmethod
-    def check_params_validity(switches, entries, cbboxes):
+    def check_params_validity(self):
 
-        if switches["make dataset"].get():
-            if not gates.AND([switches["merge"].get(), switches["sorting"].get()]):
+        if self.view.switches["make dataset"].get():
+            if not gates.AND([self.view.switches["merge"].get(), self.view.switches["sorting"].get()]):
                 messagebox.showerror(title="Params validity", message="The 'make dataset' option is available only if "
                                                                       "'Merge' and 'Multiple files analysis' are both True.", )
                 return False
 
-        if all([switches["single file"].get(), switches["sorting"].get()]):
+        if all([self.view.switches["single file"].get(), self.view.switches["sorting"].get()]):
             messagebox.showerror(title="Params validity", message="You can only chose one between Single file "
                                                                   "analysis or Multiple files analysis.", )
             return False
-        if not any([switches["single file"].get(), switches["sorting"].get()]):
+        if not any([self.view.switches["single file"].get(), self.view.switches["sorting"].get()]):
             messagebox.showerror(title="Params validity", message="You have to select one between Single file "
                                                                   "analysis or Multiple files analysis.", )
             return False
@@ -376,15 +376,15 @@ class ProcessingController:
         # valid number format
         for widget in ["raw mea", "n electrodes", "sampling", "filter order", "filter sampling", "first frequency",
                        "second frequency", "harmonic frequency", "nth harmonic", "fft sampling", "smoothing"]:
-            if ival.widget_value_is_positive_int_or_empty(entries[widget]) is False:
+            if ival.widget_value_is_positive_int_or_empty(self.view.entries[widget]) is False:
                 return False
 
         # correct values
-        if entries["harmonic frequency"].get():
-            if entries["nth harmonic"].get():
-                harmonic = int(entries["harmonic frequency"].get())
-                nth = int(entries["nth harmonic"].get())
-                frequency = int(entries["filter sampling"].get())
+        if self.view.entries["harmonic frequency"].get():
+            if self.view.entries["nth harmonic"].get():
+                harmonic = int(self.view.entries["harmonic frequency"].get())
+                nth = int(self.view.entries["nth harmonic"].get())
+                frequency = int(self.view.entries["filter sampling"].get())
                 if harmonic * nth > frequency / 2:
                     messagebox.showerror("Value Error",
                                          "The chosen nth harmonic is superior to half the sampling frequency."
@@ -396,72 +396,75 @@ class ProcessingController:
                 return False
 
         # forbidden characters
-        if ival.widget_value_has_forbidden_character(entries["keyword"]) is False:
+        if ival.widget_value_has_forbidden_character(self.view.entries["keyword"]) is False:
             return False
 
         # invalid paths
-        if entries["save files"].get() == '':
+        if self.view.entries["save files"].get() == '':
             messagebox.showwarning('Path warning', 'You have to select a directory where to save your file(n_sample).')
             return False
-        elif os.path.isdir(entries["save files"].get()) is False:
-            messagebox.showerror('Path error', f'The selected path {entries["save files"].get()} does not exist.')
+        elif os.path.isdir(self.view.entries["save files"].get()) is False:
+            messagebox.showerror('Path error',
+                                 f'The selected path {self.view.entries["save files"].get()} does not exist.')
             return False
 
-        for switch in switches:
+        for switch in self.view.switches:
             if switch == "sorting":
-                if not entries["sorting"].get():
+                if not self.view.entries["sorting"].get():
                     messagebox.showerror("Missing Value",
                                          "You have to select a parent directory to run multi-file processing.")
                     return False
 
-            if switch == "single file" and switches[switch].get():
-                if not entries["single file"].get():
+            if switch == "single file" and self.view.switches[switch].get():
+                if not self.view.entries["single file"].get():
                     messagebox.showerror("Missing Value", "You have to select a file to run single file processing.")
                     return False
 
-            if switch == "raw mea" and switches[switch].get():
-                if not entries["raw mea"].get():
+            if switch == "raw mea" and self.view.switches[switch].get():
+                if not self.view.entries["raw mea"].get():
                     messagebox.showerror("Missing Value",
                                          "You have to indicate a number of rows to remove from the raw MEA files.")
                     return False
 
-            if switch == "select electrodes" and switches[switch].get():
-                if not entries["n electrodes"].get():
+            if switch == "select electrodes" and self.view.switches[switch].get():
+                if not self.view.entries["n electrodes"].get():
                     messagebox.showerror("Missing Value", "You have to indicate a number of electrodes to keep.")
                     return False
 
-            if switch == "sampling" and switches[switch].get():
-                if not entries["sampling"].get():
+            if switch == "sampling" and self.view.switches[switch].get():
+                if not self.view.entries["sampling"].get():
                     messagebox.showerror("Missing Value", "You have to indicate a number of samples.")
                     return False
 
-            if switch == "filter" and switches[switch].get():
-                if not gates.AND([entries[x].get() for x in ["filter order", "filter sampling", "first frequency", ]]):
+            if switch == "filter" and self.view.switches[switch].get():
+                if not gates.AND(
+                        [self.view.entries[x].get() for x in ["filter order", "filter sampling", "first frequency", ]]):
                     messagebox.showerror("Missing Value", "You have to fill at least the filter order, sampling "
                                                           "frequency, and first frequency to use the filtering function.")
                     return False
 
-                if entries["second frequency"].get() and (cbboxes["filter type"].get() not in ["Bandstop", "Bandpass"]):
+                if self.view.entries["second frequency"].get() and (
+                        self.view.cbboxes["filter type"].get() not in ["Bandstop", "Bandpass"]):
                     messagebox.showerror("Missing Value", f"The second frequency is not needed when using a "
-                                                          f"{cbboxes['filter type'].get()} filter.")
+                                                          f"{self.view.cbboxes['filter type'].get()} filter.")
                     return False
-                if cbboxes["filter type"].get() in ["Bandstop", "Bandpass"] and not gates.AND(
-                        [entries["second frequency"].get(), entries["first frequency"].get()]):
+                if self.view.cbboxes["filter type"].get() in ["Bandstop", "Bandpass"] and not gates.AND(
+                        [self.view.entries["second frequency"].get(), self.view.entries["first frequency"].get()]):
                     messagebox.showerror("Missing Value", f"Both low cut and high cut frequencies are needed when"
-                                                          f" using a f{cbboxes['filter type'].get()} filter")
+                                                          f" using a f{self.view.cbboxes['filter type'].get()} filter")
                     return False
 
-            if switch == "fft" and switches[switch].get():
-                if not entries["fft sampling"].get():
+            if switch == "fft" and self.view.switches[switch].get():
+                if not self.view.entries["fft sampling"].get():
                     messagebox.showerror("Missing Value",
                                          "Sampling frequency rate needed to perform Fast Fourier Transform.")
                     return False
-            if switch == "smoothing" and switches[switch].get():
-                if not entries["smoothing"].get():
+            if switch == "smoothing" and self.view.switches[switch].get():
+                if not self.view.entries["smoothing"].get():
                     messagebox.showerror("Missing Value", "Number of final values needed to perform smoothing.")
                     return False
-            if switch == "keyword" and switches[switch].get():
-                if not entries["keyword"].get():
+            if switch == "keyword" and self.view.switches[switch].get():
+                if not self.view.entries["keyword"].get():
                     messagebox.showerror("Missing Value", "Keyword needed.")
                     return False
         return True
@@ -492,7 +495,7 @@ class ProcessingController:
         return total_tasks
 
     def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
-        if self.check_params_validity(switch_widgets, entry_widgets, cbox_widgets):
+        if self.check_params_validity():
             self.update_params(switch_widgets)
             self.update_params(cbox_widgets)
             self.update_params(entry_widgets)
@@ -506,17 +509,11 @@ class ProcessingController:
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Processing configuration", "*.pcfg"),))
         if f:
             if self.model.load_model(path=f):
-                self.update_view_from_model(switch_widgets, cbox_widgets, entry_widgets, textbox_widgets)
+                self.update_view_from_model()
 
-    def update_view_from_model(self, switch_widgets, cbox_widgets, entry_widgets,
-                               textbox_widgets):
-        for key, widget in switch_widgets.items():
-            if self.model.switches[key] == 1:
-                if widget.get() == 1:
-                    pass
-                else:
-                    widget.toggle()
-        for key, widget in cbox_widgets.items():
+    def update_view_from_model(self, ):
+
+        for key, widget in self.view.cbboxes.items():
             if widget.cget('state') == "normal":
                 widget.set(self.model.cbboxes[key])
             else:
@@ -524,7 +521,7 @@ class ProcessingController:
                 widget.set(self.model.cbboxes[key])
                 widget.configure(state='readonly')
                 pass
-        for key, widget in entry_widgets.items():
+        for key, widget in self.view.entries.items():
             if widget.cget('state') == 'normal':
                 widget.delete(0, ctk.END)
                 widget.insert(0, self.model.entries[key])
@@ -533,6 +530,39 @@ class ProcessingController:
                 widget.insert(0, self.model.entries[key])
                 widget.configure(state='disabled')
 
-        self.main_controller.update_textbox(textbox_widgets["to include"], self.model.to_include)
-        self.main_controller.update_textbox(textbox_widgets["to exclude"], self.model.to_exclude)
-        self.main_controller.update_textbox(textbox_widgets["targets"], self.model.targets)
+        for key, widget in self.view.switches.items():
+            if widget.cget('state') == 'normal':
+                if self.model.switches[key]:
+                    widget.select()
+                else:
+                    widget.deselect()
+
+        for key, widget in self.view.textboxes.items():
+            MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
+
+    @staticmethod
+    def category_enabling_switch(switch, parent_widget):
+        MainController.category_enabling_switch(switch, parent_widget)
+
+    @staticmethod
+    def modulate_entry_state_by_switch(switch, entry):
+        MainController.modulate_entry_state_by_switch(switch, entry)
+
+    def load_config(self, ):
+        f = filedialog.askopenfilename(title="Open file", filetypes=(("Processing config", "*.pcfg"),))
+        if f:
+            if self.model.load_model(path=f):
+                self.update_view_from_model()
+
+    def save_config(self, ):
+        if self.check_params_validity():
+            self.update_params(self.view.entries)
+            self.update_params(self.view.cbboxes)
+            self.update_params(self.view.sliders)
+            self.update_params(self.view.vars)
+            self.update_params(self.view.switches)
+
+            f = filedialog.asksaveasfilename(defaultextension=".pltcfg",
+                                             filetypes=[("Analysis - Simple plot", "*.pltcfg"), ])
+            if f:
+                self.model.save_model(path=f, )

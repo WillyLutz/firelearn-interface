@@ -5,15 +5,17 @@ from tkinter import ttk
 import customtkinter as ctk
 
 import VIEW.graphic_params as gp
+from CONTROLLER.ProcessingController import ProcessingController
 from VIEW.Helper import Helper
 
 
 class ProcessingView(ctk.CTkFrame):
-    def __init__(self, app, master, controller):
+    def __init__(self, app, master, parent_view):
         super().__init__(master=app)
         self.app = app
         self.master = master
-        self.controller = controller
+        self.parent_view = parent_view
+        self.controller = ProcessingController(self)
 
         self.switches = {}
         self.entries = {}
@@ -23,6 +25,7 @@ class ProcessingView(ctk.CTkFrame):
         self.textboxes = {}
 
         self.manage_processing_tab()
+
 
     def manage_processing_tab(self):
 
@@ -369,25 +372,25 @@ class ProcessingView(ctk.CTkFrame):
         self.strvars["save files"] = save_exec_sv
         # ------- CONFIGURE SWITCH COMMANDS -----------------
         sorting_files_switch.configure(
-            command=partial(self.controller.main_controller.category_enabling_switch, sorting_files_switch,
+            command=partial(self.controller.category_enabling_switch, sorting_files_switch,
                             sorting_frame))
         single_file_switch.configure(
-            command=partial(self.controller.main_controller.category_enabling_switch, single_file_switch,
+            command=partial(self.controller.category_enabling_switch, single_file_switch,
                             single_file_frame))
         raw_mea_switch.configure(
-            command=partial(self.controller.main_controller.category_enabling_switch, raw_mea_switch, raw_mea_frame))
+            command=partial(self.controller.category_enabling_switch, raw_mea_switch, raw_mea_frame))
         sampling_switch.configure(
-            command=partial(self.controller.main_controller.category_enabling_switch, sampling_switch, sampling_frame))
+            command=partial(self.controller.category_enabling_switch, sampling_switch, sampling_frame))
         electrode_switch.configure(
-            command=partial(self.controller.main_controller.category_enabling_switch, electrode_switch,
+            command=partial(self.controller.category_enabling_switch, electrode_switch,
                             select_elec_frame))
         fft_switch.configure(
-            command=partial(self.controller.main_controller.category_enabling_switch, fft_switch, frequential_frame))
+            command=partial(self.controller.category_enabling_switch, fft_switch, frequential_frame))
         keyword_exec_switch.configure(
-            command=partial(self.controller.main_controller.modulate_entry_state_by_switch, keyword_exec_switch,
+            command=partial(self.controller.modulate_entry_state_by_switch, keyword_exec_switch,
                             keyword_exec_entry))
         name_filter_switch.configure(
-            command=partial(self.controller.main_controller.category_enabling_switch, name_filter_switch,
+            command=partial(self.controller.category_enabling_switch, name_filter_switch,
                             sub_filterframe))
 
         # -------- CONFIGURE BUTTON COMMANDS ----------------
@@ -411,12 +414,9 @@ class ProcessingView(ctk.CTkFrame):
 
         save_exec_button.configure(command=partial(self.select_save_directory, save_exec_sv))
 
-        process_exec_button.configure(command=partial(self.processing, self.switches, self.cbboxes,
-                                                      self.entries))
-        save_model_button.configure(command=partial(self.save_model, self.switches, self.cbboxes,
-                                                    self.entries, self.textboxes))
-        load_model_button.configure(command=partial(self.load_model, self.switches, self.cbboxes,
-                                                    self.entries, self.textboxes))
+        process_exec_button.configure(command=partial(self.processing, ))
+        save_model_button.configure(command=partial(self.save_config, ))
+        load_model_button.configure(command=partial(self.load_model, ))
 
     def select_save_directory(self, strvar):
         if self.controller:
@@ -447,30 +447,23 @@ class ProcessingView(ctk.CTkFrame):
         if self.controller:
             self.controller.update_params(widgets)
 
-    def processing(self, switch_widgets, cbox_widgets, entry_widgets):
+    def processing(self,):
         if self.controller:
-            self.controller.processing(switch_widgets, cbox_widgets, entry_widgets)
+            self.controller.processing()
 
-    def check_params_validity(self, switch_widgets, cbox_widgets,
-                              entry_widgets):
+    def check_params_validity(self,):
         if self.controller:
-            self.controller.check_params_validity(switch_widgets, entry_widgets, cbox_widgets)
+            self.controller.check_params_validity()
 
     def update_number_of_tasks(self, n_file, n_col, ):
         if self.controller:
             self.controller.update_number_of_tasks(n_file, n_col)
 
-    def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
+    def save_config(self,):
         if self.controller:
-            self.controller.save_model(switch_widgets, cbox_widgets, entry_widgets, textbox_widgets)
+            self.controller.save_config()
 
-    def load_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
+    def load_model(self,):
         if self.controller:
-            self.controller.load_model(switch_widgets, cbox_widgets, entry_widgets,
-                                       textbox_widgets)
+            self.controller.load_config()
 
-    def update_view_from_model(self, switch_widgets, cbox_widgets, entry_widgets,
-                               textbox_widgets):
-        if self.controller:
-            self.controller.update_view_from_model(switch_widgets, cbox_widgets, entry_widgets,
-                                                   textbox_widgets)
