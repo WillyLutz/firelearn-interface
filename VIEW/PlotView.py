@@ -404,7 +404,7 @@ class PlotView(ctk.CTkFrame):
         legend_ypos_slider.configure(command=partial(self.update_slider_value, var=legend_ypos_strvar))
 
         load_dataset_button.configure(command=self.load_plot_dataset)
-        color_button.configure(command=partial(self.select_color, f'color {n_ydata}'))
+        color_button.configure(command=partial(self.select_color, view=self, selection_button_name=f'color {n_ydata}'))
         save_config_button.configure(command=self.save_config)
         load_config_button.configure(command=self.load_config)
 
@@ -415,129 +415,20 @@ class PlotView(ctk.CTkFrame):
         draw_button.configure(command=self.draw_figure)
 
     def add_ydata(self, scrollable_frame):
-        n_ydata = self.controller.add_ydata()
-        ydata_subframe = ctk.CTkFrame(master=scrollable_frame, height=250)
-        ydata_subframe.grid(row=n_ydata, column=0, sticky=ctk.NSEW, pady=25)
-        self.ydata_subframes[str(n_ydata)] = ydata_subframe
-
-        ydata_label = ctk.CTkLabel(master=ydata_subframe, text="Y-data column:")
-        ydata_label.place(relx=0, rely=0)
-        ydata_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=["None", ], state='readonly')
-        ydata_cbbox.set("None")
-        ydata_cbbox.place(relx=0, rely=0.15)
-        self.cbboxes[f"ydata {n_ydata}"] = ydata_cbbox
-
-        add_ydata_button = ctk.CTkButton(master=ydata_subframe, text="+", width=25, height=25, state='normal')
-        add_ydata_button.place(anchor=tk.NE, relx=0.25, rely=0)
-        subtract_ydata_button = ctk.CTkButton(master=ydata_subframe, text="-", width=25, height=25, state='normal')
-        subtract_ydata_button.place(anchor=tk.NE, relx=0.38, rely=0)
-        self.buttons[f"add ydata {n_ydata}"] = add_ydata_button
-        self.buttons[f"subtract ydata {n_ydata}"] = subtract_ydata_button
-
-        ydata_legend_label = ctk.CTkLabel(master=ydata_subframe, text="Legend label:")
-        ydata_legend_label.place(relx=0.5, rely=0)
-        ydata_legend_entry = ctk.CTkEntry(master=ydata_subframe)
-        ydata_legend_entry.place(relx=0.5, rely=0.15, relwidth=0.4)
-        self.entries[f"ydata legend {n_ydata}"] = ydata_legend_entry
-
-        linestyle_label = ctk.CTkLabel(master=ydata_subframe, text="Linestyle:")
-        linestyle_label.place(relx=0, rely=0.3)
-        linestyle_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=list(p.LINESTYLES.keys()), state='readonly')
-        linestyle_cbbox.set("solid")
-        linestyle_cbbox.place(relx=0, rely=0.5, relwidth=0.35)
-        self.cbboxes[f"linestyle {n_ydata}"] = linestyle_cbbox
-
-        linewidth_label = ctk.CTkLabel(master=ydata_subframe, text="Linewidth:")
-        linewidth_label.place(relx=0.5, rely=0.3)
-        linewidth_strvar = tk.StringVar()
-        linewidth_strvar.set("1")
-        linewidth_entry = ctk.CTkEntry(master=ydata_subframe, textvariable=linewidth_strvar)
-        linewidth_entry.place(relx=0.5, rely=0.45, relwidth=0.2)
-        self.entries[f"linewidth {n_ydata}"] = linewidth_entry
-        self.vars[f"linewidth {n_ydata}"] = linewidth_strvar
-
-        color_label = ctk.CTkLabel(master=ydata_subframe, text="Color:")
-        color_label.place(relx=0, rely=0.65)
-        color_var = tk.StringVar()
-        color_var.set("green")
-        color_button = ctk.CTkButton(master=ydata_subframe, textvariable=color_var,
-                                     fg_color=color_var.get(), text_color='black')
-        color_button.place(relx=0, rely=0.75)
-        self.buttons[f"color {n_ydata}"] = color_button
-        self.vars[f"color {n_ydata}"] = color_var
-
-        alpha_label = ctk.CTkLabel(master=ydata_subframe, text="Alpha:")
-        alpha_label.place(relx=0.5, rely=0.65)
-        alpha_slider = ctk.CTkSlider(master=ydata_subframe, from_=0, to=1, number_of_steps=10)
-        alpha_slider.set(p.DEFAULT_LINEALPHA)
-        alpha_slider.place(relx=0.5, rely=0.8, relwidth=0.4)
-        alpha_strvar = tk.StringVar()
-        alpha_strvar.set(str(alpha_slider.get()))
-        alpha_value_label = ctk.CTkLabel(master=ydata_subframe, textvariable=alpha_strvar)
-        alpha_value_label.place(relx=0.7, rely=0.65)
-        self.vars[f"alpha {n_ydata}"] = alpha_strvar
-        self.sliders[f"alpha {n_ydata}"] = alpha_slider
-
-        alpha_slider.configure(command=partial(self.update_slider_value, var=alpha_strvar))
-        color_button.configure(command=partial(self.select_color, f'color {n_ydata}'))
-        add_ydata_button.configure(command=partial(self.add_ydata, scrollable_frame))
-        subtract_ydata_button.configure(command=partial(self.remove_ydata, f'{n_ydata}'))
-        print("add ", n_ydata, self.ydata_subframes)
+        if self.controller:
+            self.controller.add_ydata(scrollable_frame)
 
     def remove_ydata(self, frame_key):
-        n_ydata = self.controller.get_ydata()
-        destroyed_number = int(frame_key.split(" ")[-1])
+        if self.controller:
+            self.controller.remove_ydata(frame_key)
 
-        for y in range(0, n_ydata + 1):
-            if 0 <= y < destroyed_number:
-                pass
-            elif y == destroyed_number:
-                # destroying all widgets related
-                for child in self.ydata_subframes[str(y)].winfo_children():
-                    child.destroy()
-
-                # remove the frame from self.ydata_subframes
-                self.ydata_subframes[str(y)].destroy()
-                del self.ydata_subframes[str(y)]
-
-                # destroying all items related in dicts
-                del self.entries[f"ydata legend {destroyed_number}"]
-                del self.entries[f"linewidth {destroyed_number}"]
-                del self.buttons[f"add ydata {destroyed_number}"]
-                del self.buttons[f"color {destroyed_number}"]
-                del self.cbboxes[f"ydata {destroyed_number}"]
-                del self.cbboxes[f"linestyle {destroyed_number}"]
-                del self.vars[f"linewidth {destroyed_number}"]
-                del self.vars[f"color {destroyed_number}"]
-                del self.vars[f"alpha {destroyed_number}"]
-                del self.sliders[f"alpha {destroyed_number}"]
-                pass
-            elif y > destroyed_number:
-                self.rename_dict_key(self.entries, f"ydata legend {y}", f"ydata legend {y - 1}")
-                self.rename_dict_key(self.entries, f"linewidth {y}", f"linewidth {y - 1}")
-                self.rename_dict_key(self.buttons, f"add ydata {y}", f"add ydata {y - 1}")
-                self.rename_dict_key(self.buttons, f"color {y}", f"color {y - 1}")
-                self.rename_dict_key(self.buttons, f"subtract ydata {y}", f"subtract ydata {y-1}")
-                self.rename_dict_key(self.cbboxes, f"ydata {y}", f"ydata {y - 1}")
-                self.rename_dict_key(self.cbboxes, f"linestyle {y}", f"linestyle {y - 1}")
-                self.rename_dict_key(self.vars, f"linewidth {y}", f"linewidth {y - 1}")
-                self.rename_dict_key(self.vars, f"color {y}", f"color {y - 1}")
-                self.rename_dict_key(self.vars, f"alpha {y}", f"alpha {y - 1}")
-                self.rename_dict_key(self.sliders, f"alpha {y}", f"alpha {y - 1}")
-
-                self.ydata_subframes[str(y)].grid(row=y-1, column=0, sticky=ctk.NSEW)  # replace the frame in grid
-                self.rename_dict_key(self.ydata_subframes, str(y), str(y-1))
-
-        self.controller.remove_ydata()
-        print(f"removed {int(frame_key)}, n_ydata=", n_ydata, self.ydata_subframes)
-        print(self.buttons)
 
 
     def update_slider_value(self, value, var):
         self.parent_view.parent_view.update_slider_value(value, var)
 
-    def select_color(self):
-        self.parent_view.parent_view.select_color()
+    def select_color(self, view, selection_button_name):
+        self.parent_view.parent_view.select_color(view=view, selection_button_name=selection_button_name)
 
     def load_plot_dataset(self):
         if self.controller:

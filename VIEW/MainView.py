@@ -130,7 +130,7 @@ class MainView(ctk.CTkFrame):
     def update_slider_value(value, var):
         var.set(str(round(value, 2)))
 
-    def select_color(self, selection_button_name):
+    def select_color(self, view, selection_button_name):
         color_window = ctk.CTkToplevel()
         color_window.title("Color Selection")
         max_col = 8
@@ -141,7 +141,8 @@ class MainView(ctk.CTkFrame):
                                          height=30, width=130, fg_color=c,
                                          )
             color_button.grid(row=row, column=col, padx=3, pady=3)
-            color_button.configure(command=partial(self.chose_color, color_button, selection_button_name))
+            color_button.configure(command=partial(self.chose_color, view=view, color_button=color_button,
+                                                   selection_button_name=selection_button_name))
 
             if col >= max_col:
                 col = 0

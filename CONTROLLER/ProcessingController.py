@@ -494,22 +494,6 @@ class ProcessingController:
 
         return total_tasks
 
-    def save_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
-        if self.check_params_validity():
-            self.update_params(switch_widgets)
-            self.update_params(cbox_widgets)
-            self.update_params(entry_widgets)
-
-            f = filedialog.asksaveasfilename(defaultextension=".pcfg",
-                                             filetypes=[("Processing configuration", "*.pcfg"), ])
-            if f:
-                self.model.save_model(path=f, )
-
-    def load_model(self, switch_widgets, cbox_widgets, entry_widgets, textbox_widgets):
-        f = filedialog.askopenfilename(title="Open file", filetypes=(("Processing configuration", "*.pcfg"),))
-        if f:
-            if self.model.load_model(path=f):
-                self.update_view_from_model()
 
     def update_view_from_model(self, ):
 

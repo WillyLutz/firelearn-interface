@@ -337,7 +337,7 @@ class FeatureImportanceView(ctk.CTkFrame):
         title_size_slider.configure(command=partial(self.update_slider_value, var=title_size_strvar))
         alpha_slider.configure(command=partial(self.update_slider_value, var=alpha_strvar))
         alpha_fill_slider.configure(command=partial(self.update_slider_value, var=alpha_fill_strvar))
-        color_button.configure(command=partial(self.select_color, 'color'))
+        color_button.configure(command=partial(self.select_color, view=self, selection_button_name='color'))
 
         y_label_slider.configure(command=partial(self.update_slider_value, var=y_label_strvar))
         x_label_slider.configure(command=partial(self.update_slider_value, var=x_label_strvar))
@@ -352,8 +352,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         save_config_button.configure(command=self.save_config)
         load_config_button.configure(command=self.load_config)
 
-    def select_color(self):
-        self.parent_view.select_color()
+    def select_color(self, view, selection_button_name):
+        self.parent_view.select_color(view, selection_button_name)
         
     def update_slider_value(self, value, var):
         self.parent_view.update_slider_value(value, var)

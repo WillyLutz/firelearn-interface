@@ -11,7 +11,7 @@ class PlotModel:
 
         self.plot = None
 
-        self.dataset_paths = {}
+        self.dataset_path = ""
 
         self.entries = {}
         self.buttons = {}
