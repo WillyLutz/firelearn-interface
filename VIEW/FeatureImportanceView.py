@@ -84,15 +84,15 @@ class FeatureImportanceView(ctk.CTkFrame):
         title_font_cbbox = tk.ttk.Combobox(master=body_frame, values=p.FONTS, state='readonly')
         title_font_cbbox.set(p.DEFAULT_FONT)
         title_font_cbbox.place(relx=0, rely=0.18, relwidth=0.4)
-        self.cbboxes["fi title font"] = title_font_cbbox
+        self.cbboxes["title font"] = title_font_cbbox
 
         title_label = ctk.CTkLabel(master=body_frame, text="Title:")
         title_label.place(relx=0.45, rely=0.0)
         title_strvar = tk.StringVar()
         title_entry = ctk.CTkEntry(master=body_frame, textvariable=title_strvar, state='normal')
         title_entry.place(relx=0.45, rely=0.07, relwidth=0.5)
-        self.entries["fi title"] = title_entry
-        self.vars["fi title"] = title_strvar
+        self.entries["title"] = title_entry
+        self.vars["title"] = title_strvar
 
         title_size_label = ctk.CTkLabel(master=body_frame, text="Title size:")
         title_size_label.place(relx=0.5, rely=0.15)
@@ -103,15 +103,15 @@ class FeatureImportanceView(ctk.CTkFrame):
         title_size_strvar.set(str(title_size_slider.get()))
         title_size_value_label = ctk.CTkLabel(master=body_frame, textvariable=title_size_strvar)
         title_size_value_label.place(relx=0.8, rely=0.15)
-        self.vars["fi title size"] = title_size_strvar
-        self.sliders["fi title size"] = title_size_slider
+        self.vars["title size"] = title_size_strvar
+        self.sliders["title size"] = title_size_slider
 
         linestyle_label = ctk.CTkLabel(master=body_frame, text="Linestyle:")
         linestyle_label.place(relx=0, rely=0.30)
         linestyle_cbbox = tk.ttk.Combobox(master=body_frame, values=list(p.LINESTYLES.keys()), state='readonly')
         linestyle_cbbox.set("solid")
         linestyle_cbbox.place(relx=0, rely=0.38, relwidth=0.40)
-        self.cbboxes["fi linestyle"] = linestyle_cbbox
+        self.cbboxes["linestyle"] = linestyle_cbbox
 
         linewidth_label = ctk.CTkLabel(master=body_frame, text="Linewidth:")
         linewidth_label.place(relx=0.5, rely=0.30)
@@ -119,8 +119,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         linewidth_strvar.set("1")
         linewidth_entry = ctk.CTkEntry(master=body_frame, textvariable=linewidth_strvar)
         linewidth_entry.place(relx=0.5, rely=0.38, relwidth=0.2)
-        self.entries["fi linewidth"] = linewidth_entry
-        self.vars["fi linewidth"] = linewidth_strvar
+        self.entries["linewidth"] = linewidth_entry
+        self.vars["linewidth"] = linewidth_strvar
 
         color_label = ctk.CTkLabel(master=body_frame, text="Color:")
         color_label.place(relx=0, rely=0.50)
@@ -129,8 +129,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         color_button = ctk.CTkButton(master=body_frame, textvariable=color_var,
                                      fg_color=color_var.get(), text_color='black')
         color_button.place(relx=0, rely=0.58)
-        self.buttons["fi color"] = color_button
-        self.vars["fi color"] = color_var
+        self.buttons["color"] = color_button
+        self.vars["color"] = color_var
 
         alpha_label = ctk.CTkLabel(master=body_frame, text="Alpha:")
         alpha_label.place(relx=0, rely=0.68)
@@ -141,15 +141,15 @@ class FeatureImportanceView(ctk.CTkFrame):
         alpha_strvar.set(str(alpha_slider.get()))
         alpha_value_label = ctk.CTkLabel(master=body_frame, textvariable=alpha_strvar)
         alpha_value_label.place(relx=0.2, rely=0.68)
-        self.vars["fi alpha"] = alpha_strvar
-        self.sliders["fi alpha"] = alpha_slider
+        self.vars["alpha"] = alpha_strvar
+        self.sliders["alpha"] = alpha_slider
 
         fill_label = ctk.CTkLabel(master=body_frame, text="Fill:")
         fill_label.place(relx=0.5, rely=0.5)
         fill_cbbox = tk.ttk.Combobox(master=body_frame, values=["None", "Above", "Below"], state='readonly')
         fill_cbbox.set("None")
         fill_cbbox.place(relx=0.5, rely=0.58, relwidth=0.40)
-        self.cbboxes["fi fill"] = fill_cbbox
+        self.cbboxes["fill"] = fill_cbbox
 
         alpha_fill_label = ctk.CTkLabel(master=body_frame, text="Fill alpha:")
         alpha_fill_label.place(relx=0.5, rely=0.68)
@@ -160,8 +160,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         alpha_fill_strvar.set(str(alpha_fill_slider.get()))
         alpha_fill_value_label = ctk.CTkLabel(master=body_frame, textvariable=alpha_fill_strvar)
         alpha_fill_value_label.place(relx=0.7, rely=0.68)
-        self.vars["fi alpha fill"] = alpha_fill_strvar
-        self.sliders["fi alpha fill"] = alpha_fill_slider
+        self.vars["alpha fill"] = alpha_fill_strvar
+        self.sliders["alpha fill"] = alpha_fill_slider
 
         dpi_label = ctk.CTkLabel(master=body_frame, text="Figure dpi:")
         dpi_label.place(relx=0, rely=0.85)
@@ -169,8 +169,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         dpi_strvar.set("100")
         dpi_entry = ctk.CTkEntry(master=body_frame, textvariable=dpi_strvar)
         dpi_entry.place(relx=0, rely=0.9, relwidth=0.2)
-        self.entries["fi dpi"] = dpi_entry
-        self.vars["fi dpi"] = dpi_strvar
+        self.entries["dpi"] = dpi_entry
+        self.vars["dpi"] = dpi_strvar
 
         # ----- AXES
         axes_label = ctk.CTkLabel(master=axes_frame, text="AXES")
@@ -180,20 +180,20 @@ class FeatureImportanceView(ctk.CTkFrame):
         x_label.place(relx=0, rely=0.1)
         x_label_entry = ctk.CTkEntry(master=axes_frame, )
         x_label_entry.place(relx=0, rely=0.2, relwidth=0.4)
-        self.entries["fi x label"] = x_label_entry
+        self.entries["x label"] = x_label_entry
 
         y_label = ctk.CTkLabel(master=axes_frame, text="y-axis label:")
         y_label.place(relx=0.5, rely=0.1)
         y_label_entry = ctk.CTkEntry(master=axes_frame, )
         y_label_entry.place(relx=0.5, rely=0.2, relwidth=0.4)
-        self.entries["fi y label"] = y_label_entry
+        self.entries["y label"] = y_label_entry
 
         axes_font_label = ctk.CTkLabel(master=axes_frame, text="Axes font:")
         axes_font_label.place(relx=0, rely=0.4)
         axes_font_cbbox = tk.ttk.Combobox(master=axes_frame, values=p.FONTS, state='readonly')
         axes_font_cbbox.set(p.DEFAULT_FONT)
         axes_font_cbbox.place(relx=0, rely=0.5, relwidth=0.4)
-        self.cbboxes["fi axes font"] = axes_font_cbbox
+        self.cbboxes["axes font"] = axes_font_cbbox
 
         x_size_label = ctk.CTkLabel(master=axes_frame, text="x-axis label size:")
         x_size_label.place(relx=0, rely=0.7)
@@ -204,8 +204,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         x_label_strvar.set(str(x_label_slider.get()))
         x_label_value_label = ctk.CTkLabel(master=axes_frame, textvariable=x_label_strvar)
         x_label_value_label.place(relx=0.3, rely=0.7)
-        self.vars["fi x label size"] = x_label_strvar
-        self.sliders["fi x label size"] = x_label_slider
+        self.vars["x label size"] = x_label_strvar
+        self.sliders["x label size"] = x_label_slider
 
         y_size_label = ctk.CTkLabel(master=axes_frame, text="y-axis label size:")
         y_size_label.place(relx=0.5, rely=0.7)
@@ -216,8 +216,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         y_label_strvar.set(str(y_label_slider.get()))
         y_label_value_label = ctk.CTkLabel(master=axes_frame, textvariable=y_label_strvar)
         y_label_value_label.place(relx=0.8, rely=0.7)
-        self.vars["fi y label size"] = y_label_strvar
-        self.sliders["fi y label size"] = y_label_slider
+        self.vars["y label size"] = y_label_strvar
+        self.sliders["y label size"] = y_label_slider
 
         # -----TICKS
         ticks_label = ctk.CTkLabel(master=ticks_frame, text="TICKS")
@@ -229,8 +229,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         n_xticks_strvar.set(p.DEFAULT_NTICKS)
         n_xticks_entry = ctk.CTkEntry(master=ticks_frame, textvariable=n_xticks_strvar)
         n_xticks_entry.place(relx=0, rely=0.2, relwidth=0.2)
-        self.entries["fi n x ticks"] = n_xticks_entry
-        self.vars["fi n x ticks"] = n_xticks_strvar
+        self.entries["n x ticks"] = n_xticks_entry
+        self.vars["n x ticks"] = n_xticks_strvar
 
         n_yticks_label = ctk.CTkLabel(master=ticks_frame, text="Number of y ticks:")
         n_yticks_label.place(relx=0.5, rely=0.1)
@@ -238,8 +238,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         n_yticks_strvar.set(p.DEFAULT_NTICKS)
         n_yticks_entry = ctk.CTkEntry(master=ticks_frame, textvariable=n_yticks_strvar)
         n_yticks_entry.place(relx=0.5, rely=0.2, relwidth=0.2)
-        self.entries["fi n y ticks"] = n_yticks_entry
-        self.vars["fi n y ticks"] = n_yticks_strvar
+        self.entries["n y ticks"] = n_yticks_entry
+        self.vars["n y ticks"] = n_yticks_strvar
 
         x_ticks_rotation_label = ctk.CTkLabel(master=ticks_frame, text="x-axis tick rotation:")
         x_ticks_rotation_label.place(relx=0, rely=0.3)
@@ -250,8 +250,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         x_ticks_rotation_strvar.set(str(x_ticks_rotation_slider.get()))
         x_ticks_rotation_value_label = ctk.CTkLabel(master=ticks_frame, textvariable=x_ticks_rotation_strvar)
         x_ticks_rotation_value_label.place(relx=0.3, rely=0.3)
-        self.vars["fi x ticks rotation"] = x_ticks_rotation_strvar
-        self.sliders["fi x ticks rotation"] = x_ticks_rotation_slider
+        self.vars["x ticks rotation"] = x_ticks_rotation_strvar
+        self.sliders["x ticks rotation"] = x_ticks_rotation_slider
 
         y_ticks_rotation_label = ctk.CTkLabel(master=ticks_frame, text="y-axis tick rotation:")
         y_ticks_rotation_label.place(relx=0.5, rely=0.3)
@@ -262,8 +262,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         y_ticks_rotation_strvar.set(str(y_ticks_rotation_slider.get()))
         y_ticks_rotation_value_label = ctk.CTkLabel(master=ticks_frame, textvariable=y_ticks_rotation_strvar)
         y_ticks_rotation_value_label.place(relx=0.8, rely=0.3)
-        self.vars["fi y ticks rotation"] = y_ticks_rotation_strvar
-        self.sliders["fi y ticks rotation"] = y_ticks_rotation_slider
+        self.vars["y ticks rotation"] = y_ticks_rotation_strvar
+        self.sliders["y ticks rotation"] = y_ticks_rotation_slider
 
         x_ticks_label = ctk.CTkLabel(master=ticks_frame, text="x-axis tick size:")
         x_ticks_label.place(relx=0, rely=0.6)
@@ -274,8 +274,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         x_ticks_strvar.set(str(x_ticks_slider.get()))
         x_ticks_value_label = ctk.CTkLabel(master=ticks_frame, textvariable=x_ticks_strvar)
         x_ticks_value_label.place(relx=0.3, rely=0.6)
-        self.vars["fi x ticks size"] = x_ticks_strvar
-        self.sliders["fi x ticks size"] = x_ticks_slider
+        self.vars["x ticks size"] = x_ticks_strvar
+        self.sliders["x ticks size"] = x_ticks_slider
 
         y_ticks_label = ctk.CTkLabel(master=ticks_frame, text="y-axis tick size:")
         y_ticks_label.place(relx=0.5, rely=0.6)
@@ -286,8 +286,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         y_ticks_strvar.set(str(y_ticks_slider.get()))
         y_ticks_value_label = ctk.CTkLabel(master=ticks_frame, textvariable=y_ticks_strvar)
         y_ticks_value_label.place(relx=0.8, rely=0.6)
-        self.vars["fi y ticks size"] = y_ticks_strvar
-        self.sliders["fi y ticks size"] = y_ticks_slider
+        self.vars["y ticks size"] = y_ticks_strvar
+        self.sliders["y ticks size"] = y_ticks_slider
 
         round_xticks_label = ctk.CTkLabel(master=ticks_frame, text="Round x ticks:")
         round_xticks_label.place(relx=0, rely=0.8)
@@ -295,8 +295,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         round_xticks_strvar.set(p.DEFAULT_ROUND)
         round_xticks_entry = ctk.CTkEntry(master=ticks_frame, textvariable=round_xticks_strvar)
         round_xticks_entry.place(relx=0, rely=0.9, relwidth=0.2)
-        self.entries["fi round x ticks"] = round_xticks_entry
-        self.vars["fi round x ticks"] = round_xticks_strvar
+        self.entries["round x ticks"] = round_xticks_entry
+        self.vars["round x ticks"] = round_xticks_strvar
 
         round_yticks_label = ctk.CTkLabel(master=ticks_frame, text="Round y ticks:")
         round_yticks_label.place(relx=0.5, rely=0.8)
@@ -304,8 +304,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         round_yticks_strvar.set(p.DEFAULT_ROUND)
         round_yticks_entry = ctk.CTkEntry(master=ticks_frame, textvariable=round_yticks_strvar)
         round_yticks_entry.place(relx=0.5, rely=0.9, relwidth=0.2)
-        self.entries["fi round y ticks"] = round_yticks_entry
-        self.vars["fi round y ticks"] = round_yticks_strvar
+        self.entries["round y ticks"] = round_yticks_entry
+        self.vars["round y ticks"] = round_yticks_strvar
 
         # --------------- PLOT
         fig, ax = self.dummy_figure()
@@ -317,19 +317,19 @@ class FeatureImportanceView(ctk.CTkFrame):
         # --------------- EXEC
         export_button = ctk.CTkButton(master=exec_frame, text="Export data", fg_color="green")
         export_button.place(anchor=tk.CENTER, relx=0.5, rely=0.33)
-        self.buttons["fi export"] = export_button
+        self.buttons["export"] = export_button
         save_figure_button = ctk.CTkButton(master=exec_frame, text="Save figure", fg_color="green")
         save_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.66)
-        self.buttons["fi save fig"] = save_figure_button
+        self.buttons["save fig"] = save_figure_button
         load_config_button = ctk.CTkButton(master=exec_frame, text="Load config", fg_color="lightslategray")
         load_config_button.place(anchor=tk.CENTER, relx=0.25, rely=0.33)
-        self.buttons["fi load config"] = load_config_button
+        self.buttons["load config"] = load_config_button
         save_config_button = ctk.CTkButton(master=exec_frame, text="Save config", fg_color="lightslategray")
         save_config_button.place(anchor=tk.CENTER, relx=0.25, rely=0.66)
-        self.buttons["fi save config"] = save_config_button
+        self.buttons["save config"] = save_config_button
         draw_button = ctk.CTkButton(master=exec_frame, text="Draw", fg_color="green")
         draw_button.place(anchor=tk.CENTER, relx=0.75, rely=0.5, relheight=0.5)
-        self.buttons["fi draw"] = draw_button
+        self.buttons["draw"] = draw_button
 
         # ---------------- CONFIGURE
         load_clf_button.configure(command=self.load_clf)
@@ -337,7 +337,7 @@ class FeatureImportanceView(ctk.CTkFrame):
         title_size_slider.configure(command=partial(self.update_slider_value, var=title_size_strvar))
         alpha_slider.configure(command=partial(self.update_slider_value, var=alpha_strvar))
         alpha_fill_slider.configure(command=partial(self.update_slider_value, var=alpha_fill_strvar))
-        color_button.configure(command=partial(self.select_color, 'fi color'))
+        color_button.configure(command=partial(self.select_color, 'color'))
 
         y_label_slider.configure(command=partial(self.update_slider_value, var=y_label_strvar))
         x_label_slider.configure(command=partial(self.update_slider_value, var=x_label_strvar))

@@ -16,12 +16,11 @@ import params as p
 
 
 class PlotController:
-    def __init__(self, view,):
+    def __init__(self, view, ):
         self.model = PlotModel()
         self.view = view
         self.view.controller = self  # set controller
         self.progress = None
-
 
     def dummy_figure(self):  # todo create plot
         fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
@@ -35,13 +34,13 @@ class PlotController:
 
     def draw_figure(self, ):
         if self.input_validation_plot():
-            fig, ax = self.view.figures["feature importance"]
+            fig, ax = self.view.figures["plot"]
 
             y_data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             x_data = [i for i in range(len(y_data))]
 
-            n_xticks = int(self.view.entries["plt n x ticks"].get())
-            n_yticks = int(self.view.entries["plt n y ticks"].get())
+            n_xticks = int(self.view.entries["n x ticks"].get())
+            n_yticks = int(self.view.entries["n y ticks"].get())
 
             if n_yticks > len(y_data):
                 messagebox.showerror("Value error", "Can not have more y ticks than y values")
@@ -51,36 +50,22 @@ class PlotController:
                 return False
 
             ax.clear()
-            ax.plot(x_data, y_data,
-                    linewidth=self.view.entries["plt linewidth"].get(),
-                    linestyle=p.LINESTYLES[self.view.cbboxes["plt linestyle"].get()],
-                    color=self.view.vars["plt color"].get(),
-                    alpha=self.view.sliders["plt alpha"].get(),
-                    )
+            ax.plot(x_data, y_data, )
+            # linewidth=self.view.entries["linewidth"].get(),
+            # linestyle=p.LINESTYLES[self.view.cbboxes["linestyle"].get()],
+            # color=self.view.vars["color"].get(),
+            # alpha=self.view.sliders["alpha"].get(),
+            # )
 
-            fill = self.view.cbboxes["plt fill"].get()
-            if fill != 'None':
-                ylim = plt.gca().get_ylim()
-                if fill == 'Below':
-                    ax.fill_between(x_data, y_data, ylim[0],
-                                    color=self.view.vars["plt color"].get(),
-                                    alpha=self.view.sliders["plt alpha fill"].get()
-                                    )
-                if fill == 'Above':
-                    ax.fill_between(x_data, y_data, ylim[1],
-                                    color=self.view.vars["plt color"].get(),
-                                    alpha=self.view.sliders["plt alpha fill"].get()
-                                    )
-
-            ax.set_xlabel(self.view.entries["plt x label"].get(),
-                          fontdict={"font": self.view.cbboxes["plt axes font"].get(),
-                                    "fontsize": self.view.sliders["plt x label size"].get()})
-            ax.set_ylabel(self.view.entries["plt y label"].get(),
-                          fontdict={"font": self.view.cbboxes["plt axes font"].get(),
-                                    "fontsize": self.view.sliders["plt y label size"].get()})
-            ax.set_title(self.view.entries["plt title"].get(),
-                         fontdict={"font": self.view.cbboxes["plt title font"].get(),
-                                   "fontsize": self.view.sliders["plt title size"].get(), })
+            ax.set_xlabel(self.view.entries["x label"].get(),
+                          fontdict={"font": self.view.cbboxes["axes font"].get(),
+                                    "fontsize": self.view.sliders["x label size"].get()})
+            ax.set_ylabel(self.view.entries["y label"].get(),
+                          fontdict={"font": self.view.cbboxes["axes font"].get(),
+                                    "fontsize": self.view.sliders["y label size"].get()})
+            ax.set_title(self.view.entries["title"].get(),
+                         fontdict={"font": self.view.cbboxes["title font"].get(),
+                                   "fontsize": self.view.sliders["title size"].get(), })
 
             xmin = min(x_data)
             xmax = max(x_data)
@@ -91,11 +76,11 @@ class PlotController:
                 xticks.append(xtick)
                 xtick += xstep
             xticks.append(xmax)
-            rounded_xticks = list(np.around(np.array(xticks), int(self.view.entries["plt round x ticks"].get())))
+            rounded_xticks = list(np.around(np.array(xticks), int(self.view.entries["round x ticks"].get())))
             ax.set_xticks(rounded_xticks)
             ax.tick_params(axis='x',
-                           labelsize=self.view.sliders["plt x ticks size"].get(),
-                           labelrotation=float(self.view.sliders["plt x ticks rotation"].get()))
+                           labelsize=self.view.sliders["x ticks size"].get(),
+                           labelrotation=float(self.view.sliders["x ticks rotation"].get()))
 
             ymin = min(y_data)
             ymay = max(y_data)
@@ -106,50 +91,50 @@ class PlotController:
                 yticks.append(ytick)
                 ytick += ystep
             yticks.append(ymay)
-            rounded_yticks = list(np.around(np.array(yticks), int(self.view.entries["plt round y ticks"].get())))
+            rounded_yticks = list(np.around(np.array(yticks), int(self.view.entries["round y ticks"].get())))
             ax.set_yticks(rounded_yticks)
             ax.tick_params(axis='y',
-                           labelsize=self.view.sliders["plt y ticks size"].get(),
-                           labelrotation=float(self.view.sliders["plt y ticks rotation"].get()))
+                           labelsize=self.view.sliders["y ticks size"].get(),
+                           labelrotation=float(self.view.sliders["y ticks rotation"].get()))
 
             # figure = self.create_figure()
             # self.view.canvas["feature importance"].figure = figure
             plt.tight_layout()
-            self.view.figures["feature importance"] = (fig, ax)
-            self.view.canvas["feature importance"].draw()
+            self.view.figures["plot"] = (fig, ax)
+            self.view.canvas["plot"].draw()
 
     def input_validation_plot(self):
         plt_entries = {key: value for (key, value) in self.view.entries.items() if "plt" in key}
 
-        # todo : check for 'plt linewidth 0' instead of 'plt linewidth' (taking account of multiple y)
-        # if float(plt_entries["plt linewidth"].get()) < 0:
+        # todo : check for 'linewidth 0' instead of 'linewidth' (taking account of multiple y)
+        # if float(plt_entries["linewidth"].get()) < 0:
         #     messagebox.showerror("Value error", "Line width must be positive.")
         #
-        # for key, value in {"plt linewidth": "Line width", "plt n x ticks": "Number of x ticks",
-        #                    "plt n y ticks": "Number of y ticks", "plt dpi": "Figure dpi"}.items():
-        #     if not ival.is_number(plt_entries["plt linewidth"].get()):
+        # for key, value in {"linewidth": "Line width", "n x ticks": "Number of x ticks",
+        #                    "n y ticks": "Number of y ticks", "dpi": "Figure dpi"}.items():
+        #     if not ival.is_number(plt_entries["linewidth"].get()):
         #         messagebox.showerror("Value error", f"{value} must be a number.")
         #         return False
         #
-        # for key, value in {"plt round x ticks": "Round x ticks", "plt round y ticks": "Round y ticks",
-        #                    "plt dpi": "Figure dpi"}.items():
+        # for key, value in {"round x ticks": "Round x ticks", "round y ticks": "Round y ticks",
+        #                    "dpi": "Figure dpi"}.items():
         #     if not ival.isint(plt_entries[key].get()):
         #         messagebox.showerror("Value error", f"{value} must be a positive integer.")
         #         return False
         #
-        # for key, value in {"plt linewidth": "Line width", }.items():
+        # for key, value in {"linewidth": "Line width", }.items():
         #     if ival.value_is_empty_or_none(plt_entries[key].get()):
         #         messagebox.showerror("Value error", f"{value} can not be empty or None")
         #         return False
         #
-        # if int(self.view.entries["plt n x ticks"].get()) < 2:
+        # if int(self.view.entries["n x ticks"].get()) < 2:
         #     messagebox.showerror("Value error", "Can not have les than 2 ticks.")
 
         return True
 
     def save_figure(self, fig):
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
-        fig.savefig(filepath, dpi=int(self.view.entries["plt dpi"].get()))
+        fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()))
 
     def export_figure_data(self, ax):
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Coma Separated Value", "*.csv"),))
@@ -254,13 +239,23 @@ class PlotController:
         if filename:
             df = pd.read_csv(filename)
             self.model.dataset_paths["plot"] = filename
-            self.view.vars["plt load dataset"].set(filename)
+            self.view.vars["load dataset"].set(filename)
 
             columns = list(df.columns)
-            self.view.cbboxes["plt xdata"].configure(values=columns)
-            self.view.cbboxes["plt xdata"].set(columns[0])
-            ydata_curves = {key: value for (key, value) in self.view.cbboxes.items() if "plt ydata " in key}
+            self.view.cbboxes["xdata"].configure(values=columns)
+            self.view.cbboxes["xdata"].set(columns[0])
+            ydata_curves = {key: value for (key, value) in self.view.cbboxes.items() if "ydata " in key}
             for key, value in ydata_curves.items():
                 value.configure(values=columns)
                 value.set(columns[-1])
 
+    def add_ydata(self):
+        self.model.n_ydata += 1
+        return self.model.n_ydata
+
+    def remove_ydata(self):
+        self.model.n_ydata -= 1
+        return self.model.n_ydata
+
+    def get_ydata(self):
+        return self.model.n_ydata

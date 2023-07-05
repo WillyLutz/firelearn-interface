@@ -51,8 +51,8 @@ class FeatureImportanceController:
             y_data = np.mean([tree.feature_importances_ for tree in self.model.clf.estimators_], axis=0)
             x_data = [i for i in range(len(y_data))]
 
-            n_xticks = int(self.view.entries["fi n x ticks"].get())
-            n_yticks = int(self.view.entries["fi n y ticks"].get())
+            n_xticks = int(self.view.entries["n x ticks"].get())
+            n_yticks = int(self.view.entries["n y ticks"].get())
 
             if n_yticks > len(y_data):
                 messagebox.showerror("Value error", "Can not have more y ticks than y values")
@@ -63,35 +63,35 @@ class FeatureImportanceController:
 
             ax.clear()
             ax.plot(x_data, y_data,
-                    linewidth=self.view.entries["fi linewidth"].get(),
-                    linestyle=p.LINESTYLES[self.view.cbboxes["fi linestyle"].get()],
-                    color=self.view.vars["fi color"].get(),
-                    alpha=self.view.sliders["fi alpha"].get(),
+                    linewidth=self.view.entries["linewidth"].get(),
+                    linestyle=p.LINESTYLES[self.view.cbboxes["linestyle"].get()],
+                    color=self.view.vars["color"].get(),
+                    alpha=self.view.sliders["alpha"].get(),
                     )
 
-            fill = self.view.cbboxes["fi fill"].get()
+            fill = self.view.cbboxes["fill"].get()
             if fill != 'None':
                 ylim = plt.gca().get_ylim()
                 if fill == 'Below':
                     ax.fill_between(x_data, y_data, ylim[0],
-                                    color=self.view.vars["fi color"].get(),
-                                    alpha=self.view.sliders["fi alpha fill"].get()
+                                    color=self.view.vars["color"].get(),
+                                    alpha=self.view.sliders["alpha fill"].get()
                                     )
                 if fill == 'Above':
                     ax.fill_between(x_data, y_data, ylim[1],
-                                    color=self.view.vars["fi color"].get(),
-                                    alpha=self.view.sliders["fi alpha fill"].get()
+                                    color=self.view.vars["color"].get(),
+                                    alpha=self.view.sliders["alpha fill"].get()
                                     )
 
-            ax.set_xlabel(self.view.entries["fi x label"].get(),
-                          fontdict={"font": self.view.cbboxes["fi axes font"].get(),
-                                    "fontsize": self.view.sliders["fi x label size"].get()})
-            ax.set_ylabel(self.view.entries["fi y label"].get(),
-                          fontdict={"font": self.view.cbboxes["fi axes font"].get(),
-                                    "fontsize": self.view.sliders["fi y label size"].get()})
-            ax.set_title(self.view.entries["fi title"].get(),
-                         fontdict={"font": self.view.cbboxes["fi title font"].get(),
-                                   "fontsize": self.view.sliders["fi title size"].get(), })
+            ax.set_xlabel(self.view.entries["x label"].get(),
+                          fontdict={"font": self.view.cbboxes["axes font"].get(),
+                                    "fontsize": self.view.sliders["x label size"].get()})
+            ax.set_ylabel(self.view.entries["y label"].get(),
+                          fontdict={"font": self.view.cbboxes["axes font"].get(),
+                                    "fontsize": self.view.sliders["y label size"].get()})
+            ax.set_title(self.view.entries["title"].get(),
+                         fontdict={"font": self.view.cbboxes["title font"].get(),
+                                   "fontsize": self.view.sliders["title size"].get(), })
 
             xmin = min(x_data)
             xmax = max(x_data)
@@ -102,11 +102,11 @@ class FeatureImportanceController:
                 xticks.append(xtick)
                 xtick += xstep
             xticks.append(xmax)
-            rounded_xticks = list(np.around(np.array(xticks), int(self.view.entries["fi round x ticks"].get())))
+            rounded_xticks = list(np.around(np.array(xticks), int(self.view.entries["round x ticks"].get())))
             ax.set_xticks(rounded_xticks)
             ax.tick_params(axis='x',
-                           labelsize=self.view.sliders["fi x ticks size"].get(),
-                           labelrotation=float(self.view.sliders["fi x ticks rotation"].get()))
+                           labelsize=self.view.sliders["x ticks size"].get(),
+                           labelrotation=float(self.view.sliders["x ticks rotation"].get()))
 
             ymin = min(y_data)
             ymay = max(y_data)
@@ -117,11 +117,11 @@ class FeatureImportanceController:
                 yticks.append(ytick)
                 ytick += ystep
             yticks.append(ymay)
-            rounded_yticks = list(np.around(np.array(yticks), int(self.view.entries["fi round y ticks"].get())))
+            rounded_yticks = list(np.around(np.array(yticks), int(self.view.entries["round y ticks"].get())))
             ax.set_yticks(rounded_yticks)
             ax.tick_params(axis='y',
-                           labelsize=self.view.sliders["fi y ticks size"].get(),
-                           labelrotation=float(self.view.sliders["fi y ticks rotation"].get()))
+                           labelsize=self.view.sliders["y ticks size"].get(),
+                           labelrotation=float(self.view.sliders["y ticks rotation"].get()))
 
             # figure = self.create_figure()
             # self.view.canvas["feature importance"].figure = figure
@@ -136,34 +136,34 @@ class FeatureImportanceController:
             messagebox.showerror("Value error", "No classifier loaded.")
             return False
 
-        if float(fi_entries["fi linewidth"].get()) < 0:
+        if float(fi_entries["linewidth"].get()) < 0:
             messagebox.showerror("Value error", "Line width must be positive.")
 
-        for key, value in {"fi linewidth": "Line width", "fi n x ticks": "Number of x ticks",
-                           "fi n y ticks": "Number of y ticks", "fi dpi": "Figure dpi"}.items():
-            if not ival.is_number(fi_entries["fi linewidth"].get()):
+        for key, value in {"linewidth": "Line width", "n x ticks": "Number of x ticks",
+                           "n y ticks": "Number of y ticks", "dpi": "Figure dpi"}.items():
+            if not ival.is_number(fi_entries["linewidth"].get()):
                 messagebox.showerror("Value error", f"{value} must be a number.")
                 return False
 
-        for key, value in {"fi round x ticks": "Round x ticks", "fi round y ticks": "Round y ticks",
-                           "fi dpi": "Figure dpi"}.items():
+        for key, value in {"round x ticks": "Round x ticks", "round y ticks": "Round y ticks",
+                           "dpi": "Figure dpi"}.items():
             if not ival.isint(fi_entries[key].get()):
                 messagebox.showerror("Value error", f"{value} must be a positive integer.")
                 return False
 
-        for key, value in {"fi linewidth": "Line width", }.items():
+        for key, value in {"linewidth": "Line width", }.items():
             if ival.value_is_empty_or_none(fi_entries[key].get()):
                 messagebox.showerror("Value error", f"{value} can not be empty or None")
                 return False
 
-        if int(self.view.entries["fi n x ticks"].get()) < 2:
+        if int(self.view.entries["n x ticks"].get()) < 2:
             messagebox.showerror("Value error", "Can not have les than 2 ticks.")
 
         return True
 
     def save_figure(self, fig):
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
-        fig.savefig(filepath, dpi=int(self.view.entries["fi dpi"].get()))
+        fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()))
 
     def export_figure_data(self, ax):
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Coma Separated Value", "*.csv"),))

@@ -24,6 +24,7 @@ class PlotModel:
         self.canvas = {}
         self.figures = {}
         self.targets = []
+        self.n_ydata = 0
 
     def load_model(self, path):
         try:
