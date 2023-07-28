@@ -13,7 +13,6 @@ from VIEW.ProcessingView import ProcessingView
 import params as p
 
 
-
 class MainView(ctk.CTkFrame):
     def __init__(self, app):
         super().__init__(master=app)
@@ -25,8 +24,6 @@ class MainView(ctk.CTkFrame):
 
         self.master_frame = ctk.CTkFrame(master=self.app, )
         self.master_frame.place(relwidth=1.0, relheight=1.0)
-
-
 
         # ------------ MENU BAR ------------------------
         self.menu_bar = tk.Menu()
@@ -48,10 +45,11 @@ class MainView(ctk.CTkFrame):
         # ------------- TABS MENU ----------------------
         self.tabs_view = ctk.CTkTabview(master=self.master_frame, border_color='red', corner_radius=10)
         self.tabs_view.place(relwidth=1.0, relheight=1.0)
+        self.tabs_view.add("Analysis")
         self.tabs_view.add("Home")
         self.tabs_view.add("Processing")
         self.tabs_view.add("Learning")
-        self.tabs_view.add("Analysis")
+
         self.tabs_view.add("Terminal")
 
         # ------------- MANAGING PARENT TABS -----------
@@ -69,13 +67,9 @@ class MainView(ctk.CTkFrame):
 
         self.terminal = None
 
-
-
     def open_web(self, url):
         if self.controller:
             self.controller.open_web(url)
-
-
 
     # def set_subviews(self):
     #     self.learning_view = LearningView(self.app, self.tabs_view.tab("Learning"), self.controller.learning_controller)
@@ -125,7 +119,6 @@ class MainView(ctk.CTkFrame):
                                                       "https://github.com/WillyLutz/firelearn-interface"))
         github_button.place(relx=0.1, rely=0.6)
 
-
     @staticmethod
     def update_slider_value(value, var):
         var.set(str(round(value, 2)))
@@ -154,4 +147,3 @@ class MainView(ctk.CTkFrame):
     def chose_color(view, color_button, selection_button_name):
         view.buttons[selection_button_name].configure(fg_color=color_button.cget('fg_color'))
         view.vars[selection_button_name].set(color_button.cget('text'))
-

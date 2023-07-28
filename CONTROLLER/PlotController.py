@@ -23,105 +23,6 @@ class PlotController:
         self.view.controller = self  # set controller
         self.progress = None
 
-    def dummy_figure(self):  # todo create plot
-        fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        t = np.arange(0, 3, .01)
-        ax.plot(t, random.randint(1, 4) *
-                np.sin(random.randint(1, 4) * np.pi * t))
-        ax.set_xlabel("time [s]")
-        ax.set_ylabel("f(t)")
-
-        return fig, ax
-
-    def draw_figure(self, ):
-        if self.input_validation_plot():
-            fig, ax = self.view.figures["plot"]
-
-            df = pd.read_csv(self.model.dataset_path, index_col=False)
-
-            n_xticks = int(self.view.entries["n x ticks"].get())
-            n_yticks = int(self.view.entries["n y ticks"].get())
-
-            all_ymin = []  # for y ticks
-            all_ymax = []
-
-            # ---- PLOTTING
-            x_data = df[self.view.cbboxes["xdata"].get()]
-            ax.clear()
-            for yi in range(self.model.n_ydata + 1):
-                y_data = df[self.view.cbboxes[f"ydata {str(yi)}"].get()]
-                all_ymin.append(min(y_data))
-                all_ymax.append(max(y_data))
-
-                ax.plot(x_data, y_data,
-                        linewidth=self.view.entries[f"linewidth {str(yi)}"].get(),
-                        linestyle=p.LINESTYLES[self.view.cbboxes[f"linestyle {str(yi)}"].get()],
-                        color=self.view.vars[f"color {str(yi)}"].get(),
-                        alpha=self.view.sliders[f"alpha {str(yi)}"].get(),
-                        label=self.view.entries[f"ydata legend {str(yi)}"]
-                        )
-
-            y_data0 = df[self.view.cbboxes[f"ydata 0"].get()]  # todo : does not take account fo multiple y data
-            if n_yticks > len(y_data0):
-                messagebox.showerror("Value error", "Can not have more y ticks than y values")
-                return False
-            if n_xticks > len(x_data):
-                messagebox.showerror("Value error", "Can not have more x ticks than x values")
-                return False
-
-            # ---- LABELS
-            ax.set_xlabel(self.view.entries["x label"].get(),
-                          fontdict={"font": self.view.cbboxes["axes font"].get(),
-                                    "fontsize": self.view.sliders["x label size"].get()})
-            ax.set_ylabel(self.view.entries["y label"].get(),
-                          fontdict={"font": self.view.cbboxes["axes font"].get(),
-                                    "fontsize": self.view.sliders["y label size"].get()})
-            ax.set_title(self.view.entries["title"].get(),
-                         fontdict={"font": self.view.cbboxes["title font"].get(),
-                                   "fontsize": self.view.sliders["title size"].get(), })
-
-            # ---- TICKS
-            xmin = min(x_data)
-            xmax = max(x_data)
-            xstep = (xmax - xmin) / (n_xticks - 1)
-            xtick = xmin
-            xticks = []
-            for i in range(n_xticks - 1):
-                xticks.append(xtick)
-                xtick += xstep
-            xticks.append(xmax)
-            rounded_xticks = list(np.around(np.array(xticks), int(self.view.entries["round x ticks"].get())))
-            ax.set_xticks(rounded_xticks)
-            ax.tick_params(axis='x',
-                           labelsize=self.view.sliders["x ticks size"].get(),
-                           labelrotation=float(self.view.sliders["x ticks rotation"].get()))
-
-            ymin = min(all_ymin)
-            ymax = max(all_ymax)
-            ystep = (ymax - ymin) / (n_yticks - 1)
-            ytick = ymin
-            yticks = []
-            for i in range(n_yticks - 1):
-                yticks.append(ytick)
-                ytick += ystep
-            yticks.append(ymax)
-            rounded_yticks = list(np.around(np.array(yticks), int(self.view.entries["round y ticks"].get())))
-            ax.set_yticks(rounded_yticks)
-            ax.tick_params(axis='y',
-                           labelsize=self.view.sliders["y ticks size"].get(),
-                           labelrotation=float(self.view.sliders["y ticks rotation"].get()))
-
-            # ----- LEGEND
-            # figure = self.create_figure()
-            # self.view.canvas["feature importance"].figure = figure
-            plt.tight_layout()
-
-            if self.view.switches["show legend"].get():
-                plt.legend()
-
-            self.view.figures["plot"] = (fig, ax)
-            self.view.canvas["plot"].draw()
-
     def input_validation_plot(self):
         plt_entries = {key: value for (key, value) in self.view.entries.items() if "plt" in key}
         # todo : input validation /!\ multiple y
@@ -152,19 +53,13 @@ class PlotController:
 
     def save_figure(self, fig):
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
-        fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()))
+        fig.savefig(filepath, dpi=int(self.model.plot_general_settings["dpi"]))
 
-    def export_figure_data(self, ax):
-        filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Coma Separated Value", "*.csv"),))
-        line = ax.lines[0]
-        x_data = line.get_xdata()
-        y_data = line.get_ydata()
-
-        df = pd.DataFrame(columns=["X", "Y"])
-        df["X"] = x_data
-        df["Y"] = y_data
-
-        df.to_csv(filepath, index=False)
+        # df = pd.DataFrame(columns=["X", "Y"])
+        # df["X"] = x_data
+        # df["Y"] = y_data
+        #
+        # df.to_csv(filepath, index=False)
 
     def check_params_validity(self):
         if not self.input_validation_plot():
@@ -215,7 +110,7 @@ class PlotController:
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Simple plot", "*.pltcfg"),))
         if f:
             if self.model.load_model(path=f):
-                self.update_view_from_model()
+                self.update_view_from_model()  # todo : does not work with multiple y :
 
     def update_view_from_model(self, ):
 
@@ -255,13 +150,20 @@ class PlotController:
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("Tables", "*.txt *.csv"),))
         if filename:
+            fig, ax = self.view.figures["plot"]
+            ax.clear()
+            for n in range(self.model.n_ydata+1):
+                self.remove_ydata(str(n))
+
             df = pd.read_csv(filename)
+            self.model.dataset = df
             self.model.dataset_path = filename
             self.view.vars["load dataset"].set(filename)
 
             columns = list(df.columns)
             self.view.cbboxes["xdata"].configure(values=columns)
-            self.view.cbboxes["xdata"].set(columns[0])
+            self.view.vars["xdata"].set(columns[0])
+
             ydata_curves = {key: value for (key, value) in self.view.cbboxes.items() if "ydata " in key}
             for key, value in ydata_curves.items():
                 value.configure(values=columns)
@@ -274,121 +176,141 @@ class PlotController:
 
             self.model.n_ydata += 1
             n_ydata = self.model.n_ydata
+
             ydata_subframe = ctk.CTkFrame(master=scrollable_frame, height=250)
             ydata_subframe.grid(row=n_ydata, column=0, sticky=ctk.NSEW, pady=25)
             self.view.ydata_subframes[str(n_ydata)] = ydata_subframe
 
             ydata_label = ctk.CTkLabel(master=ydata_subframe, text="Y-data column:")
+            ydata_cbbox_var = tk.StringVar(value=columns[-1])
+            ydata_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=columns, state='readonly',
+                                          textvariable=ydata_cbbox_var)
+            ydata_cbbox.set(ydata_cbbox_var.get())
+
             ydata_label.place(relx=0, rely=0)
-            ydata_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=columns, state='readonly')
-            ydata_cbbox.set(columns[-1])
             ydata_cbbox.place(relx=0, rely=0.15)
             self.view.cbboxes[f"ydata {n_ydata}"] = ydata_cbbox
+            self.view.vars[f"ydata {n_ydata}"] = ydata_cbbox_var
 
-            add_ydata_button = ctk.CTkButton(master=ydata_subframe, text="+", width=25, height=25, state='normal')
-            add_ydata_button.place(anchor=tk.NE, relx=0.25, rely=0)
-            subtract_ydata_button = ctk.CTkButton(master=ydata_subframe, text="-", width=25, height=25, state='normal')
-            subtract_ydata_button.place(anchor=tk.NE, relx=0.38, rely=0)
-            self.view.buttons[f"add ydata {n_ydata}"] = add_ydata_button
-            self.view.buttons[f"subtract ydata {n_ydata}"] = subtract_ydata_button
 
             ydata_legend_label = ctk.CTkLabel(master=ydata_subframe, text="Legend label:")
+            ydata_legend_var = tk.StringVar()
+            ydata_legend_entry = ctk.CTkEntry(master=ydata_subframe, textvariable=ydata_legend_var)
+
             ydata_legend_label.place(relx=0.5, rely=0)
-            ydata_legend_entry = ctk.CTkEntry(master=ydata_subframe)
             ydata_legend_entry.place(relx=0.5, rely=0.15, relwidth=0.4)
             self.view.entries[f"ydata legend {n_ydata}"] = ydata_legend_entry
+            self.view.vars[f"ydata legend {n_ydata}"] = ydata_legend_var
 
             linestyle_label = ctk.CTkLabel(master=ydata_subframe, text="Linestyle:")
+            linestyle_var = tk.StringVar(value=p.DEFAULT_LINESTYLE)
+            linestyle_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=list(p.LINESTYLES.keys()), state='readonly',
+                                              textvariable=linestyle_var)
+            linestyle_cbbox.set(linestyle_var.get())
+
             linestyle_label.place(relx=0, rely=0.3)
-            linestyle_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=list(p.LINESTYLES.keys()), state='readonly')
-            linestyle_cbbox.set("solid")
             linestyle_cbbox.place(relx=0, rely=0.5, relwidth=0.35)
             self.view.cbboxes[f"linestyle {n_ydata}"] = linestyle_cbbox
+            self.view.vars[f"linestyle {n_ydata}"] = linestyle_var
 
             linewidth_label = ctk.CTkLabel(master=ydata_subframe, text="Linewidth:")
+            linewidth_var = tk.StringVar(value=p.DEFAULT_LINEWIDTH)
+            linewidth_entry = ctk.CTkEntry(master=ydata_subframe, textvariable=linewidth_var)
+
             linewidth_label.place(relx=0.5, rely=0.3)
-            linewidth_strvar = tk.StringVar()
-            linewidth_strvar.set("1")
-            linewidth_entry = ctk.CTkEntry(master=ydata_subframe, textvariable=linewidth_strvar)
             linewidth_entry.place(relx=0.5, rely=0.45, relwidth=0.2)
             self.view.entries[f"linewidth {n_ydata}"] = linewidth_entry
-            self.view.vars[f"linewidth {n_ydata}"] = linewidth_strvar
+            self.view.vars[f"linewidth {n_ydata}"] = linewidth_var
 
             color_label = ctk.CTkLabel(master=ydata_subframe, text="Color:")
-            color_label.place(relx=0, rely=0.65)
-            color_var = tk.StringVar()
-            color_var.set("green")
+            color_var = tk.StringVar(value=p.DEFAULT_COLOR)
             color_button = ctk.CTkButton(master=ydata_subframe, textvariable=color_var,
                                          fg_color=color_var.get(), text_color='black')
+
+            color_label.place(relx=0, rely=0.65)
             color_button.place(relx=0, rely=0.75)
             self.view.buttons[f"color {n_ydata}"] = color_button
             self.view.vars[f"color {n_ydata}"] = color_var
 
             alpha_label = ctk.CTkLabel(master=ydata_subframe, text="Alpha:")
+            alpha_var = tk.DoubleVar(value=p.DEFAULT_ALPHA)
+            alpha_slider = ctk.CTkSlider(master=ydata_subframe, from_=0, to=1, number_of_steps=10, variable=alpha_var)
+            alpha_value_label = ctk.CTkLabel(master=ydata_subframe, textvariable=alpha_var)
+
             alpha_label.place(relx=0.5, rely=0.65)
-            alpha_slider = ctk.CTkSlider(master=ydata_subframe, from_=0, to=1, number_of_steps=10)
-            alpha_slider.set(p.DEFAULT_LINEALPHA)
             alpha_slider.place(relx=0.5, rely=0.8, relwidth=0.4)
-            alpha_strvar = tk.StringVar()
-            alpha_strvar.set(str(alpha_slider.get()))
-            alpha_value_label = ctk.CTkLabel(master=ydata_subframe, textvariable=alpha_strvar)
             alpha_value_label.place(relx=0.7, rely=0.65)
-            self.view.vars[f"alpha {n_ydata}"] = alpha_strvar
+            self.view.vars[f"alpha {n_ydata}"] = alpha_var
             self.view.sliders[f"alpha {n_ydata}"] = alpha_slider
 
-            alpha_slider.configure(command=partial(self.view.update_slider_value, var=alpha_strvar))
             color_button.configure(command=partial(self.view.select_color, view=self.view,
                                                    selection_button_name=f'color {n_ydata}'))
-            add_ydata_button.configure(command=partial(self.add_ydata, scrollable_frame))
-            subtract_ydata_button.configure(command=partial(self.view.remove_ydata, f'{n_ydata}'))
+
+            # fig, ax = self.view.figures["plot"]
+            # ax.plot(df[self.view.vars["xdata"].get()],
+            #         df[self.view.vars[f"ydata {n_ydata}"].get()],
+            #         label=self.view.vars[f"ydata legend {n_ydata}"].get(),
+            #         linestyle=self.view.vars[f"linestyle {n_ydata}"].get(),
+            #         linewidth=self.view.vars[f"linewidth {n_ydata}"].get(),
+            #         color=self.view.vars[f"color {n_ydata}"].get(),
+            #         alpha=self.view.vars[f"alpha {n_ydata}"].get(),
+            #         )
+            # --------------- TRACE
+            self.view.trace_ids[f"ydata {n_ydata}"] = ydata_cbbox_var.trace("w", partial(self.view.trace_plot_data, n_ydata))
+            self.view.trace_ids[f"ydata legend {n_ydata}"] = ydata_legend_var.trace("w", partial(self.view.trace_update_data,
+                                                                                                 n_ydata))
+            self.view.trace_ids[f"linestyle {n_ydata}"] = linestyle_var.trace("w",
+                                                                              partial(self.view.trace_update_data, n_ydata))
+            self.view.trace_ids[f"linewidth {n_ydata}"] = linewidth_var.trace("w",
+                                                                              partial(self.view.trace_update_data, n_ydata))
+            self.view.trace_ids[f"color {n_ydata}"] = color_var.trace("w", partial(self.view.trace_update_data, n_ydata))
+            self.view.trace_ids[f"alpha {n_ydata}"] = alpha_var.trace("w", partial(self.view.trace_update_data, n_ydata))
+
+
+            self.view.trace_plot_data(n_ydata)
+            print("add ydata ", n_ydata, "lines ", self.view.lines)
+
+
         else:
             messagebox.showerror("Missing Values", "No dataset loaded")
             return False
 
     def remove_ydata(self, frame_key):
         n_ydata = self.model.n_ydata
-        destroyed_number = int(frame_key.split(" ")[-1])
+        if n_ydata >= 0:
+            # destroying all widgets related
+            for child in self.view.ydata_subframes[str(n_ydata)].winfo_children():
+                child.destroy()
 
-        for y in range(0, n_ydata + 1):
-            if 0 <= y < destroyed_number:
-                pass
-            elif y == destroyed_number:
-                # destroying all widgets related
-                for child in self.view.ydata_subframes[str(y)].winfo_children():
-                    child.destroy()
+            # remove the frame from self.view.ydata_subframes
+            self.view.ydata_subframes[str(n_ydata)].destroy()
+            del self.view.ydata_subframes[str(n_ydata)]
 
-                # remove the frame from self.view.ydata_subframes
-                self.view.ydata_subframes[str(y)].destroy()
-                del self.view.ydata_subframes[str(y)]
+            # destroying all items related in dicts
+            del self.view.entries[f"ydata legend {n_ydata}"]
+            del self.view.entries[f"linewidth {n_ydata}"]
+            del self.view.buttons[f"color {n_ydata}"]
+            del self.view.cbboxes[f"ydata {n_ydata}"]
+            del self.view.cbboxes[f"linestyle {n_ydata}"]
+            del self.view.vars[f"linewidth {n_ydata}"]
+            del self.view.vars[f"color {n_ydata}"]
+            del self.view.vars[f"alpha {n_ydata}"]
+            del self.view.vars[f"ydata legend {n_ydata}"]
+            del self.view.vars[f"linestyle {n_ydata}"]
+            del self.view.vars[f"ydata {n_ydata}"]
+            del self.view.trace_ids[f"linewidth {n_ydata}"]
+            del self.view.trace_ids[f"color {n_ydata}"]
+            del self.view.trace_ids[f"alpha {n_ydata}"]
+            del self.view.trace_ids[f"ydata legend {n_ydata}"]
+            del self.view.trace_ids[f"linestyle {n_ydata}"]
+            del self.view.trace_ids[f"ydata {n_ydata}"]
+            del self.view.sliders[f"alpha {n_ydata}"]
 
-                # destroying all items related in dicts
-                del self.view.entries[f"ydata legend {destroyed_number}"]
-                del self.view.entries[f"linewidth {destroyed_number}"]
-                del self.view.buttons[f"add ydata {destroyed_number}"]
-                del self.view.buttons[f"color {destroyed_number}"]
-                del self.view.cbboxes[f"ydata {destroyed_number}"]
-                del self.view.cbboxes[f"linestyle {destroyed_number}"]
-                del self.view.vars[f"linewidth {destroyed_number}"]
-                del self.view.vars[f"color {destroyed_number}"]
-                del self.view.vars[f"alpha {destroyed_number}"]
-                del self.view.sliders[f"alpha {destroyed_number}"]
-                pass
-            elif y > destroyed_number:
-                self.view.rename_dict_key(self.view.entries, f"ydata legend {y}", f"ydata legend {y - 1}")
-                self.view.rename_dict_key(self.view.entries, f"linewidth {y}", f"linewidth {y - 1}")
-                self.view.rename_dict_key(self.view.buttons, f"add ydata {y}", f"add ydata {y - 1}")
-                self.view.rename_dict_key(self.view.buttons, f"color {y}", f"color {y - 1}")
-                self.view.rename_dict_key(self.view.buttons, f"subtract ydata {y}", f"subtract ydata {y-1}")
-                self.view.rename_dict_key(self.view.cbboxes, f"ydata {y}", f"ydata {y - 1}")
-                self.view.rename_dict_key(self.view.cbboxes, f"linestyle {y}", f"linestyle {y - 1}")
-                self.view.rename_dict_key(self.view.vars, f"linewidth {y}", f"linewidth {y - 1}")
-                self.view.rename_dict_key(self.view.vars, f"color {y}", f"color {y - 1}")
-                self.view.rename_dict_key(self.view.vars, f"alpha {y}", f"alpha {y - 1}")
-                self.view.rename_dict_key(self.view.sliders, f"alpha {y}", f"alpha {y - 1}")
+            self.view.lines[n_ydata].pop(0).remove()
+            del self.view.lines[n_ydata]
 
-                self.view.ydata_subframes[str(y)].grid(row=y-1, column=0, sticky=ctk.NSEW)  # replace the frame in grid
-                self.view.rename_dict_key(self.view.ydata_subframes, str(y), str(y-1))
+            self.view.canvas["plot"].draw()
 
-        self.model.n_ydata -= 1
+            print("remove ydata ", n_ydata, "lines ", self.view.lines)
 
-
+            self.model.n_ydata -= 1

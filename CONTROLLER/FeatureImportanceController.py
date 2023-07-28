@@ -34,7 +34,7 @@ class FeatureImportanceController:
             extension = os.path.basename(filename).split(".")[1]
             self.view.vars["clf type"].set(f"Type: {p.MODEL_EXTENSIONS[extension]}")
 
-    def dummy_figure(self):  # todo create plot
+    def dummy_figure(self):
         fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
         t = np.arange(0, 3, .01)
         ax.plot(t, random.randint(1, 4) *

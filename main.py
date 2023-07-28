@@ -13,6 +13,7 @@ import customtkinter
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+        self.withdraw()
 
         self.title(f'FireLearn GUI v{params.version}')
 
@@ -25,7 +26,7 @@ class App(customtkinter.CTk):
 
         # set the main_controller to view
         # view.set_controller(controller)
-
+        self.after(0, self.deiconify)
 
 if __name__ == '__main__':
     import warnings
