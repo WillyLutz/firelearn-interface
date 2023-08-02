@@ -15,14 +15,7 @@ class PlotModel:
 
         self.dataset = None
 
-        self.entries = {}
-        self.buttons = {}
-        self.cbboxes = {}
         self.vars = {}
-        self.switches = {}
-        self.sliders = {}
-        self.checkboxes = {}
-        self.textboxes = {}
         self.canvas = {}
         self.figures = {}
         self.targets = []
@@ -43,6 +36,7 @@ class PlotModel:
         self.plot_general_settings = {'title': '', 'title font': p.DEFAULT_FONT,
                                       'title size': p.DEFAULT_FONTSIZE, 'dpi': p.DEFAULT_DPI}
 
+        self.plot_data = {'xdata': 'None', }
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))

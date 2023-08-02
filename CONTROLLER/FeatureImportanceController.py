@@ -51,8 +51,8 @@ class FeatureImportanceController:
             y_data = np.mean([tree.feature_importances_ for tree in self.model.clf.estimators_], axis=0)
             x_data = [i for i in range(len(y_data))]
 
-            n_xticks = int(self.view.entries["n x ticks"].get())
-            n_yticks = int(self.view.entries["n y ticks"].get())
+            n_xticks = int(self.model.plot_axes["n x ticks"])
+            n_yticks = int(self.model.plot_axes["n y ticks"])
 
             if n_yticks > len(y_data):
                 messagebox.showerror("Value error", "Can not have more y ticks than y values")
@@ -63,35 +63,36 @@ class FeatureImportanceController:
 
             ax.clear()
             ax.plot(x_data, y_data,
-                    linewidth=self.view.entries["linewidth"].get(),
-                    linestyle=p.LINESTYLES[self.view.cbboxes["linestyle"].get()],
-                    color=self.view.vars["color"].get(),
-                    alpha=self.view.sliders["alpha"].get(),
+                    linewidth=self.model.plot_general_settings["linewidth"],
+                    linestyle=p.LINESTYLES[self.model.plot_general_settings["linestyle"]],
+                    color=self.model.plot_general_settings["color"],
+                    alpha=self.model.plot_general_settings["alpha"],
+                    label="Feature importance"
                     )
 
-            fill = self.view.cbboxes["fill"].get()
+            fill = self.model.plot_general_settings["fill"]
             if fill != 'None':
                 ylim = plt.gca().get_ylim()
                 if fill == 'Below':
                     ax.fill_between(x_data, y_data, ylim[0],
-                                    color=self.view.vars["color"].get(),
-                                    alpha=self.view.sliders["alpha fill"].get()
+                                    color=self.model.plot_general_settings["color"],
+                                    alpha=self.model.plot_general_settings["alpha fill"]
                                     )
                 if fill == 'Above':
                     ax.fill_between(x_data, y_data, ylim[1],
-                                    color=self.view.vars["color"].get(),
-                                    alpha=self.view.sliders["alpha fill"].get()
+                                    color=self.model.plot_general_settings["color"],
+                                    alpha=self.model.plot_general_settings["alpha fill"]
                                     )
 
-            ax.set_xlabel(self.view.entries["x label"].get(),
-                          fontdict={"font": self.view.cbboxes["axes font"].get(),
-                                    "fontsize": self.view.sliders["x label size"].get()})
-            ax.set_ylabel(self.view.entries["y label"].get(),
-                          fontdict={"font": self.view.cbboxes["axes font"].get(),
-                                    "fontsize": self.view.sliders["y label size"].get()})
-            ax.set_title(self.view.entries["title"].get(),
-                         fontdict={"font": self.view.cbboxes["title font"].get(),
-                                   "fontsize": self.view.sliders["title size"].get(), })
+            ax.set_xlabel(self.model.plot_axes["x label"],
+                          fontdict={"font": self.model.plot_axes["axes font"],
+                                    "fontsize": self.model.plot_axes["x label size"]})
+            ax.set_ylabel(self.model.plot_axes["y label"],
+                          fontdict={"font": self.model.plot_axes["axes font"],
+                                    "fontsize": self.model.plot_axes["y label size"]})
+            ax.set_title(self.model.plot_general_settings["title"],
+                         fontdict={"font": self.model.plot_general_settings["title font"],
+                                   "fontsize": self.model.plot_general_settings["title size"], })
 
             xmin = min(x_data)
             xmax = max(x_data)
@@ -102,26 +103,26 @@ class FeatureImportanceController:
                 xticks.append(xtick)
                 xtick += xstep
             xticks.append(xmax)
-            rounded_xticks = list(np.around(np.array(xticks), int(self.view.entries["round x ticks"].get())))
+            rounded_xticks = list(np.around(np.array(xticks), int(self.model.plot_axes["round x ticks"])))
             ax.set_xticks(rounded_xticks)
             ax.tick_params(axis='x',
-                           labelsize=self.view.sliders["x ticks size"].get(),
-                           labelrotation=float(self.view.sliders["x ticks rotation"].get()))
+                           labelsize=self.model.plot_axes["x ticks size"],
+                           labelrotation=float(self.model.plot_axes["x ticks rotation"]))
 
             ymin = min(y_data)
-            ymay = max(y_data)
-            ystep = (ymay - ymin) / (n_yticks - 1)
+            ymax = max(y_data)
+            ystep = (ymax - ymin) / (n_yticks - 1)
             ytick = ymin
             yticks = []
             for i in range(n_yticks - 1):
                 yticks.append(ytick)
                 ytick += ystep
-            yticks.append(ymay)
-            rounded_yticks = list(np.around(np.array(yticks), int(self.view.entries["round y ticks"].get())))
+            yticks.append(ymax)
+            rounded_yticks = list(np.around(np.array(yticks), int(self.model.plot_axes["round y ticks"])))
             ax.set_yticks(rounded_yticks)
             ax.tick_params(axis='y',
-                           labelsize=self.view.sliders["y ticks size"].get(),
-                           labelrotation=float(self.view.sliders["y ticks rotation"].get()))
+                           labelsize=self.model.plot_axes["y ticks size"],
+                           labelrotation=float(self.model.plot_axes["y ticks rotation"]))
 
             # figure = self.create_figure()
             # self.view.canvas["feature importance"].figure = figure
@@ -130,34 +131,10 @@ class FeatureImportanceController:
             self.view.canvas["feature importance"].draw()
 
     def input_validation_feature_importance(self):
-        fi_entries = {key: value for (key, value) in self.view.entries.items() if "fi" in key}
 
         if not self.model.clf:
             messagebox.showerror("Value error", "No classifier loaded.")
             return False
-
-        if float(fi_entries["linewidth"].get()) < 0:
-            messagebox.showerror("Value error", "Line width must be positive.")
-
-        for key, value in {"linewidth": "Line width", "n x ticks": "Number of x ticks",
-                           "n y ticks": "Number of y ticks", "dpi": "Figure dpi"}.items():
-            if not ival.is_number(fi_entries["linewidth"].get()):
-                messagebox.showerror("Value error", f"{value} must be a number.")
-                return False
-
-        for key, value in {"round x ticks": "Round x ticks", "round y ticks": "Round y ticks",
-                           "dpi": "Figure dpi"}.items():
-            if not ival.isint(fi_entries[key].get()):
-                messagebox.showerror("Value error", f"{value} must be a positive integer.")
-                return False
-
-        for key, value in {"linewidth": "Line width", }.items():
-            if ival.value_is_empty_or_none(fi_entries[key].get()):
-                messagebox.showerror("Value error", f"{value} can not be empty or None")
-                return False
-
-        if int(self.view.entries["n x ticks"].get()) < 2:
-            messagebox.showerror("Value error", "Can not have les than 2 ticks.")
 
         return True
 
@@ -277,3 +254,11 @@ class FeatureImportanceController:
                 value.configure(values=columns)
                 value.set(columns[-1])
 
+
+    def trace_vars_to_model(self, key, *args):
+        if key in self.model.plot_general_settings.keys():
+            self.model.plot_general_settings[key] = self.view.vars[key].get()
+        elif key in self.model.plot_axes.keys():
+            self.model.plot_axes[key] = self.view.vars[key].get()
+        elif key in self.model.plot_legend.keys():
+            self.model.plot_legend[key] = self.view.vars[key].get()

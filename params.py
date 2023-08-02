@@ -1,6 +1,6 @@
 from matplotlib import font_manager
 
-version = "0.1.0"
+version = "0.1.1"
 default_dataset_path = "path/of/your/dataset/here.csv"
 default_dataset_info = "Dataset information here"
 selected_target = "No target selected"

@@ -68,83 +68,29 @@ class PlotController:
 
     def save_config(self, ):
         if self.check_params_validity():
-            self.update_params(self.view.entries)
-            self.update_params(self.view.cbboxes)
-            self.update_params(self.view.sliders)
-            self.update_params(self.view.vars)
-            self.update_params(self.view.switches)
-
             f = filedialog.asksaveasfilename(defaultextension=".pltcfg",
                                              filetypes=[("Analysis - Simple plot", "*.pltcfg"), ])
             if f:
                 self.model.save_model(path=f, )
 
-    def update_params(self, widgets: dict, ):
-        local_dict = {}
-        for key, value in widgets.items():
-            if type(value) == ctk.CTkTextbox:
-                local_dict[key] = value.get('1.0', tk.END)
-            else:
-                local_dict[key] = value.get()
-        if type(list(widgets.values())[0]) == ctk.CTkSwitch:
-            self.model.switches.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkEntry:
-            self.model.entries.update(local_dict)
-        if type(list(widgets.values())[0]) == tk.ttk.Combobox:
-            self.model.cbboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkTextbox:
-            local_dict = {}
-            for key, value in widgets.items():
-                local_dict[key] = value.get('1.0', tk.END)
-            self.model.textboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkSlider:
-            self.model.sliders.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkCheckBox:
-            self.model.checkboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == tk.IntVar or \
-                type(list(widgets.values())[0]) == tk.StringVar or \
-                type(list(widgets.values())[0]) == tk.DoubleVar:
-            self.model.vars.update(local_dict)
-
     def load_config(self, ):
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Simple plot", "*.pltcfg"),))
         if f:
             if self.model.load_model(path=f):
-                self.update_view_from_model()  # todo : does not work with multiple y :
+                self.update_view_from_model()
+                # todo : does not work because widgets are not created while the top-levels are not created
 
     def update_view_from_model(self, ):
 
-        for key, widget in self.view.cbboxes.items():
-            if widget.cget('state') == "normal":
-                widget.set(self.model.cbboxes[key])
-            else:
-                widget.configure(state='normal')
-                widget.set(self.model.cbboxes[key])
-                widget.configure(state='readonly')
-                pass
-        for key, widget in self.view.entries.items():
-            if widget.cget('state') == 'normal':
-                widget.delete(0, ctk.END)
-                widget.insert(0, self.model.entries[key])
-            else:
-                widget.configure(state='normal')
-                widget.insert(0, self.model.entries[key])
-                widget.configure(state='disabled')
+        for key, value in self.model.plot_data.items():
+            self.view.vars[key].set(value)
+        for key, value in self.model.plot_legend.items():
+            self.view.vars[key].set(value)
+        for key, value in self.model.plot_axes.items():
+            self.view.vars[key].set(value)
+        for key, value in self.model.plot_general_settings.items():
+            self.view.vars[key].set(value)
 
-        for key, widget in self.view.switches.items():
-            if widget.cget('state') == 'normal':
-                if self.model.switches[key]:
-                    widget.select()
-                else:
-                    widget.deselect()
-
-        for key, widget in self.view.sliders.items():
-            if widget.cget('state') == "normal":
-                self.view.vars[key].set(self.model.vars[key])
-                self.view.sliders[key].set(self.model.sliders[key])
-
-        for key, widget in self.view.textboxes.items():
-            MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
 
     def load_plot_dataset(self, ):
         filename = filedialog.askopenfilename(title="Open file",
@@ -152,8 +98,8 @@ class PlotController:
         if filename:
             fig, ax = self.view.figures["plot"]
             ax.clear()
-            for n in range(self.model.n_ydata+1):
-                self.remove_ydata(str(n))
+            for n in range(self.model.n_ydata + 1):
+                self.remove_ydata()
 
             df = pd.read_csv(filename)
             self.model.dataset = df
@@ -191,7 +137,6 @@ class PlotController:
             ydata_cbbox.place(relx=0, rely=0.15)
             self.view.cbboxes[f"ydata {n_ydata}"] = ydata_cbbox
             self.view.vars[f"ydata {n_ydata}"] = ydata_cbbox_var
-
 
             ydata_legend_label = ctk.CTkLabel(master=ydata_subframe, text="Legend label:")
             ydata_legend_var = tk.StringVar()
@@ -246,36 +191,11 @@ class PlotController:
             color_button.configure(command=partial(self.view.select_color, view=self.view,
                                                    selection_button_name=f'color {n_ydata}'))
 
-            # fig, ax = self.view.figures["plot"]
-            # ax.plot(df[self.view.vars["xdata"].get()],
-            #         df[self.view.vars[f"ydata {n_ydata}"].get()],
-            #         label=self.view.vars[f"ydata legend {n_ydata}"].get(),
-            #         linestyle=self.view.vars[f"linestyle {n_ydata}"].get(),
-            #         linewidth=self.view.vars[f"linewidth {n_ydata}"].get(),
-            #         color=self.view.vars[f"color {n_ydata}"].get(),
-            #         alpha=self.view.vars[f"alpha {n_ydata}"].get(),
-            #         )
-            # --------------- TRACE
-            self.view.trace_ids[f"ydata {n_ydata}"] = ydata_cbbox_var.trace("w", partial(self.view.trace_plot_data, n_ydata))
-            self.view.trace_ids[f"ydata legend {n_ydata}"] = ydata_legend_var.trace("w", partial(self.view.trace_update_data,
-                                                                                                 n_ydata))
-            self.view.trace_ids[f"linestyle {n_ydata}"] = linestyle_var.trace("w",
-                                                                              partial(self.view.trace_update_data, n_ydata))
-            self.view.trace_ids[f"linewidth {n_ydata}"] = linewidth_var.trace("w",
-                                                                              partial(self.view.trace_update_data, n_ydata))
-            self.view.trace_ids[f"color {n_ydata}"] = color_var.trace("w", partial(self.view.trace_update_data, n_ydata))
-            self.view.trace_ids[f"alpha {n_ydata}"] = alpha_var.trace("w", partial(self.view.trace_update_data, n_ydata))
-
-
-            self.view.trace_plot_data(n_ydata)
-            print("add ydata ", n_ydata, "lines ", self.view.lines)
-
-
         else:
             messagebox.showerror("Missing Values", "No dataset loaded")
             return False
 
-    def remove_ydata(self, frame_key):
+    def remove_ydata(self):
         n_ydata = self.model.n_ydata
         if n_ydata >= 0:
             # destroying all widgets related
@@ -298,12 +218,6 @@ class PlotController:
             del self.view.vars[f"ydata legend {n_ydata}"]
             del self.view.vars[f"linestyle {n_ydata}"]
             del self.view.vars[f"ydata {n_ydata}"]
-            del self.view.trace_ids[f"linewidth {n_ydata}"]
-            del self.view.trace_ids[f"color {n_ydata}"]
-            del self.view.trace_ids[f"alpha {n_ydata}"]
-            del self.view.trace_ids[f"ydata legend {n_ydata}"]
-            del self.view.trace_ids[f"linestyle {n_ydata}"]
-            del self.view.trace_ids[f"ydata {n_ydata}"]
             del self.view.sliders[f"alpha {n_ydata}"]
 
             self.view.lines[n_ydata].pop(0).remove()
@@ -311,6 +225,131 @@ class PlotController:
 
             self.view.canvas["plot"].draw()
 
-            print("remove ydata ", n_ydata, "lines ", self.view.lines)
-
             self.model.n_ydata -= 1
+
+
+    def draw_figure(self):
+        # todo: if validation
+        fig, ax = self.view.figures["plot"]
+        if self.model.n_ydata >= 0:
+            ax.clear()
+            # ----- PLOT
+            df = self.model.dataset
+            for n_ydata in range(self.model.n_ydata + 1):
+                self.view.lines[n_ydata] = ax.plot(df[self.view.vars["xdata"].get()],
+                                                   df[self.view.vars[f"ydata {n_ydata}"].get()],
+                                                   label=self.view.vars[f"ydata legend {n_ydata}"].get(),
+                                                   linestyle=self.view.vars[f"linestyle {n_ydata}"].get(),
+                                                   linewidth=self.view.vars[f"linewidth {n_ydata}"].get(),
+                                                   color=self.view.vars[f"color {n_ydata}"].get(),
+                                                   alpha=self.view.vars[f"alpha {n_ydata}"].get(),
+                                                   )
+
+            # ----- TITLE
+            ax.set_title(self.model.plot_general_settings["title"],
+                         fontdict={"font": self.model.plot_general_settings["title font"],
+                                   "fontsize": self.model.plot_general_settings["title size"], })
+
+            # ---- LABELS
+
+            ax.set_xlabel(self.model.plot_axes["x label"],
+                          fontdict={"font": self.model.plot_axes["axes font"],
+                                    "fontsize": self.model.plot_axes["x label size"]})
+            ax.set_ylabel(self.model.plot_axes["y label"],
+                          fontdict={"font": self.model.plot_axes["axes font"],
+                                    "fontsize": self.model.plot_axes["y label size"]})
+
+            # ---- TICKS
+
+            first_x = ax.lines[0].get_xdata()
+            first_y = ax.lines[0].get_ydata()
+            xmin = min(first_x)
+            xmax = max(first_x)
+            ymin = min(first_y)
+            ymax = max(first_y)
+            for x in range(self.model.n_ydata + 1):
+                # handle = plt.gca()
+                line = ax.lines[x]
+                x_data = line.get_xdata()
+                y_data = line.get_ydata()
+
+                if min(x_data) < xmin:
+                    xmin = min(x_data)
+                if max(x_data) > xmax:
+                    xmax = max(x_data)
+                if min(y_data) < ymin:
+                    ymin = min(y_data)
+                if max(y_data) > ymax:
+                    ymax = max(y_data)
+
+            if all([self.model.plot_axes["n x ticks"], self.model.plot_axes["round x ticks"],
+                    self.model.plot_axes["n y ticks"], self.model.plot_axes["round y ticks"]]):
+                n_xticks = int(self.model.plot_axes["n x ticks"])
+                xstep = (xmax - xmin) / (n_xticks - 1)
+                xtick = xmin
+                xticks = []
+                for i in range(n_xticks - 1):
+                    xticks.append(xtick)
+                    xtick += xstep
+                xticks.append(xmax)
+                rounded_xticks = list(np.around(np.array(xticks), int(self.model.plot_axes["round x ticks"])))
+                ax.set_xticks(rounded_xticks)
+                ax.tick_params(axis='x',
+                               labelsize=self.model.plot_axes["x ticks size"],
+                               labelrotation=float(self.model.plot_axes["x ticks rotation"]))
+
+                n_yticks = int(self.model.plot_axes["n y ticks"])
+                ystep = (ymax - ymin) / (n_yticks - 1)
+                ytick = ymin
+                yticks = []
+                for i in range(n_yticks - 1):
+                    yticks.append(ytick)
+                    ytick += ystep
+                yticks.append(ymax)
+                rounded_yticks = list(np.around(np.array(yticks), int(self.model.plot_axes["round y ticks"])))
+                ax.set_yticks(rounded_yticks)
+                ax.tick_params(axis='y',
+                               labelsize=self.model.plot_axes["y ticks size"],
+                               labelrotation=float(self.model.plot_axes["y ticks rotation"]))
+
+            # ---- LEGEND
+            if self.model.plot_legend["show legend"]:
+                if not self.model.plot_legend["legend fontsize"] == '':
+                    if self.model.plot_legend["legend anchor"] == 'custom':
+                        ax.legend(loc='upper left',
+                                  bbox_to_anchor=(float(self.model.plot_legend["legend x pos"]),
+                                                  float(self.model.plot_legend["legend y pos"])),
+                                  draggable=bool(self.model.plot_legend["legend draggable"]),
+                                  ncols=int(self.model.plot_legend["legend ncols"]),
+                                  fontsize=int(self.model.plot_legend["legend fontsize"]),
+                                  framealpha=float(self.model.plot_legend["legend alpha"]),
+                                  )
+                    else:
+                        ax.legend(loc=self.model.plot_legend["legend anchor"],
+                                  draggable=bool(self.model.plot_legend["legend draggable"]),
+                                  ncols=int(self.model.plot_legend["legend ncols"]),
+                                  fontsize=int(self.model.plot_legend["legend fontsize"]),
+                                  framealpha=float(self.model.plot_legend["legend alpha"]),
+                                  )
+
+                    for t, lh in zip(ax.get_legend().texts, ax.get_legend().legendHandles):
+                        t.set_alpha(float(self.model.plot_legend["legend alpha"]))
+                        lh.set_alpha(float(self.model.plot_legend["legend alpha"]))
+
+            elif ax.get_legend():
+                ax.get_legend().remove()
+
+            plt.tight_layout()  # todo : tight layout() not effective anymore because of legend ?
+
+        else:
+            ax.clear()
+        self.view.figures["plot"] = (fig, ax)
+        self.view.canvas["plot"].draw()
+
+    def trace_vars_to_model(self, key, *args):
+        if key in self.model.plot_general_settings.keys():
+            self.model.plot_general_settings[key] = self.view.vars[key].get()
+        elif key in self.model.plot_axes.keys():
+            self.model.plot_axes[key] = self.view.vars[key].get()
+        elif key in self.model.plot_legend.keys():
+            self.model.plot_legend[key] = self.view.vars[key].get()

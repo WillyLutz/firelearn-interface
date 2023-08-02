@@ -29,8 +29,8 @@ class PlotView(ctk.CTkFrame):
         self.checkboxes = {}
         self.textboxes = {}
         self.canvas = {}
+        self.lines = {}
         self.figures = {}
-        self.lines = {}  # to store the ax.lines
         self.scrollable_frames = {}
 
         self.ydata_subframes = {}
@@ -125,36 +125,43 @@ class PlotView(ctk.CTkFrame):
         save_figure_button = ctk.CTkButton(master=custom_plot_frame, text="Save figure", fg_color="green")
         save_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.6, relheight=0.05)
 
+        draw_figure_button = ctk.CTkButton(master=custom_plot_frame, text='Draw figure',
+                                           fg_color='green')
+        draw_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.8, relheight=0.1)
+
         self.buttons["general settings"] = general_settings_button
         self.buttons["axes"] = axes_button
         self.buttons["legend"] = legend_button
         self.buttons["save fig"] = save_figure_button
         self.buttons["load config"] = load_config_button
         self.buttons["save config"] = save_config_button
+        self.buttons["draw figure"] = draw_figure_button
 
         # ---------------- CONFIGURE
         add_ydata_button.configure(command=partial(self.add_ydata, ydata_frame))
-        subtract_ydata_button.configure(command=partial(self.remove_ydata, ydata_frame))
+        subtract_ydata_button.configure(command=partial(self.remove_ydata))
         load_dataset_button.configure(command=self.load_plot_dataset)
         save_config_button.configure(command=self.save_config)
         load_config_button.configure(command=self.load_config)
 
         save_figure_button.configure(command=partial(self.save_figure, self.figures["plot"][0]))
 
-        general_settings_button.configure(command=self.draw_general_settings)
-        axes_button.configure(command=self.draw_axes)
-        legend_button.configure(command=self.draw_legend)
+        general_settings_button.configure(command=self.general_settings_toplevel)
+        axes_button.configure(command=self.axes_toplevel)
+        legend_button.configure(command=self.legend_toplevel)
 
-        # --------------- TRACE
-        xdata_var.trace("w", partial(self.trace_plot_data, n_ydata))
+        draw_figure_button.configure(command=self.draw_figure)
+
+        # ---- TRACE
+        xdata_var.trace("w", partial(self.trace_vars_to_model, 'xdata'))
 
     def add_ydata(self, scrollable_frame):
         if self.controller:
             self.controller.add_ydata(scrollable_frame)
 
-    def remove_ydata(self, frame_key):
+    def remove_ydata(self,):
         if self.controller:
-            self.controller.remove_ydata(frame_key)
+            self.controller.remove_ydata()
 
     def update_slider_value(self, value, var):
         self.parent_view.parent_view.update_slider_value(value, var)
@@ -183,7 +190,7 @@ class PlotView(ctk.CTkFrame):
         if old_key in d:
             d[new_key] = d.pop(old_key)
 
-    def draw_legend(self):
+    def legend_toplevel(self):
         # todo : allow single window
 
         width = 450
@@ -272,17 +279,17 @@ class PlotView(ctk.CTkFrame):
         self.vars["legend fontsize"] = fontsize_var
         self.sliders["legend fontsize"] = fontsize_slider
 
-        # ---- TRACE
-        draggable_var.trace("w", self.trace_legend)
-        ncols_var.trace("w", self.trace_legend)
-        fontsize_var.trace("w", self.trace_legend)
-        show_legend_var.trace("w", self.trace_legend)
-        legend_anchor_var.trace("w", self.trace_legend)
-        legend_alpha_var.trace("w", self.trace_legend)
-        legend_xpos_var.trace("w", self.trace_legend)
-        legend_ypos_var.trace("w", self.trace_legend)
+        # ----- TRACE
+        show_legend_var.trace("w", partial(self.trace_vars_to_model, 'show legend'))
+        fontsize_var.trace("w", partial(self.trace_vars_to_model, 'legend fontsize'))
+        legend_xpos_var.trace("w", partial(self.trace_vars_to_model, 'legend x pos'))
+        legend_ypos_var.trace("w", partial(self.trace_vars_to_model, 'legend y pos'))
+        legend_alpha_var.trace("w", partial(self.trace_vars_to_model, 'legend alpha'))
+        legend_anchor_var.trace("w", partial(self.trace_vars_to_model, 'legend anchor'))
+        ncols_var.trace("w", partial(self.trace_vars_to_model, 'legend ncols'))
+        draggable_var.trace("w", partial(self.trace_vars_to_model, 'legend draggable'))
 
-    def draw_general_settings(self):
+    def general_settings_toplevel(self):
         # todo : allow single window
 
         width = 450
@@ -336,12 +343,13 @@ class PlotView(ctk.CTkFrame):
         self.entries["dpi"] = dpi_entry
         self.vars["dpi"] = dpi_strvar
 
-        # --- TRACE
-        title_var.trace("w", self.trace_title)
-        title_font_var.trace("w", self.trace_title)
-        title_size_var.trace("w", self.trace_title)
+        # ----- TRACE
+        title_var.trace("w", partial(self.trace_vars_to_model, 'title'))
+        title_size_var.trace("w", partial(self.trace_vars_to_model, 'title size'))
+        title_font_var.trace("w", partial(self.trace_vars_to_model, 'title font'))
+        dpi_strvar.trace("w", partial(self.trace_vars_to_model, 'dpi'))
 
-    def draw_axes(self):
+    def axes_toplevel(self):
         width = 500
         height = 800
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
@@ -396,7 +404,6 @@ class PlotView(ctk.CTkFrame):
 
         n_xticks_label = ctk.CTkLabel(master=general_toplevel, text="Number of ticks:")
         n_xticks_var = tk.StringVar(value=self.controller.model.plot_axes['n x ticks'])
-        n_xticks_var.trace("w", self.trace_axes)
         n_xticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=n_xticks_var)
         n_xticks_label.place(x=0, y=250)
         n_xticks_entry.place(x=0, y=290, relwidth=0.2)
@@ -405,7 +412,6 @@ class PlotView(ctk.CTkFrame):
 
         n_yticks_label = ctk.CTkLabel(master=general_toplevel, text="Number of ticks:")
         n_yticks_var = tk.StringVar(value=self.controller.model.plot_axes['n y ticks'])
-        n_yticks_var.trace("w", self.trace_axes)
         n_yticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=n_yticks_var)
         n_yticks_label.place(x=250, y=250)
         n_yticks_entry.place(x=250, y=290, relwidth=0.2)
@@ -485,173 +491,25 @@ class PlotView(ctk.CTkFrame):
         self.cbboxes["axes font"] = axes_font_cbbox
         self.vars["axes font"] = axes_font_var
 
-        # ------- TRACE VARS
-        x_label_var.trace("w", self.trace_axes)
-        y_label_var.trace("w", self.trace_axes)
-        x_label_size_var.trace("w", self.trace_axes)
-        y_label_size_var.trace("w", self.trace_axes)
-        xticks_rotation_var.trace("w", self.trace_axes)
-        yticks_rotation_var.trace("w", self.trace_axes)
-        xticks_size_var.trace("w", self.trace_axes)
-        yticks_size_var.trace("w", self.trace_axes)
-        round_xticks_strvar.trace("w", self.trace_axes)
-        round_yticks_strvar.trace("w", self.trace_axes)
-        axes_font_var.trace("w", self.trace_axes)
+        # ----- TRACE
+        x_label_var.trace("w", partial(self.trace_vars_to_model, 'x label'))
+        y_label_var.trace("w", partial(self.trace_vars_to_model, 'y label'))
+        x_label_size_var.trace("w", partial(self.trace_vars_to_model, 'x label size'))
+        y_label_size_var.trace("w", partial(self.trace_vars_to_model, 'y label size'))
+        n_xticks_var.trace("w", partial(self.trace_vars_to_model, 'n x ticks'))
+        n_yticks_var.trace("w", partial(self.trace_vars_to_model, 'n y ticks'))
+        xticks_rotation_var.trace("w", partial(self.trace_vars_to_model, 'x ticks rotation'))
+        yticks_rotation_var.trace("w", partial(self.trace_vars_to_model, 'y ticks rotation'))
+        xticks_size_var.trace("w", partial(self.trace_vars_to_model, 'x ticks size'))
+        yticks_size_var.trace("w", partial(self.trace_vars_to_model, 'y ticks size'))
+        round_xticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round x ticks'))
+        round_yticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round y ticks'))
+        axes_font_var.trace("w", partial(self.trace_vars_to_model, 'axes font'))
 
-    def trace_title(self, *args):
-        fig, ax = self.figures["plot"]
-        ax.set_title(self.vars["title"].get(),
-                     fontdict={"font": self.vars["title font"].get(),
-                               "fontsize": self.vars["title size"].get(), })
+    def draw_figure(self):
+        if self.controller:
+            self.controller.draw_figure()
 
-        plt.tight_layout()  # todo : tight layout() not effective anymore because of legend ?
-
-        self.figures["plot"] = (fig, ax)
-        self.canvas["plot"].draw()
-
-        for key in self.controller.model.plot_general_settings.keys():
-            self.controller.model.plot_general_settings[key] = self.vars[key].get()
-
-    def trace_axes(self, *args):
-        fig, ax = self.figures["plot"]
-
-        # ---- LABELS
-
-        ax.set_xlabel(self.entries["x label"].get(),
-                      fontdict={"font": self.cbboxes["axes font"].get(),
-                                "fontsize": self.sliders["x label size"].get()})
-        ax.set_ylabel(self.entries["y label"].get(),
-                      fontdict={"font": self.cbboxes["axes font"].get(),
-                                "fontsize": self.sliders["y label size"].get()})
-
-        # ---- TICKS
-        first_x = ax.lines[0].get_xdata()
-        first_y = ax.lines[0].get_ydata()
-        xmin = min(first_x)
-        xmax = max(first_x)
-        ymin = min(first_y)
-        ymax = max(first_y)
-        for x in range(self.controller.model.n_ydata + 1):
-            # handle = plt.gca()
-            line = ax.lines[x]
-            x_data = line.get_xdata()
-            y_data = line.get_ydata()
-
-            if min(x_data) < xmin:
-                xmin = min(x_data)
-            if max(x_data) > xmax:
-                xmax = max(x_data)
-            if min(y_data) < ymin:
-                ymin = min(y_data)
-            if max(y_data) > ymax:
-                ymax = max(y_data)
-
-        if all([self.vars["n x ticks"].get(), self.vars["round x ticks"].get(),
-                self.vars["n y ticks"].get(), self.vars["round y ticks"].get()]):
-            n_xticks = int(self.vars["n x ticks"].get())
-            xstep = (xmax - xmin) / (n_xticks - 1)
-            xtick = xmin
-            xticks = []
-            for i in range(n_xticks - 1):
-                xticks.append(xtick)
-                xtick += xstep
-            xticks.append(xmax)
-            rounded_xticks = list(np.around(np.array(xticks), int(self.entries["round x ticks"].get())))
-            ax.set_xticks(rounded_xticks)
-            ax.tick_params(axis='x',
-                           labelsize=self.sliders["x ticks size"].get(),
-                           labelrotation=float(self.sliders["x ticks rotation"].get()))
-
-            n_yticks = int(self.vars["n y ticks"].get())
-            ystep = (ymax - ymin) / (n_yticks - 1)
-            ytick = ymin
-            yticks = []
-            for i in range(n_yticks - 1):
-                yticks.append(ytick)
-                ytick += ystep
-            yticks.append(ymax)
-            rounded_yticks = list(np.around(np.array(yticks), int(self.entries["round y ticks"].get())))
-            ax.set_yticks(rounded_yticks)
-            ax.tick_params(axis='y',
-                           labelsize=self.sliders["y ticks size"].get(),
-                           labelrotation=float(self.sliders["y ticks rotation"].get()))
-
-        plt.tight_layout()  # todo : tight layout() not effective anymore because of legend ?
-
-        self.figures["plot"] = (fig, ax)
-        self.canvas["plot"].draw()
-        for key in self.controller.model.plot_axes.keys():
-            self.controller.model.plot_axes[key] = self.vars[key].get()
-
-    def trace_legend(self, *args):
-        fig, ax = self.figures["plot"]
-        # self.vars["legend x pos"].set(round(self.vars["legend x pos"].get(), 1))
-        # self.vars["legend y pos"].set(round(self.vars["legend y pos"].get(), 1))
-        # self.vars["legend alpha"].set(round(self.vars["legend alpha"].get(), 1))
-
-        if self.vars["show legend"].get():
-            if not self.vars["legend fontsize"].get() == '':
-                if self.vars["legend anchor"].get() == 'custom':
-                    ax.legend(loc='upper left',
-                              bbox_to_anchor=(float(self.vars["legend x pos"].get()),
-                                              float(self.vars["legend y pos"].get())),
-                              draggable=bool(self.vars["legend draggable"].get()),
-                              ncols=int(self.vars["legend ncols"].get()),
-                              fontsize=int(self.vars["legend fontsize"].get()),
-                              framealpha=float(self.vars["legend alpha"].get()),
-                              )
-                else:
-                    ax.legend(loc=self.vars["legend anchor"].get(),
-                              draggable=bool(self.vars["legend draggable"].get()),
-                              ncols=int(self.vars["legend ncols"].get()),
-                              fontsize=int(self.vars["legend fontsize"].get()),
-                              framealpha=float(self.vars["legend alpha"].get()),
-                              )
-
-                for t, lh in zip(ax.get_legend().texts, ax.get_legend().legendHandles):
-                    t.set_alpha(float(self.vars["legend alpha"].get()))
-                    lh.set_alpha(float(self.vars["legend alpha"].get()))
-
-        elif ax.get_legend():
-            ax.get_legend().remove()
-        self.figures["plot"] = (fig, ax)
-        self.canvas["plot"].draw()
-        for key in self.controller.model.plot_legend.keys():
-            self.controller.model.plot_legend[key] = self.vars[key].get()
-
-    def trace_update_data(self, n_ydata, *args):
-        if self.vars["xdata"].get() != 'None' \
-                and self.controller.model.n_ydata >= 0:
-            fig, ax = self.figures["plot"]
-            if self.lines[n_ydata]:
-                self.lines[n_ydata][0].set(label=self.vars[f"ydata legend {n_ydata}"].get(),
-                                           linestyle=self.vars[f"linestyle {n_ydata}"].get(),
-                                           linewidth=self.vars[f"linewidth {n_ydata}"].get(),
-                                           color=self.vars[f"color {n_ydata}"].get(),
-                                           alpha=self.vars[f"alpha {n_ydata}"].get(),
-                                           )
-
-                self.figures["plot"] = (fig, ax)
-                self.canvas["plot"].draw()
-            else:
-                self.trace_plot_data(n_ydata)
-
-    def trace_plot_data(self, n_ydata, *args):
-        if self.vars["xdata"].get() != 'None' \
-                and self.controller.model.n_ydata >= 0:
-            fig, ax = self.figures["plot"]
-
-            df = self.controller.model.dataset
-
-            if n_ydata in self.lines.keys():
-                self.lines[n_ydata].pop(0).remove()
-                del self.lines[n_ydata]
-
-            lines = ax.plot(df[self.vars["xdata"].get()],
-                            df[self.vars[f"ydata {n_ydata}"].get()], )
-
-            self.lines[n_ydata] = lines
-            self.trace_update_data(n_ydata)
-
-            self.figures["plot"] = (fig, ax)
-            self.canvas["plot"].draw()
+    def trace_vars_to_model(self, key, *args):
+        if self.controller:
+            self.controller.trace_vars_to_model(key, *args)

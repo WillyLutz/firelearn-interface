@@ -27,7 +27,6 @@ class ProcessingModel:
         self.textboxes = {}
         self.canvas = {}
         self.figures = {}
-        self.targets = []
 
 
     def load_model(self, path):

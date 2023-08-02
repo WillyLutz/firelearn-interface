@@ -1,0 +1,5 @@
+Phase,Target,N true,Mean CUP true,Std CUP true,N false,Mean CUP false,Std CUP false
+training, Mock,836,0.898,0.041,1,0.0,0.0
+training, Sars-CoV,949,0.912,0.05,1,0.0,0.0
+testing, Mock,358,0.737,0.103,20,0.52,0.016
+testing, Sars-CoV,381,0.757,0.124,6,0.547,0.043
