@@ -28,398 +28,114 @@ class PcaView(ctk.CTkFrame):
         self.figures = {}
         self.scrollable_frames = {}
 
+        self.scatters = {}
+        self.ellipsis = {}
+
         self.labels_subframes = {}
         self.manage_pca_tab()
 
-
-
     def manage_pca_tab(self):
-        # ---------------- FRAMES
-        load_frame = ctk.CTkFrame(master=self.master)
-        load_frame.place(relx=0, rely=0, relheight=0.1, relwidth=0.31)
-
-        curves_frame = ctk.CTkFrame(master=self.master)
-        curves_frame.place(relx=0, rely=0.13, relheight=0.87, relwidth=0.31)
-        general_settings_frame = ctk.CTkFrame(master=curves_frame)
-        general_settings_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.32)
-        pca_frame = ctk.CTkScrollableFrame(master=curves_frame)
-        pca_frame.place(relx=0.01, rely=0.35, relwidth=0.98, relheight=0.64)
-        pca_frame.grid_columnconfigure(0, weight=1)
-        self.scrollable_frames["ydata"] = pca_frame
-
-        params_frame = ctk.CTkFrame(master=self.master)
-        params_frame.place(relx=0.32, rely=0, relheight=1, relwidth=0.30)
-        axes_frame = ctk.CTkFrame(master=params_frame)
-        axes_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.38)
-        ticks_frame = ctk.CTkFrame(master=params_frame)
-        ticks_frame.place(relx=0.01, rely=0.4, relwidth=0.98, relheight=0.39)
-        legend_frame = ctk.CTkFrame(master=params_frame)
-        legend_frame.place(relx=0.01, rely=0.8, relwidth=0.98, relheight=0.19)
-
-        plot_frame = ctk.CTkFrame(master=self.master)
-        plot_frame.place(relx=0.63, rely=0, relheight=0.8, relwidth=0.37)
-
-        exec_frame = ctk.CTkFrame(master=self.master)
-        exec_frame.place(relx=0.63, rely=0.85, relheight=0.15, relwidth=0.37)
-
         # --------------- INIT FRAME
-        load_dataset_button = ctk.CTkButton(master=load_frame, text="Load dataset:")
+        init_frame = ctk.CTkFrame(master=self.master)
+        load_dataset_button = ctk.CTkButton(master=init_frame, text="Load dataset:")
+        load_dataset_var = tk.StringVar()
+        load_dataset_entry = ctk.CTkEntry(master=init_frame, state='disabled', textvariable=load_dataset_var)
+        init_frame.place(relx=0, rely=0, relheight=0.1, relwidth=0.6)
         load_dataset_button.place(relx=0.0, rely=0)
-        self.buttons["load dataset"] = load_dataset_button
-
-        load_dataset_strvar = tk.StringVar()
-        load_dataset_entry = ctk.CTkEntry(master=load_frame, state='disabled', textvariable=load_dataset_strvar)
         load_dataset_entry.place(relx=0, rely=0.5, relwidth=0.5)
-        self.vars["load dataset"] = load_dataset_strvar
-        self.entries["load dataset"] = load_dataset_entry
+        self.vars["load dataset"] = load_dataset_var
 
         # ------ GENERAL SETTINGS
+
+        curves_frame = ctk.CTkFrame(master=self.master)
+        general_settings_frame = ctk.CTkFrame(master=curves_frame)
+        general_settings_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.32)
+
+
         general_settings_label = ctk.CTkLabel(master=general_settings_frame, text='GENERAL SETTINGS')
         general_settings_label.place(relx=0, rely=0)
 
         label_column_label = ctk.CTkLabel(master=general_settings_label, text="Labels column:")
+        label_column_var = tk.StringVar(value='None')
+        label_column_cbbox = tk.ttk.Combobox(master=general_settings_frame, values=['None', ], state='readonly',
+                                             textvariable=label_column_var)
         label_column_label.place(relx=0, rely=0.2)
-        label_column_cbbox = tk.ttk.Combobox(master=general_settings_frame, values=['None', ], state='readonly')
         label_column_cbbox.place(relx=0, rely=0.3, relwidth=0.4)
         self.cbboxes["label column"] = label_column_cbbox
+        self.vars["label column"] = label_column_var
 
         n_components_label = ctk.CTkLabel(master=general_settings_frame, text="Number of components:")
-        n_components_label.place(relx=0.5, rely=0.15)
-        n_components_var = tk.StringVar()
-        n_components_var.set("2")
+        n_components_var = tk.StringVar(value="2")
         n_components_entry = ctk.CTkEntry(master=general_settings_frame, state='normal', textvariable=n_components_var)
+        n_components_label.place(relx=0.5, rely=0.15)
         n_components_entry.place(relx=0.5, rely=0.3, relwidth=0.2)
-        self.entries["n components"] = n_components_entry
-        self.entries["n components"] = n_components_var
+        self.vars["n components"] = n_components_var
 
         label_2D = ctk.CTkLabel(master=general_settings_frame, text="2D settings:")
+        ellipsis_var = tk.IntVar(value=1)
+        ellipsis_ckbox = ctk.CTkCheckBox(master=general_settings_frame, variable=ellipsis_var,
+                                         text='Confidence ellipsis')
         label_2D.place(relx=0, rely=0.5)
-        ellipsis_var = tk.IntVar()
-        ellipsis_var.set(1)
-        ellipsis_ckbox = ctk.CTkCheckBox(master=general_settings_frame, variable=ellipsis_var, text='Confidence ellipsis')
         ellipsis_ckbox.place(relx=0, rely=0.65)
         self.vars["ellipsis"] = ellipsis_var
-        self.checkboxes["ellipsis"] = ellipsis_ckbox
 
         ellipsis_alpha_label = ctk.CTkLabel(master=general_settings_frame, text="Alpha:")
+        ellipsis_alpha_var = tk.DoubleVar(value=p.DEFAULT_ALPHA)
+        ellipsis_alpha_slider = ctk.CTkSlider(master=general_settings_frame, from_=0, to=1, number_of_steps=10, variable=ellipsis_alpha_var)
+        ellipsis_alpha_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=ellipsis_alpha_var)
         ellipsis_alpha_label.place(relx=0, rely=0.75)
-        ellipsis_alpha_slider = ctk.CTkSlider(master=general_settings_frame, from_=0, to=1, number_of_steps=10)
-        ellipsis_alpha_slider.set(p.DEFAULT_FONTSIZE)
         ellipsis_alpha_slider.place(relx=0, rely=0.9, relwidth=0.4)
-        ellipsis_alpha_strvar = tk.StringVar()
-        ellipsis_alpha_strvar.set(str(ellipsis_alpha_slider.get()))
-        ellipsis_alpha_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=ellipsis_alpha_strvar)
         ellipsis_alpha_value_label.place(relx=0.3, rely=0.75)
-        self.vars["ellipsis alpha"] = ellipsis_alpha_strvar
-        self.sliders["ellipsis alpha"] = ellipsis_alpha_slider
+        self.vars["ellipsis alpha"] = ellipsis_alpha_var
 
         label_3D = ctk.CTkLabel(master=general_settings_frame, text="3D rotation settings:")
-        label_3D.place(relx=0.5, rely=0.5)
         x_rotation_label = ctk.CTkLabel(master=general_settings_frame, text="x:")
-        x_rotation_label.place(relx=0.5, rely=0.65)
         y_rotation_label = ctk.CTkLabel(master=general_settings_frame, text="y:")
-        y_rotation_label.place(relx=0.5, rely=0.77)
         z_rotation_label = ctk.CTkLabel(master=general_settings_frame, text="z:")
+        label_3D.place(relx=0.5, rely=0.5)
+        x_rotation_label.place(relx=0.5, rely=0.65)
+        y_rotation_label.place(relx=0.5, rely=0.77)
         z_rotation_label.place(relx=0.5, rely=0.89)
 
-        x_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36)
-        x_rot_slider.set(0)
+        x_rot_var = tk.IntVar(value=0)
+        y_rot_var = tk.IntVar(value=0)
+        z_rot_var = tk.IntVar(value=0)
+        x_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36, variable=x_rot_var)
+        x_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=x_rot_var)
         x_rot_slider.place(relx=0.55, rely=0.65, relwidth=0.35)
-        x_rot_strvar = tk.StringVar()
-        x_rot_strvar.set(str(x_rot_slider.get()))
-        x_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=x_rot_strvar)
         x_rot_value_label.place(relx=0.95, rely=0.65)
-        self.sliders["3D x rotation"] = x_rot_slider
-        self.vars["3D x rotation"] = x_rot_strvar
+        self.vars["3D x rotation"] = x_rot_var
 
-        y_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36)
-        y_rot_slider.set(0)
+        y_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36, variable=y_rot_var)
+        y_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=y_rot_var)
         y_rot_slider.place(relx=0.55, rely=0.77, relwidth=0.35)
-        y_rot_strvar = tk.StringVar()
-        y_rot_strvar.set(str(y_rot_slider.get()))
-        y_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=y_rot_strvar)
         y_rot_value_label.place(relx=0.95, rely=0.77)
-        self.sliders["3D y rotation"] = y_rot_slider
-        self.vars["3D y rotation"] = y_rot_strvar
+        self.vars["3D y rotation"] = y_rot_var
 
-        z_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36)
-        z_rot_slider.set(0)
+        z_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36, variable=z_rot_var)
+        z_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=z_rot_var)
         z_rot_slider.place(relx=0.55, rely=0.89, relwidth=0.35)
-        z_rot_strvar = tk.StringVar()
-        z_rot_strvar.set(str(z_rot_slider.get()))
-        z_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=z_rot_strvar)
         z_rot_value_label.place(relx=0.95, rely=0.89)
-        self.sliders["3D z rotation"] = z_rot_slider
-        self.vars["3D z rotation"] = z_rot_strvar
-        
-        
+        self.vars["3D z rotation"] = z_rot_var
+
+        add_label_data_button = ctk.CTkButton(master=general_settings_frame, text="+", width=25, height=25,
+                                              state='normal')
+        add_label_data_button.place(anchor=tk.NE, relx=0.8, rely=0)
+        subtract_label_data_button = ctk.CTkButton(master=general_settings_frame, text="-", width=25, height=25,
+                                                   state='normal')
+        subtract_label_data_button.place(anchor=tk.NE, relx=0.9, rely=0)
+
         # ----- Y DATA
-        n_labels = self.controller.model.n_labels
-        labels_subframe = ctk.CTkFrame(master=pca_frame, height=250)
-        labels_subframe.grid(row=0, column=0, sticky=ctk.NSEW)
-        self.labels_subframes[f"{n_labels}"] = labels_subframe
-
-        labels_label = ctk.CTkLabel(master=labels_subframe, text="Label:")
-        labels_label.place(relx=0, rely=0)
-        labels_cbbox = tk.ttk.Combobox(master=labels_subframe, values=[f"None", ], state='readonly')
-        labels_cbbox.set("None")
-        labels_cbbox.place(relx=0, rely=0.12)
-        self.cbboxes[f"label data {n_labels}"] = labels_cbbox
-
-        add_labels_button = ctk.CTkButton(master=labels_subframe, text="+", width=25, height=25, state='normal')
-        add_labels_button.place(anchor=tk.NE, relx=0.25, rely=0)
-        self.buttons[f"add label data {n_labels}"] = add_labels_button
-
-        fit_var = tk.IntVar()
-        fit_var.set(1)
-        apply_var = tk.IntVar()
-        apply_var.set(1)
-        fit_ckbox = ctk.CTkCheckBox(master=labels_subframe, text="Fit", variable=fit_var)
-        fit_ckbox.place(relx=0.65, rely=0)
-        apply_ckbox = ctk.CTkCheckBox(master=labels_subframe, text="Apply", variable=apply_var)
-        apply_ckbox.place(relx=0.75, rely=0)
-        self.checkboxes[f"fit {n_labels}"] = fit_ckbox
-        self.checkboxes[f"apply {n_labels}"] = apply_ckbox
-        self.vars[f"fit {n_labels}"] = fit_var
-        self.vars[f"apply {n_labels}"] = apply_var
-
-        labels_legend_label = ctk.CTkLabel(master=labels_subframe, text="Legend label:")
-        labels_legend_label.place(relx=0, rely=0.25)
-        labels_legend_entry = ctk.CTkEntry(master=labels_subframe)
-        labels_legend_entry.place(relx=0, rely=0.37, relwidth=0.4)
-        self.entries[f"label data legend {n_labels}"] = labels_legend_entry
-
-        markerstyle_label = ctk.CTkLabel(master=labels_subframe, text="Markers:")
-        markerstyle_label.place(relx=0, rely=0.5)
-        markerstyle_cbbox = tk.ttk.Combobox(master=labels_subframe, values=list(sorted(p.MARKERS.keys())), state='readonly')
-        markerstyle_cbbox.set("point")
-        markerstyle_cbbox.place(relx=0, rely=0.62, relwidth=0.25)
-        self.cbboxes[f"marker {n_labels}"] = markerstyle_cbbox
-
-        markersize_label = ctk.CTkLabel(master=labels_subframe, text="Marker size:")
-        markersize_label.place(relx=0.3, rely=0.5)
-        markersize_strvar = tk.StringVar()
-        markersize_strvar.set("1")
-        markersize_entry = ctk.CTkEntry(master=labels_subframe, textvariable=markersize_strvar)
-        markersize_entry.place(relx=0.3, rely=0.62, relwidth=0.2)
-        self.entries[f"marker size {n_labels}"] = markersize_entry
-        self.vars[f"marker size {n_labels}"] = markersize_strvar
-
-        color_label = ctk.CTkLabel(master=labels_subframe, text="Color:")
-        color_label.place(relx=0.6, rely=0.5)
-        color_var = tk.StringVar()
-        color_var.set("green")
-        color_button = ctk.CTkButton(master=labels_subframe, textvariable=color_var,
-                                     fg_color=color_var.get(), text_color='black')
-        color_button.place(relx=0.6, rely=0.62)
-        self.buttons[f"color {n_labels}"] = color_button
-        self.vars[f"color {n_labels}"] = color_var
-
-        alpha_label = ctk.CTkLabel(master=labels_subframe, text="Alpha:")
-        alpha_label.place(relx=0.5, rely=0.25)
-        alpha_slider = ctk.CTkSlider(master=labels_subframe, from_=0, to=1, number_of_steps=10)
-        alpha_slider.set(p.DEFAULT_LINEALPHA)
-        alpha_slider.place(relx=0.5, rely=0.37, relwidth=0.4)
-        alpha_strvar = tk.StringVar()
-        alpha_strvar.set(str(alpha_slider.get()))
-        alpha_value_label = ctk.CTkLabel(master=labels_subframe, textvariable=alpha_strvar)
-        alpha_value_label.place(relx=0.7, rely=0.25)
-        self.vars[f"alpha {n_labels}"] = alpha_strvar
-        self.sliders[f"alpha {n_labels}"] = alpha_slider
-
-        # ----- AXES
-        axes_label = ctk.CTkLabel(master=axes_frame, text="AXES")
-        axes_label.place(relx=0, rely=0)
-
-        x_label = ctk.CTkLabel(master=axes_frame, text="x-axis label:")
-        x_label.place(relx=0, rely=0.1)
-        x_label_entry = ctk.CTkEntry(master=axes_frame, )
-        x_label_entry.place(relx=0, rely=0.2, relwidth=0.4)
-        self.entries["x label"] = x_label_entry
-
-        y_label = ctk.CTkLabel(master=axes_frame, text="y-axis label:")
-        y_label.place(relx=0.5, rely=0.1)
-        y_label_entry = ctk.CTkEntry(master=axes_frame, )
-        y_label_entry.place(relx=0.5, rely=0.2, relwidth=0.4)
-        self.entries["y label"] = y_label_entry
-
-        axes_font_label = ctk.CTkLabel(master=axes_frame, text="Axes / Title font:")
-        axes_font_label.place(relx=0, rely=0.4)
-        axes_font_cbbox = tk.ttk.Combobox(master=axes_frame, values=p.FONTS, state='readonly')
-        axes_font_cbbox.set(p.DEFAULT_FONT)
-        axes_font_cbbox.place(relx=0, rely=0.5, relwidth=0.4)
-        self.cbboxes["axes font"] = axes_font_cbbox
-
-        title_label = ctk.CTkLabel(master=axes_frame, text="Title:")
-        title_label.place(relx=0.5, rely=0.4)
-        title_entry = ctk.CTkEntry(master=axes_frame)
-        title_entry.place(relx=0.5, rely=0.5, relwidth=0.4)
-        self.entries["title"] = title_entry
-
-        x_size_label = ctk.CTkLabel(master=axes_frame, text="x-axis label size:")
-        x_size_label.place(relx=0, rely=0.7)
-        x_label_slider = ctk.CTkSlider(master=axes_frame, from_=8, to=32, number_of_steps=24)
-        x_label_slider.set(p.DEFAULT_FONTSIZE)
-        x_label_slider.place(relx=0, rely=0.85, relwidth=0.4)
-        x_label_strvar = tk.StringVar()
-        x_label_strvar.set(str(x_label_slider.get()))
-        x_label_value_label = ctk.CTkLabel(master=axes_frame, textvariable=x_label_strvar)
-        x_label_value_label.place(relx=0.3, rely=0.7)
-        self.vars["x label size"] = x_label_strvar
-        self.sliders["x label size"] = x_label_slider
-
-        y_size_label = ctk.CTkLabel(master=axes_frame, text="y-axis label size:")
-        y_size_label.place(relx=0.5, rely=0.7)
-        y_label_slider = ctk.CTkSlider(master=axes_frame, from_=8, to=32, number_of_steps=24)
-        y_label_slider.set(p.DEFAULT_FONTSIZE)
-        y_label_slider.place(relx=0.5, rely=0.85, relwidth=0.4)
-        y_label_strvar = tk.StringVar()
-        y_label_strvar.set(str(y_label_slider.get()))
-        y_label_value_label = ctk.CTkLabel(master=axes_frame, textvariable=y_label_strvar)
-        y_label_value_label.place(relx=0.8, rely=0.7)
-        self.vars["y label size"] = y_label_strvar
-        self.sliders["y label size"] = y_label_slider
-
-        # -----TICKS
-        ticks_label = ctk.CTkLabel(master=ticks_frame, text="TICKS")
-        ticks_label.place(relx=0, rely=0)
-
-        n_xticks_label = ctk.CTkLabel(master=ticks_frame, text="Number of x ticks:")
-        n_xticks_label.place(relx=0, rely=0.1)
-        n_xticks_strvar = tk.StringVar()
-        n_xticks_strvar.set(p.DEFAULT_NTICKS)
-        n_xticks_entry = ctk.CTkEntry(master=ticks_frame, textvariable=n_xticks_strvar)
-        n_xticks_entry.place(relx=0, rely=0.2, relwidth=0.2)
-        self.entries["n x ticks"] = n_xticks_entry
-        self.vars["n x ticks"] = n_xticks_strvar
-
-        n_yticks_label = ctk.CTkLabel(master=ticks_frame, text="Number of y ticks:")
-        n_yticks_label.place(relx=0.5, rely=0.1)
-        n_yticks_strvar = tk.StringVar()
-        n_yticks_strvar.set(p.DEFAULT_NTICKS)
-        n_yticks_entry = ctk.CTkEntry(master=ticks_frame, textvariable=n_yticks_strvar)
-        n_yticks_entry.place(relx=0.5, rely=0.2, relwidth=0.2)
-        self.entries["n y ticks"] = n_yticks_entry
-        self.vars["n y ticks"] = n_yticks_strvar
-
-        x_ticks_rotation_label = ctk.CTkLabel(master=ticks_frame, text="x-axis tick rotation:")
-        x_ticks_rotation_label.place(relx=0, rely=0.3)
-        x_ticks_rotation_slider = ctk.CTkSlider(master=ticks_frame, from_=-180, to=180, number_of_steps=36)
-        x_ticks_rotation_slider.set(p.DEFAULT_FONTROTATION)
-        x_ticks_rotation_slider.place(relx=0, rely=0.4, relwidth=0.4)
-        x_ticks_rotation_strvar = tk.StringVar()
-        x_ticks_rotation_strvar.set(str(x_ticks_rotation_slider.get()))
-        x_ticks_rotation_value_label = ctk.CTkLabel(master=ticks_frame, textvariable=x_ticks_rotation_strvar)
-        x_ticks_rotation_value_label.place(relx=0.3, rely=0.3)
-        self.vars["x ticks rotation"] = x_ticks_rotation_strvar
-        self.sliders["x ticks rotation"] = x_ticks_rotation_slider
-
-        y_ticks_rotation_label = ctk.CTkLabel(master=ticks_frame, text="y-axis tick rotation:")
-        y_ticks_rotation_label.place(relx=0.5, rely=0.3)
-        y_ticks_rotation_slider = ctk.CTkSlider(master=ticks_frame, from_=-180, to=180, number_of_steps=36)
-        y_ticks_rotation_slider.set(p.DEFAULT_FONTROTATION)
-        y_ticks_rotation_slider.place(relx=0.5, rely=0.4, relwidth=0.4)
-        y_ticks_rotation_strvar = tk.StringVar()
-        y_ticks_rotation_strvar.set(str(y_ticks_rotation_slider.get()))
-        y_ticks_rotation_value_label = ctk.CTkLabel(master=ticks_frame, textvariable=y_ticks_rotation_strvar)
-        y_ticks_rotation_value_label.place(relx=0.8, rely=0.3)
-        self.vars["y ticks rotation"] = y_ticks_rotation_strvar
-        self.sliders["y ticks rotation"] = y_ticks_rotation_slider
-
-        x_ticks_label = ctk.CTkLabel(master=ticks_frame, text="x-axis tick size:")
-        x_ticks_label.place(relx=0, rely=0.6)
-        x_ticks_slider = ctk.CTkSlider(master=ticks_frame, from_=8, to=32, number_of_steps=24)
-        x_ticks_slider.set(p.DEFAULT_FONTSIZE)
-        x_ticks_slider.place(relx=0, rely=0.7, relwidth=0.4)
-        x_ticks_strvar = tk.StringVar()
-        x_ticks_strvar.set(str(x_ticks_slider.get()))
-        x_ticks_value_label = ctk.CTkLabel(master=ticks_frame, textvariable=x_ticks_strvar)
-        x_ticks_value_label.place(relx=0.3, rely=0.6)
-        self.vars["x ticks size"] = x_ticks_strvar
-        self.sliders["x ticks size"] = x_ticks_slider
-
-        y_ticks_label = ctk.CTkLabel(master=ticks_frame, text="y-axis tick size:")
-        y_ticks_label.place(relx=0.5, rely=0.6)
-        y_ticks_slider = ctk.CTkSlider(master=ticks_frame, from_=8, to=32, number_of_steps=24)
-        y_ticks_slider.set(p.DEFAULT_FONTSIZE)
-        y_ticks_slider.place(relx=0.5, rely=0.7, relwidth=0.4)
-        y_ticks_strvar = tk.StringVar()
-        y_ticks_strvar.set(str(y_ticks_slider.get()))
-        y_ticks_value_label = ctk.CTkLabel(master=ticks_frame, textvariable=y_ticks_strvar)
-        y_ticks_value_label.place(relx=0.8, rely=0.6)
-        self.vars["y ticks size"] = y_ticks_strvar
-        self.sliders["y ticks size"] = y_ticks_slider
-
-        round_xticks_label = ctk.CTkLabel(master=ticks_frame, text="Round x ticks:")
-        round_xticks_label.place(relx=0, rely=0.8)
-        round_xticks_strvar = tk.StringVar()
-        round_xticks_strvar.set(p.DEFAULT_ROUND)
-        round_xticks_entry = ctk.CTkEntry(master=ticks_frame, textvariable=round_xticks_strvar)
-        round_xticks_entry.place(relx=0, rely=0.9, relwidth=0.2)
-        self.entries["round x ticks"] = round_xticks_entry
-        self.vars["round x ticks"] = round_xticks_strvar
-
-        round_yticks_label = ctk.CTkLabel(master=ticks_frame, text="Round y ticks:")
-        round_yticks_label.place(relx=0.5, rely=0.8)
-        round_yticks_strvar = tk.StringVar()
-        round_yticks_strvar.set(p.DEFAULT_ROUND)
-        round_yticks_entry = ctk.CTkEntry(master=ticks_frame, textvariable=round_yticks_strvar)
-        round_yticks_entry.place(relx=0.5, rely=0.9, relwidth=0.2)
-        self.entries["round y ticks"] = round_yticks_entry
-        self.vars["round y ticks"] = round_yticks_strvar
-
-        # ---- LEGEND
-        legend_label = ctk.CTkLabel(master=legend_frame, text="LEGEND")
-        legend_label.place(relx=0, rely=0)
-
-        show_legend_switch = ctk.CTkSwitch(master=legend_frame, text="Show legend")
-        show_legend_switch.place(relx=0, rely=0.2)
-        self.switches["show legend"] = show_legend_switch
-
-        legend_anchor_label = ctk.CTkLabel(master=legend_frame, text="Anchor:")
-        legend_anchor_label.place(relx=0, rely=0.35)
-        legend_anchor_cbbox = tk.ttk.Combobox(master=legend_frame, values=p.LEGEND_POS, state='readonly')
-        legend_anchor_cbbox.set("best")
-        legend_anchor_cbbox.place(relx=0, rely=0.5)
-        self.cbboxes["legend anchor"] = legend_anchor_cbbox
-
-        legend_alpha_label = ctk.CTkLabel(master=legend_frame, text="Alpha:")
-        legend_alpha_label.place(relx=0.5, rely=0.35)
-        legend_alpha_slider = ctk.CTkSlider(master=legend_frame, from_=0, to=1, number_of_steps=10)
-        legend_alpha_slider.set(p.DEFAULT_LINEALPHA)
-        legend_alpha_slider.place(relx=0.5, rely=0.5, relwidth=0.4)
-        legend_alpha_strvar = tk.StringVar()
-        legend_alpha_strvar.set(str(legend_alpha_slider.get()))
-        legend_alpha_value_label = ctk.CTkLabel(master=legend_frame, textvariable=legend_alpha_strvar)
-        legend_alpha_value_label.place(relx=0.7, rely=0.35)
-        self.vars["legend alpha"] = legend_alpha_strvar
-        self.sliders["legend alpha"] = legend_alpha_slider
-
-        legend_xpos_label = ctk.CTkLabel(master=legend_frame, text="X position:")
-        legend_xpos_label.place(relx=0, rely=0.7)
-        legend_xpos_slider = ctk.CTkSlider(master=legend_frame, from_=0, to=1, number_of_steps=10)
-        legend_xpos_slider.set(0)
-        legend_xpos_slider.place(relx=0, rely=0.9, relwidth=0.4)
-        legend_xpos_strvar = tk.StringVar()
-        legend_xpos_strvar.set(str(legend_xpos_slider.get()))
-        legend_xpos_value_label = ctk.CTkLabel(master=legend_frame, textvariable=legend_xpos_strvar)
-        legend_xpos_value_label.place(relx=0.3, rely=0.7)
-        self.vars["legend x pos"] = legend_xpos_strvar
-        self.sliders["legend x pos"] = legend_xpos_slider
-
-        legend_ypos_label = ctk.CTkLabel(master=legend_frame, text="Y position:")
-        legend_ypos_label.place(relx=0.5, rely=0.7)
-        legend_ypos_slider = ctk.CTkSlider(master=legend_frame, from_=0, to=1, number_of_steps=10)
-        legend_ypos_slider.set(0)
-        legend_ypos_slider.place(relx=0.5, rely=0.9, relwidth=0.4)
-        legend_ypos_strvar = tk.StringVar()
-        legend_ypos_strvar.set(str(legend_ypos_slider.get()))
-        legend_ypos_value_label = ctk.CTkLabel(master=legend_frame, textvariable=legend_ypos_strvar)
-        legend_ypos_value_label.place(relx=0.8, rely=0.7)
-        self.vars["legend y pos"] = legend_ypos_strvar
-        self.sliders["legend y pos"] = legend_ypos_slider
+        pca_frame = ctk.CTkScrollableFrame(master=curves_frame)
+        curves_frame.place(relx=0, rely=0.13, relheight=0.87, relwidth=0.31)
+        pca_frame.place(relx=0.01, rely=0.35, relwidth=0.98, relheight=0.64)
+        pca_frame.grid_columnconfigure(0, weight=1)
+        self.scrollable_frames["ydata"] = pca_frame
 
         # --------------- PLOT
+        plot_frame = ctk.CTkFrame(master=self.master)
+        plot_frame.place(relx=0.63, rely=0, relheight=0.8, relwidth=0.37)
+
         fig, ax = self.dummy_figure()
         self.figures["pca"] = (fig, ax)
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
@@ -427,6 +143,9 @@ class PcaView(ctk.CTkFrame):
         self.canvas["pca"] = canvas
 
         # --------------- EXEC
+
+        exec_frame = ctk.CTkFrame(master=self.master)
+        exec_frame.place(relx=0.63, rely=0.85, relheight=0.15, relwidth=0.37)
 
         save_figure_button = ctk.CTkButton(master=exec_frame, text="Save figure", fg_color="green")
         save_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.66)
@@ -442,28 +161,35 @@ class PcaView(ctk.CTkFrame):
         self.buttons["draw"] = draw_button
 
         # ---------------- CONFIGURE
-        add_labels_button.configure(command=partial(self.add_label_data, pca_frame))
+        add_label_data_button.configure(command=partial(self.add_label_data, pca_frame))
+        subtract_label_data_button.configure(command=self.remove_label_data)
+
         load_dataset_button.configure(command=self.load_plot_dataset)
-        color_button.configure(command=partial(self.select_color, view=self, selection_button_name=f'color {n_labels}'))
         save_config_button.configure(command=self.save_config)
         load_config_button.configure(command=self.load_config)
-
-        for key, slider in self.sliders.items():
-            slider.configure(command=partial(self.update_slider_value, var=self.vars[key]))
 
         save_figure_button.configure(command=partial(self.save_figure, self.figures["pca"][0]))
 
         draw_button.configure(command=self.draw_figure)
 
+        # ----- TRACE
+        for key, widget in {'n components': n_components_var, '3D z rotation': z_rot_var,
+                            '3D x rotation': x_rot_var, '3D y rotation': y_rot_var,
+                            'ellipsis alpha': ellipsis_alpha_var, 'label column': label_column_var,
+                            'ellipsis': ellipsis_var}.items():
+            widget.trace("w", partial(self.trace_vars_to_model, key))
+
+
     def set_label_data_columns(self):
         pass
+
     def add_label_data(self, scrollable_frame):
         if self.controller:
             self.controller.add_label_data(scrollable_frame)
 
-    def remove_label_data(self, frame_key):
+    def remove_label_data(self):
         if self.controller:
-            self.controller.remove_label_data(frame_key)
+            self.controller.remove_label_data()
 
     def update_slider_value(self, value, var):
         self.parent_view.parent_view.update_slider_value(value, var)
@@ -499,3 +225,324 @@ class PcaView(ctk.CTkFrame):
     def rename_dict_key(d, old_key, new_key):
         if old_key in d:
             d[new_key] = d.pop(old_key)
+
+    def axes_toplevel(self):
+        width = 500
+        height = 800
+        general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.title("Axes settings (Plot)")
+        general_toplevel.resizable(False, False)
+        general_toplevel.attributes("-topmost", 1)
+
+        x_major_label = ctk.CTkLabel(master=general_toplevel, text="X-AXIS")
+        x_major_label.place(anchor=tk.CENTER, x=125, y=20)
+        y_major_label = ctk.CTkLabel(master=general_toplevel, text="Y-AXIS")
+        y_major_label.place(anchor=tk.CENTER, x=375, y=20)
+
+        x_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
+        x_label_var = tk.StringVar(value=self.controller.model.plot_axes['x label'])
+        x_label_entry = ctk.CTkEntry(master=general_toplevel, width=200, textvariable=x_label_var)
+        x_label.place(x=0, y=50)
+        x_label_entry.place(x=0, y=90)
+        self.entries["x label"] = x_label_entry
+        self.vars['x label'] = x_label_var
+
+        y_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
+        y_label_var = tk.StringVar(value=self.controller.model.plot_axes['y label'])
+        y_label_entry = ctk.CTkEntry(master=general_toplevel, width=200, textvariable=y_label_var)
+        y_label.place(x=250, y=50)
+        y_label_entry.place(x=250, y=90)
+        self.entries["y label"] = y_label_entry
+        self.vars['y label'] = y_label_var
+
+        x_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
+        x_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['x label size'])
+        x_label_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                       variable=x_label_size_var)
+        x_label_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=x_label_size_var)
+        x_label_value_label.place(x=100, y=130)
+        x_label_slider.place(x=0, y=170, relwidth=0.4)
+        x_size_label.place(x=0, y=130)
+        self.vars["x label size"] = x_label_size_var
+        self.sliders["x label size"] = x_label_slider
+
+        y_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
+        y_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['y label size'])
+        y_label_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                       variable=y_label_size_var)
+        y_label_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=y_label_size_var)
+        y_label_value_label.place(x=350, y=130)
+        y_label_slider.place(x=250, y=170, relwidth=0.4)
+        y_size_label.place(x=250, y=130)
+        self.vars["y label size"] = y_label_size_var
+        self.sliders["y label size"] = y_label_slider
+
+        # -----TICKS
+
+        n_xticks_label = ctk.CTkLabel(master=general_toplevel, text="Number of ticks:")
+        n_xticks_var = tk.StringVar(value=self.controller.model.plot_axes['n x ticks'])
+        n_xticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=n_xticks_var)
+        n_xticks_label.place(x=0, y=250)
+        n_xticks_entry.place(x=0, y=290, relwidth=0.2)
+        self.vars["n x ticks"] = n_xticks_var
+
+        n_yticks_label = ctk.CTkLabel(master=general_toplevel, text="Number of ticks:")
+        n_yticks_var = tk.StringVar(value=self.controller.model.plot_axes['n y ticks'])
+        n_yticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=n_yticks_var)
+        n_yticks_label.place(x=250, y=250)
+        n_yticks_entry.place(x=250, y=290, relwidth=0.2)
+        self.entries["n y ticks"] = n_yticks_entry
+        self.vars["n y ticks"] = n_yticks_var
+
+        xticks_rotation_label = ctk.CTkLabel(master=general_toplevel, text="Tick rotation:")
+        xticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks rotation'])
+        xticks_rotation_slider = ctk.CTkSlider(master=general_toplevel, from_=-180, to=180, number_of_steps=36,
+                                               variable=xticks_rotation_var)
+        xticks_rotation_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=xticks_rotation_var)
+        xticks_rotation_slider.place(x=0, y=370, relwidth=0.4)
+        xticks_rotation_label.place(x=0, y=330)
+        xticks_rotation_value_label.place(x=100, y=330)
+        self.vars["x ticks rotation"] = xticks_rotation_var
+        self.sliders["x ticks rotation"] = xticks_rotation_slider
+
+        yticks_rotation_label = ctk.CTkLabel(master=general_toplevel, text="Tick rotation:")
+        yticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks rotation'])
+        yticks_rotation_slider = ctk.CTkSlider(master=general_toplevel, from_=-180, to=180, number_of_steps=36,
+                                               variable=yticks_rotation_var)
+        yticks_rotation_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=yticks_rotation_var)
+        yticks_rotation_slider.place(x=250, y=370, relwidth=0.4)
+        yticks_rotation_label.place(x=250, y=330)
+        yticks_rotation_value_label.place(x=350, y=330)
+        self.vars["y ticks rotation"] = yticks_rotation_var
+        self.sliders["y ticks rotation"] = yticks_rotation_slider
+
+        xticks_label = ctk.CTkLabel(master=general_toplevel, text="Tick size:")
+        xticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks size'])
+        xticks_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                      variable=xticks_size_var)
+        xticks_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=xticks_size_var)
+        xticks_label.place(x=0, y=410)
+        xticks_slider.place(x=0, y=440, relwidth=0.4)
+        xticks_value_label.place(x=100, y=410)
+        self.vars["x ticks size"] = xticks_size_var
+        self.sliders["x ticks size"] = xticks_slider
+
+        yticks_label = ctk.CTkLabel(master=general_toplevel, text="Tick size:")
+        yticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks size'])
+        yticks_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                      variable=yticks_size_var)
+        yticks_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=yticks_size_var)
+        yticks_label.place(x=250, y=410)
+        yticks_slider.place(x=250, y=440, relwidth=0.4)
+        yticks_value_label.place(x=350, y=410)
+        self.vars["y ticks size"] = yticks_size_var
+        self.sliders["y ticks size"] = yticks_slider
+
+        round_xticks_label = ctk.CTkLabel(master=general_toplevel, text="Round ticks:")
+        round_xticks_strvar = tk.StringVar(value=self.controller.model.plot_axes['round x ticks'])
+        round_xticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=round_xticks_strvar)
+        round_xticks_label.place(x=0, y=480)
+        round_xticks_entry.place(x=0, y=520, relwidth=0.2)
+        self.entries["round x ticks"] = round_xticks_entry
+        self.vars["round x ticks"] = round_xticks_strvar
+
+        round_yticks_label = ctk.CTkLabel(master=general_toplevel, text="Round ticks:")
+        round_yticks_strvar = tk.StringVar(value=self.controller.model.plot_axes['round y ticks'])
+        round_yticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=round_yticks_strvar)
+        round_yticks_label.place(x=250, y=480)
+        round_yticks_entry.place(x=250, y=520, relwidth=0.2)
+        self.entries["round y ticks"] = round_yticks_entry
+        self.vars["round y ticks"] = round_yticks_strvar
+
+        general_label = ctk.CTkLabel(master=general_toplevel, text='GENERAL')
+        general_label.place(x=0, y=600)
+
+        axes_font_label = ctk.CTkLabel(master=general_toplevel, text="Axes font:")
+        axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
+        axes_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
+                                          textvariable=axes_font_var)
+        axes_font_cbbox.set(p.DEFAULT_FONT)
+        axes_font_label.place(x=0, y=640)
+        axes_font_cbbox.place(x=0, y=680, relwidth=0.4)
+        self.cbboxes["axes font"] = axes_font_cbbox
+        self.vars["axes font"] = axes_font_var
+
+        # ----- TRACE
+        x_label_var.trace("w", partial(self.trace_vars_to_model, 'x label'))
+        y_label_var.trace("w", partial(self.trace_vars_to_model, 'y label'))
+        x_label_size_var.trace("w", partial(self.trace_vars_to_model, 'x label size'))
+        y_label_size_var.trace("w", partial(self.trace_vars_to_model, 'y label size'))
+        n_xticks_var.trace("w", partial(self.trace_vars_to_model, 'n x ticks'))
+        n_yticks_var.trace("w", partial(self.trace_vars_to_model, 'n y ticks'))
+        xticks_rotation_var.trace("w", partial(self.trace_vars_to_model, 'x ticks rotation'))
+        yticks_rotation_var.trace("w", partial(self.trace_vars_to_model, 'y ticks rotation'))
+        xticks_size_var.trace("w", partial(self.trace_vars_to_model, 'x ticks size'))
+        yticks_size_var.trace("w", partial(self.trace_vars_to_model, 'y ticks size'))
+        round_xticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round x ticks'))
+        round_yticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round y ticks'))
+        axes_font_var.trace("w", partial(self.trace_vars_to_model, 'axes font'))
+
+
+    def legend_toplevel(self):
+        # todo : allow single window
+
+        width = 450
+        height = 400
+        general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.title("Legend (Plot)")
+        general_toplevel.resizable(False, False)
+        general_toplevel.attributes("-topmost", 1)
+
+        show_legend_var = tk.IntVar(value=self.controller.model.plot_legend['show legend'])
+        show_legend_switch = ctk.CTkSwitch(master=general_toplevel, text="Show legend", variable=show_legend_var)
+        show_legend_switch.place(x=0, y=0)
+        self.switches["show legend"] = show_legend_switch
+        self.vars["show legend"] = show_legend_var
+
+        draggable_var = tk.BooleanVar(value=self.controller.model.plot_legend["legend draggable"])
+        draggable_switch = ctk.CTkSwitch(master=general_toplevel, text="Mouse draggable", variable=draggable_var, )
+        draggable_switch.place(x=225, y=0)
+        self.switches["legend draggable"] = draggable_switch
+        self.vars["legend draggable"] = draggable_var
+
+        legend_anchor_label = ctk.CTkLabel(master=general_toplevel, text="Anchor:")
+        legend_anchor_var = tk.StringVar(value=self.controller.model.plot_legend["legend anchor"])
+        legend_anchor_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.LEGEND_POS, state='readonly',
+                                              textvariable=legend_anchor_var)
+        legend_anchor_cbbox.set(legend_anchor_var.get())
+        legend_anchor_label.place(x=0, y=60)
+        legend_anchor_cbbox.place(x=0, y=100)
+        self.cbboxes["legend anchor"] = legend_anchor_cbbox
+        self.vars["legend anchor"] = legend_anchor_var
+
+        legend_alpha_label = ctk.CTkLabel(master=general_toplevel, text="Alpha:")
+        legend_alpha_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend alpha'])
+        legend_alpha_slider = ctk.CTkSlider(master=general_toplevel, from_=0, to=1, number_of_steps=10,
+                                            variable=legend_alpha_var)
+        legend_alpha_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=legend_alpha_var)
+
+        legend_alpha_slider.place(x=225, y=100, relwidth=0.4)
+        legend_alpha_value_label.place(x=270, y=60)
+        legend_alpha_label.place(x=225, y=60)
+        self.vars["legend alpha"] = legend_alpha_var
+        self.sliders["legend alpha"] = legend_alpha_slider
+
+        legend_xpos_label = ctk.CTkLabel(master=general_toplevel, text="X position:")
+        legend_xpos_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend x pos'])
+        legend_xpos_slider = ctk.CTkSlider(master=general_toplevel, from_=0, to=1, number_of_steps=10,
+                                           variable=legend_xpos_var)
+        legend_xpos_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=legend_xpos_var)
+
+        legend_xpos_label.place(x=0, y=150)
+        legend_xpos_slider.place(x=0, y=190, relwidth=0.4)
+        legend_xpos_value_label.place(x=80, y=150)
+        self.vars["legend x pos"] = legend_xpos_var
+        self.sliders["legend x pos"] = legend_xpos_slider
+
+        legend_ypos_label = ctk.CTkLabel(master=general_toplevel, text="Y position:")
+        legend_ypos_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend y pos'])
+        legend_ypos_slider = ctk.CTkSlider(master=general_toplevel, from_=0, to=1, number_of_steps=10,
+                                           variable=legend_ypos_var)
+        legend_ypos_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=legend_ypos_var)
+
+        legend_ypos_label.place(x=225, y=150)
+        legend_ypos_slider.place(x=225, y=190, relwidth=0.4)
+        legend_ypos_value_label.place(x=300, y=150)
+        self.vars["legend y pos"] = legend_ypos_var
+        self.sliders["legend y pos"] = legend_ypos_slider
+
+        ncols_label = ctk.CTkLabel(master=general_toplevel, text="Number of columns:")
+        ncols_var = tk.StringVar(value=self.controller.model.plot_legend["legend ncols"])
+        ncols_entry = ctk.CTkEntry(master=general_toplevel, width=50, textvariable=ncols_var)
+
+        ncols_label.place(x=0, y=240)
+        ncols_entry.place(x=0, y=280, )
+        self.vars["legend ncols"] = ncols_var
+        self.entries["legend ncols"] = ncols_entry
+
+        fontsize_var = tk.IntVar(value=self.controller.model.plot_legend['legend fontsize'])
+        fontsize_label = ctk.CTkLabel(master=general_toplevel, text="Font size:")
+        fontsize_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                        variable=fontsize_var)
+        fontsize_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=fontsize_var)
+
+        fontsize_label.place(x=225, y=240)
+        fontsize_slider.place(x=225, y=280, relwidth=0.4)
+        fontsize_value_label.place(x=300, y=240)
+        self.vars["legend fontsize"] = fontsize_var
+        self.sliders["legend fontsize"] = fontsize_slider
+
+        # ----- TRACE
+        show_legend_var.trace("w", partial(self.trace_vars_to_model, 'show legend'))
+        fontsize_var.trace("w", partial(self.trace_vars_to_model, 'legend fontsize'))
+        legend_xpos_var.trace("w", partial(self.trace_vars_to_model, 'legend x pos'))
+        legend_ypos_var.trace("w", partial(self.trace_vars_to_model, 'legend y pos'))
+        legend_alpha_var.trace("w", partial(self.trace_vars_to_model, 'legend alpha'))
+        legend_anchor_var.trace("w", partial(self.trace_vars_to_model, 'legend anchor'))
+        ncols_var.trace("w", partial(self.trace_vars_to_model, 'legend ncols'))
+        draggable_var.trace("w", partial(self.trace_vars_to_model, 'legend draggable'))
+
+    def general_settings_toplevel(self):
+        # todo : allow single window
+
+        width = 450
+        height = 250
+        general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.title("General settings (Plot)")
+        general_toplevel.resizable(False, False)
+        general_toplevel.attributes("-topmost", 1)
+
+        title_label = ctk.CTkLabel(master=general_toplevel, text="Title:")
+        title_var = tk.StringVar()
+        title_var.set(self.controller.model.plot_general_settings['title'])
+        title_entry = ctk.CTkEntry(master=general_toplevel, width=180, textvariable=title_var)
+
+        title_label.place(x=0, y=0)
+        title_entry.place(x=0, y=40, )
+        self.vars["title"] = title_var
+        self.entries["title"] = title_entry
+
+        title_font_var = tk.StringVar()
+        title_font_var.set(self.controller.model.plot_general_settings['title font'])
+        title_font_label = ctk.CTkLabel(master=general_toplevel, text="Title font:")
+        title_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
+                                           textvariable=title_font_var)
+        title_font_cbbox.set(title_font_var.get())
+
+        title_font_label.place(x=225, y=0)
+        title_font_cbbox.place(x=225, y=40, relwidth=0.4)
+        self.vars["title font"] = title_font_var
+        self.cbboxes["title font"] = title_font_cbbox
+
+        title_size_var = tk.IntVar(value=self.controller.model.plot_general_settings['title size'])
+        title_size_label = ctk.CTkLabel(master=general_toplevel, text="Title size:")
+        title_size_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                          variable=title_size_var)
+        title_size_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=title_size_var)
+
+        title_size_label.place(x=0, y=100)
+        title_size_slider.place(x=0, y=140, relwidth=0.4)
+        title_size_value_label.place(x=60, y=100)
+        self.vars["title size"] = title_size_var
+        self.sliders["title size"] = title_size_slider
+
+        dpi_label = ctk.CTkLabel(master=general_toplevel, text="Figure dpi:")
+        dpi_strvar = tk.StringVar()
+        dpi_strvar.set(self.controller.model.plot_general_settings['dpi'])
+        dpi_entry = ctk.CTkEntry(master=general_toplevel, textvariable=dpi_strvar, width=180)
+
+        dpi_label.place(x=225, y=100)
+        dpi_entry.place(x=225, y=140)
+        self.entries["dpi"] = dpi_entry
+        self.vars["dpi"] = dpi_strvar
+
+        # ----- TRACE
+        title_var.trace("w", partial(self.trace_vars_to_model, 'title'))
+        title_size_var.trace("w", partial(self.trace_vars_to_model, 'title size'))
+        title_font_var.trace("w", partial(self.trace_vars_to_model, 'title font'))
+        dpi_strvar.trace("w", partial(self.trace_vars_to_model, 'dpi'))
+
+
+    def trace_vars_to_model(self, key, *args):
+        if self.controller:
+            self.controller.trace_vars_to_model(key, *args)

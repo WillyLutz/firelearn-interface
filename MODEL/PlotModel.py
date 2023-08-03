@@ -31,12 +31,14 @@ class PlotModel:
                           'y ticks rotation': p.DEFAULT_FONTROTATION, 'x ticks size': p.DEFAULT_FONTSIZE,
                           'y ticks size': p.DEFAULT_FONTSIZE, 'round x ticks': p.DEFAULT_ROUND,
                           'round y ticks': p.DEFAULT_ROUND, 'axes font': p.DEFAULT_FONT,
+                          '3D x rotation': 0, '3D y rotation': 0, '3D z rotation': 0,
                           }
 
         self.plot_general_settings = {'title': '', 'title font': p.DEFAULT_FONT,
                                       'title size': p.DEFAULT_FONTSIZE, 'dpi': p.DEFAULT_DPI}
 
-        self.plot_data = {'xdata': 'None', }
+        self.plot_data = {'xdata': 'None', 'ellipsis': False, 'ellipsis alpha': p.DEFAULT_ALPHA,
+                          'label column': 'None',}
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))

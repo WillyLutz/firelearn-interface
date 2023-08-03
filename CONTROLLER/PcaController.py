@@ -70,121 +70,119 @@ class PcaController:
 
     def draw_figure(self, ):
         fig, ax = self.view.figures["pca"]
+        n_labels = self.model.n_labels
+        if self.model.n_labels >= 0:
+            df = self.model.dataset
+            label_column = self.view.vars["label column"].get()
 
-        df = pd.read_csv(self.model.dataset_path, index_col=False)
-        label_column = self.view.cbboxes["label column"].get()
+            n_xticks = int(self.model.plot_axes["n x ticks"])
+            n_yticks = int(self.model.plot_axes["n y ticks"])
 
-        n_xticks = int(self.view.entries["n x ticks"].get())
-        n_yticks = int(self.view.entries["n y ticks"].get())
+            # ---- FIT AND APPLY PCA
+            # todo : plotting
+            labels_to_fit = []
+            labels_to_apply = []
+            for yi in range(self.model.n_labels + 1):
+                if self.view.vars[f"fit {yi}"].get():
+                    labels_to_fit.append(self.model.plot_data[f"label data {yi}"])
+                if self.model.plot_data[f"apply {yi}"]:
+                    labels_to_apply.append(self.model.plot_data[f"label data {yi}"])
 
-        # ---- PLOTTING
-        # todo : plotting
-        labels_to_fit = []
-        labels_to_apply = []
-        for yi in range(self.model.n_labels + 1):
-            if self.view.vars[f"fit {yi}"].get():
-                labels_to_fit.append(self.view.cbboxes[f"label data {yi}"].get())
-            if self.view.vars[f"apply {yi}"].get():
-                labels_to_apply.append(self.view.cbboxes[f"label data {yi}"].get())
+            df_fit = df[df[label_column].isin(labels_to_fit)]
+            n_components = int(self.model.plot_data["n components"])
+            pca, pcdf_fit, ratio = self.fit_pca(df_fit, n_components=n_components, label_column=label_column)
+            df_apply = df[df[label_column].isin(labels_to_apply)]
+            pcdf_applied = self.apply_pca(pca, df_apply, label_column=label_column)
 
-        df_fit = df[df[label_column].isin(labels_to_fit)]
-        n_components = int(self.view.entries["n components"].get())
-        pca, pcdf_fit, ratio = self.fit_pca(df_fit, n_components=n_components, label_column=label_column)
-        df_apply = df[df[label_column].isin(labels_to_apply)]
-        pcdf_applied = self.apply_pca(pca, df_apply, label_column=label_column)
+            ax.clear()
 
-        ax.clear()
-        targets = list(set(list(df[label_column])))
+            # ----- PLOTTING
+            all_ymin = []  # for ticks
+            all_ymax = []
+            all_xmin = []
+            all_xmax = []
+            for yi in range(self.model.n_labels + 1):
+                if n_components == 2:
+                    current_label = self.view.cbboxes[f"label data {yi}"].get()
+                    x_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[0]]
+                    all_xmax.append(max(x_data))
+                    all_xmin.append(min(x_data))
+                    y_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[1]]
+                    all_ymin.append(min(y_data))
+                    all_ymax.append(max(y_data))
 
-        all_ymin = []  # for ticks
-        all_ymax = []
-        all_xmin = []
-        all_xmax = []
-        for yi in range(self.model.n_labels + 1):
-            if n_components == 2:
-                current_label = self.view.cbboxes[f"label data {yi}"].get()
-                x_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[0]]
-                all_xmax.append(max(x_data))
-                all_xmin.append(min(x_data))
-                y_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[1]]
-                all_ymin.append(min(y_data))
-                all_ymax.append(max(y_data))
-
-                if self.view.entries[f"label data legend {str(yi)}"].get():
-                    label = self.view.entries[f"label data legend {str(yi)}"].get()
-                else:
-                    label = self.view.cbboxes[f"label data {str(yi)}"].get()
-
-                ax.scatter(x_data, y_data,
-                           s=int(self.view.entries[f"marker size {str(yi)}"].get()),
-                           marker=p.MARKERS[self.view.cbboxes[f"marker {str(yi)}"].get()],
-                           color=self.view.vars[f"color {str(yi)}"].get(),
-                           alpha=self.view.sliders[f"alpha {str(yi)}"].get(),
-                           label=label
-                           )
-                if self.view.vars[f"ellipsis"].get():
-                    ax.scatter(np.mean(x_data), np.mean(y_data),
-                               marker="+",
-                               color=self.view.vars[f"color {str(yi)}"].get(),
-                               linewidth=2,
-                               s=160)
-                    confidence_ellipse(x_data, y_data, ax, n_std=1.0,
-                                       color=self.view.vars[f"color {str(yi)}"].get(),
-                                       fill=False, linewidth=2)
-
-                # ---- LABELS
-                ax.set_xlabel(self.view.entries["x label"].get(),
-                              fontdict={"font": self.view.cbboxes["axes font"].get(),
-                                        "fontsize": self.view.sliders["x label size"].get()})
-                ax.set_ylabel(self.view.entries["y label"].get(),
-                              fontdict={"font": self.view.cbboxes["axes font"].get(),
-                                        "fontsize": self.view.sliders["y label size"].get()})
-                ax.set_title(self.view.entries["title"].get(),)
-
-                # ---- TICKS
-                xmin = min(all_xmin)
-                xmax = max(all_xmax)
-                xstep = (xmax - xmin) / (n_xticks - 1)
-                xtick = xmin
-                xticks = []
-                for i in range(n_xticks - 1):
-                    xticks.append(xtick)
-                    xtick += xstep
-                xticks.append(xmax)
-                rounded_xticks = list(np.around(np.array(xticks), int(self.view.entries["round x ticks"].get())))
-                ax.set_xticks(rounded_xticks)
-                ax.tick_params(axis='x',
-                               labelsize=self.view.sliders["x ticks size"].get(),
-                               labelrotation=float(self.view.sliders["x ticks rotation"].get()))
-
-                ymin = min(all_ymin)
-                ymax = max(all_ymax)
-                ystep = (ymax - ymin) / (n_yticks - 1)
-                ytick = ymin
-                yticks = []
-                for i in range(n_yticks - 1):
-                    yticks.append(ytick)
-                    ytick += ystep
-                yticks.append(ymax)
-                rounded_yticks = list(np.around(np.array(yticks), int(self.view.entries["round y ticks"].get())))
-                ax.set_yticks(rounded_yticks)
-                ax.tick_params(axis='y',
-                               labelsize=self.view.sliders["y ticks size"].get(),
-                               labelrotation=float(self.view.sliders["y ticks rotation"].get()))
-
-                # ----- LEGEND
-                # figure = self.create_figure()
-                # self.view.canvas["feature importance"].figure = figure
-
-                if self.view.switches["show legend"].get():
-                    if self.view.cbboxes["legend anchor"].get() == 'custom':
-                        legend = ax.legend(loc="upper left",
-                                           bbox_to_anchor=(self.view.sliders["legend x pos"].get(),
-                                                           self.view.sliders["legend y pos"].get()))
+                    if self.view.vars[f"label data legend {str(yi)}"].get():
+                        label = self.view.vars[f"label data legend {str(yi)}"].get()
                     else:
-                        legend = ax.legend(loc=self.view.cbboxes["legend anchor"].get(), )
-                    for lh in legend.legendHandles:
-                        lh.set_alpha(self.view.sliders["legend alpha"].get())
+                        label = self.view.vars[f"label data {str(yi)}"].get()
+
+                    self.view.scatters[n_labels] = ax.scatter(x_data, y_data,
+                               s=int(self.view.vars[f"marker size {str(yi)}"].get()),
+                               marker=p.MARKERS[self.view.vars[f"marker style {str(yi)}"].get()],
+                               color=self.view.vars[f"color {str(yi)}"].get(),
+                               alpha=self.view.vars[f"alpha {str(yi)}"].get(),
+                               label=label
+                               )
+                    if self.view.vars[f"ellipsis"].get():
+                        ax.scatter(np.mean(x_data), np.mean(y_data),
+                                   marker="+",
+                                   color=self.view.vars[f"color {str(yi)}"].get(),
+                                   linewidth=2,
+                                   s=160)
+                        confidence_ellipse(x_data, y_data, ax, n_std=1.0,
+                                           color=self.view.vars[f"color {str(yi)}"].get(),
+                                           fill=False, linewidth=2)
+
+                    # ---- LABELS
+                    ax.set_xlabel(self.model.plot_axes["x label"],
+                                  fontdict={"font": self.model.plot_axes["axes font"],
+                                            "fontsize": self.model.plot_axes["x label size"]})
+                    ax.set_ylabel(self.model.plot_axes["y label"],
+                                  fontdict={"font": self.model.plot_axes["axes font"],
+                                            "fontsize": self.model.plot_axes["y label size"]})
+                    ax.set_title(self.model.plot_general_settings["title"],)
+
+                    # ---- TICKS
+                    xmin = min(all_xmin)
+                    xmax = max(all_xmax)
+                    xstep = (xmax - xmin) / (n_xticks - 1)
+                    xtick = xmin
+                    xticks = []
+                    for i in range(n_xticks - 1):
+                        xticks.append(xtick)
+                        xtick += xstep
+                    xticks.append(xmax)
+                    rounded_xticks = list(np.around(np.array(xticks), int(self.model.plot_axes["round x ticks"])))
+                    ax.set_xticks(rounded_xticks)
+                    ax.tick_params(axis='x',
+                                   labelsize=self.model.plot_axes["x ticks size"],
+                                   labelrotation=float(self.model.plot_axes["x ticks rotation"]))
+
+                    ymin = min(all_ymin)
+                    ymax = max(all_ymax)
+                    ystep = (ymax - ymin) / (n_yticks - 1)
+                    ytick = ymin
+                    yticks = []
+                    for i in range(n_yticks - 1):
+                        yticks.append(ytick)
+                        ytick += ystep
+                    yticks.append(ymax)
+                    rounded_yticks = list(np.around(np.array(yticks), int(self.model.plot_axes["round y ticks"])))
+                    ax.set_yticks(rounded_yticks)
+                    ax.tick_params(axis='y',
+                                   labelsize=self.model.plot_axes["y ticks size"],
+                                   labelrotation=float(self.model.plot_axes["y ticks rotation"]))
+
+                    # ----- LEGEND
+                    if self.model.plot_legend["show legend"]:
+                        if self.model.plot_legend["legend anchor"] == 'custom':
+                            legend = ax.legend(loc="upper left",
+                                               bbox_to_anchor=(self.model.plot_legend["legend x pos"],
+                                                               self.model.plot_legend["legend y pos"]))
+                        else:
+                            legend = ax.legend(loc=self.model.plot_legend["legend anchor"], )
+                        for lh in legend.legendHandles:
+                            lh.set_alpha(self.model.plot_legend["legend alpha"])
 
 
         # todo : 3D
@@ -286,43 +284,11 @@ class PcaController:
 
     def save_config(self, ):
         if self.check_params_validity():
-            self.update_params(self.view.entries)
-            self.update_params(self.view.cbboxes)
-            self.update_params(self.view.sliders)
-            self.update_params(self.view.vars)
-            self.update_params(self.view.switches)
-
             f = filedialog.asksaveasfilename(defaultextension=".pltcfg",
                                              filetypes=[("Analysis - pca", "*.pcacfg"), ])
             if f:
                 self.model.save_model(path=f, )
 
-    def update_params(self, widgets: dict, ):
-        local_dict = {}
-        for key, value in widgets.items():
-            if type(value) == ctk.CTkTextbox:
-                local_dict[key] = value.get('1.0', tk.END)
-            else:
-                local_dict[key] = value.get()
-        if type(list(widgets.values())[0]) == ctk.CTkSwitch:
-            self.model.switches.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkEntry:
-            self.model.entries.update(local_dict)
-        if type(list(widgets.values())[0]) == tk.ttk.Combobox:
-            self.model.cbboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkTextbox:
-            local_dict = {}
-            for key, value in widgets.items():
-                local_dict[key] = value.get('1.0', tk.END)
-            self.model.textboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkSlider:
-            self.model.sliders.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkCheckBox:
-            self.model.checkboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == tk.IntVar or \
-                type(list(widgets.values())[0]) == tk.StringVar or \
-                type(list(widgets.values())[0]) == tk.DoubleVar:
-            self.model.vars.update(local_dict)
 
     def load_config(self, ):
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - pca", "*.pcacfg"),))
@@ -331,38 +297,14 @@ class PcaController:
                 self.update_view_from_model()  # todo : does not work with multiple y :
 
     def update_view_from_model(self, ):
-
-        for key, widget in self.view.cbboxes.items():
-            if widget.cget('state') == "normal":
-                widget.set(self.model.cbboxes[key])
-            else:
-                widget.configure(state='normal')
-                widget.set(self.model.cbboxes[key])
-                widget.configure(state='readonly')
-                pass
-        for key, widget in self.view.entries.items():
-            if widget.cget('state') == 'normal':
-                widget.delete(0, ctk.END)
-                widget.insert(0, self.model.entries[key])
-            else:
-                widget.configure(state='normal')
-                widget.insert(0, self.model.entries[key])
-                widget.configure(state='disabled')
-
-        for key, widget in self.view.switches.items():
-            if widget.cget('state') == 'normal':
-                if self.model.switches[key]:
-                    widget.select()
-                else:
-                    widget.deselect()
-
-        for key, widget in self.view.sliders.items():
-            if widget.cget('state') == "normal":
-                self.view.vars[key].set(self.model.vars[key])
-                self.view.sliders[key].set(self.model.sliders[key])
-
-        for key, widget in self.view.textboxes.items():
-            MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
+        for key, value in self.model.plot_data.items():
+            self.view.vars[key].set(value)
+        for key, value in self.model.plot_legend.items():
+            self.view.vars[key].set(value)
+        for key, value in self.model.plot_axes.items():
+            self.view.vars[key].set(value)
+        for key, value in self.model.plot_general_settings.items():
+            self.view.vars[key].set(value)
 
     def load_plot_dataset(self, ):
         filename = filedialog.askopenfilename(title="Open file",
@@ -370,6 +312,7 @@ class PcaController:
         if filename:
             df = pd.read_csv(filename)
             self.model.dataset_path = filename
+            self.model.dataset = df
             self.view.vars["load dataset"].set(filename)
 
             columns = list(df.columns)
@@ -389,7 +332,7 @@ class PcaController:
 
     def add_label_data(self, scrollable_frame):
         if self.model.dataset_path:
-            df = pd.read_csv(self.model.dataset_path, index_col=False)
+            df = self.model.dataset
             label_col = self.view.cbboxes["label column"].get()
             all_labels = sorted(set(list(df[label_col])))
 
@@ -400,28 +343,19 @@ class PcaController:
             self.view.labels_subframes[str(n_labels)] = label_data_subframe
 
             labels_label = ctk.CTkLabel(master=label_data_subframe, text="Label:")
-            labels_label.place(relx=0, rely=0)
-            labels_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=all_labels, state='readonly')
+            label_var = tk.StringVar(value=all_labels[0])
+            labels_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=all_labels, state='readonly', textvariable=label_var)
             labels_cbbox.set(all_labels[0])
+            labels_label.place(relx=0, rely=0)
             labels_cbbox.place(relx=0, rely=0.12)
+            self.view.vars[f"label data {n_labels}"] = label_var
             self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
 
-            add_label_data_button = ctk.CTkButton(master=label_data_subframe, text="+", width=25, height=25,
-                                                  state='normal')
-            add_label_data_button.place(anchor=tk.NE, relx=0.25, rely=0)
-            self.view.buttons[f"add label data {n_labels}"] = add_label_data_button
-            subtract_label_data_button = ctk.CTkButton(master=label_data_subframe, text="-", width=25, height=25,
-                                                       state='normal')
-            subtract_label_data_button.place(anchor=tk.NE, relx=0.38, rely=0)
-            self.view.buttons[f"subtract label data {n_labels}"] = subtract_label_data_button
-
-            fit_var = tk.IntVar()
-            fit_var.set(1)
-            apply_var = tk.IntVar()
-            apply_var.set(1)
+            fit_var = tk.IntVar(value=1)
+            apply_var = tk.IntVar(value=1)
             fit_ckbox = ctk.CTkCheckBox(master=label_data_subframe, text="Fit", variable=fit_var)
-            fit_ckbox.place(relx=0.65, rely=0)
             apply_ckbox = ctk.CTkCheckBox(master=label_data_subframe, text="Apply", variable=apply_var)
+            fit_ckbox.place(relx=0.65, rely=0)
             apply_ckbox.place(relx=0.75, rely=0)
             self.view.checkboxes[f"fit {n_labels}"] = fit_ckbox
             self.view.checkboxes[f"apply {n_labels}"] = apply_ckbox
@@ -429,113 +363,107 @@ class PcaController:
             self.view.vars[f"apply {n_labels}"] = apply_var
 
             labels_legend_label = ctk.CTkLabel(master=label_data_subframe, text="Legend label:")
+            labels_legend_var = tk.StringVar(value='')
+            labels_legend_entry = ctk.CTkEntry(master=label_data_subframe, textvariable=labels_legend_var)
             labels_legend_label.place(relx=0, rely=0.25)
-            labels_legend_entry = ctk.CTkEntry(master=label_data_subframe)
             labels_legend_entry.place(relx=0, rely=0.37, relwidth=0.4)
-            self.view.entries[f"label data legend {n_labels}"] = labels_legend_entry
+            self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
 
             markerstyle_label = ctk.CTkLabel(master=label_data_subframe, text="Markers:")
-            markerstyle_label.place(relx=0, rely=0.5)
+            markerstyle_var = tk.StringVar(value='point')
             markerstyle_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=list(sorted(p.MARKERS.keys())),
-                                                state='readonly')
-            markerstyle_cbbox.set("point")
+                                                state='readonly', textvariable=markerstyle_var)
+            markerstyle_cbbox.set(markerstyle_var.get())
+            markerstyle_label.place(relx=0, rely=0.5)
             markerstyle_cbbox.place(relx=0, rely=0.62, relwidth=0.25)
-            self.view.cbboxes[f"marker {n_labels}"] = markerstyle_cbbox
+            self.view.cbboxes[f"marker style {n_labels}"] = markerstyle_cbbox
+            self.view.vars[f"marker style {n_labels}"] = markerstyle_var
 
             markersize_label = ctk.CTkLabel(master=label_data_subframe, text="Marker size:")
             markersize_label.place(relx=0.3, rely=0.5)
-            markersize_strvar = tk.StringVar()
-            markersize_strvar.set("1")
-            markersize_entry = ctk.CTkEntry(master=label_data_subframe, textvariable=markersize_strvar)
+            markersize_var = tk.StringVar(value='1')
+            markersize_entry = ctk.CTkEntry(master=label_data_subframe, textvariable=markersize_var)
             markersize_entry.place(relx=0.3, rely=0.62, relwidth=0.2)
-            self.view.entries[f"marker size {n_labels}"] = markersize_entry
-            self.view.vars[f"marker size {n_labels}"] = markersize_strvar
+            self.view.vars[f"marker size {n_labels}"] = markersize_var
 
             color_label = ctk.CTkLabel(master=label_data_subframe, text="Color:")
-            color_label.place(relx=0.6, rely=0.5)
-            color_var = tk.StringVar()
-            color_var.set("green")
+            color_var = tk.StringVar(value='green')
             color_button = ctk.CTkButton(master=label_data_subframe, textvariable=color_var,
                                          fg_color=color_var.get(), text_color='black')
+            color_label.place(relx=0.6, rely=0.5)
             color_button.place(relx=0.6, rely=0.62)
             self.view.buttons[f"color {n_labels}"] = color_button
             self.view.vars[f"color {n_labels}"] = color_var
 
             alpha_label = ctk.CTkLabel(master=label_data_subframe, text="Alpha:")
+            alpha_var = tk.DoubleVar(value=p.DEFAULT_ALPHA)
+            alpha_slider = ctk.CTkSlider(master=label_data_subframe, from_=0, to=1, number_of_steps=10, variable=alpha_var)
+            alpha_value_label = ctk.CTkLabel(master=label_data_subframe, textvariable=alpha_var)
             alpha_label.place(relx=0.5, rely=0.25)
-            alpha_slider = ctk.CTkSlider(master=label_data_subframe, from_=0, to=1, number_of_steps=10)
-            alpha_slider.set(p.DEFAULT_LINEALPHA)
             alpha_slider.place(relx=0.5, rely=0.37, relwidth=0.4)
-            alpha_strvar = tk.StringVar()
-            alpha_strvar.set(str(alpha_slider.get()))
-            alpha_value_label = ctk.CTkLabel(master=label_data_subframe, textvariable=alpha_strvar)
             alpha_value_label.place(relx=0.7, rely=0.25)
-            self.view.vars[f"alpha {n_labels}"] = alpha_strvar
+            self.view.vars[f"alpha {n_labels}"] = alpha_var
             self.view.sliders[f"alpha {n_labels}"] = alpha_slider
 
-            alpha_slider.configure(command=partial(self.view.update_slider_value, var=alpha_strvar))
             color_button.configure(command=partial(self.view.select_color, view=self.view,
                                                    selection_button_name=f'color {n_labels}'))
-            add_label_data_button.configure(command=partial(self.add_label_data, scrollable_frame))
-            subtract_label_data_button.configure(command=partial(self.remove_label_data, f'{n_labels}'))
+
+            # ----- TRACE
+            for key, widget in {f'color {n_labels}': color_var, f'fit {n_labels}': fit_var,
+                                f'apply {n_labels}': apply_var, f'alpha {n_labels}': alpha_var,
+                                f'marker size {n_labels}': markersize_var,
+                                f'label data {n_labels}': label_var,
+                                f'label data legend {n_labels}': labels_legend_var,
+                                f'marker style {n_labels}': markerstyle_var,
+                                }.items():
+
+                self.model.plot_data[key] = widget.get()
+                widget.trace("w", partial(self.trace_vars_to_model, key))
+
         else:
             messagebox.showerror("Missing Values", "No dataset loaded")
             return False
 
-    def remove_label_data(self, frame_key):
+    def remove_label_data(self,):
         n_labels = self.model.n_labels
-        destroyed_number = int(frame_key.split(" ")[-1])
 
-        for y in range(0, n_labels + 1):
-            if 0 <= y < destroyed_number:
-                pass
-            elif y == destroyed_number:
-                # destroying all widgets related
-                for child in self.view.labels_subframes[str(y)].winfo_children():
-                    child.destroy()
+        if n_labels >= 0:
+            for child in self.view.labels_subframes[str(n_labels)].winfo_children():
+                child.destroy()
 
-                # remove the frame from self.view.labels_subframes
-                self.view.labels_subframes[str(y)].destroy()
-                del self.view.labels_subframes[str(y)]
+            # remove the frame from self.view.labels_subframes
+            self.view.labels_subframes[str(n_labels)].destroy()
+            del self.view.labels_subframes[str(n_labels)]
 
-                # destroying all items related in dicts
-                del self.view.entries[f"label data legend {destroyed_number}"]
-                del self.view.entries[f"marker size {destroyed_number}"]
-                del self.view.buttons[f"add label data {destroyed_number}"]
-                del self.view.buttons[f"subtract label data {destroyed_number}"]
-                del self.view.buttons[f"color {destroyed_number}"]
-                del self.view.cbboxes[f"label data {destroyed_number}"]
-                del self.view.cbboxes[f"marker {destroyed_number}"]
-                del self.view.vars[f"marker size {destroyed_number}"]
-                del self.view.vars[f"color {destroyed_number}"]
-                del self.view.vars[f"fit {destroyed_number}"]
-                del self.view.vars[f"apply {destroyed_number}"]
-                del self.view.vars[f"alpha {destroyed_number}"]
-                del self.view.sliders[f"alpha {destroyed_number}"]
-                del self.view.checkboxes[f"fit {destroyed_number}"]
-                del self.view.checkboxes[f"apply {destroyed_number}"]
+            # destroying all items related in dicts
+            del self.view.buttons[f"color {n_labels}"]
+            del self.view.cbboxes[f"label data {n_labels}"]
+            del self.view.cbboxes[f"marker {n_labels}"]
+            del self.view.vars[f"marker size {n_labels}"]
+            del self.view.vars[f"color {n_labels}"]
+            del self.view.vars[f"fit {n_labels}"]
+            del self.view.vars[f"apply {n_labels}"]
+            del self.view.vars[f"alpha {n_labels}"]
+            del self.view.checkboxes[f"fit {n_labels}"]
+            del self.view.checkboxes[f"apply {n_labels}"]
 
-            elif y > destroyed_number:
-                self.view.rename_dict_key(self.view.entries, f"label data legend {y}", f"label data legend {y - 1}")
-                self.view.rename_dict_key(self.view.entries, f"marker size {y}", f"marker size {y - 1}")
-                self.view.rename_dict_key(self.view.buttons, f"add label data {y}", f"add label data {y - 1}")
-                self.view.rename_dict_key(self.view.buttons, f"color {y}", f"color {y - 1}")
-                self.view.rename_dict_key(self.view.buttons, f"subtract label data {y}", f"subtract label data {y - 1}")
-                self.view.rename_dict_key(self.view.cbboxes, f"label data {y}", f"label data {y - 1}")
-                self.view.rename_dict_key(self.view.cbboxes, f"marker {y}", f"marker {y - 1}")
-                self.view.rename_dict_key(self.view.vars, f"marker size {y}", f"marker size {y - 1}")
-                self.view.rename_dict_key(self.view.vars, f"color {y}", f"color {y - 1}")
-                self.view.rename_dict_key(self.view.vars, f"alpha {y}", f"alpha {y - 1}")
-                self.view.rename_dict_key(self.view.vars, f"fit {y}", f"fit {y - 1}")
-                self.view.rename_dict_key(self.view.vars, f"apply {y}", f"apply {y - 1}")
-                self.view.rename_dict_key(self.view.sliders, f"alpha {y}", f"alpha {y - 1}")
-                self.view.rename_dict_key(self.view.checkboxes, f"fit {y}", f"fit {y - 1}")
-                self.view.rename_dict_key(self.view.checkboxes, f"apply {y}", f"apply {y - 1}")
+            self.view.scatters[n_labels].pop(0).remove()
+            del self.view.scatters[n_labels]
 
-                self.view.rename_dict_key(self.view.labels_subframes, str(y), str(y - 1))
-                self.view.labels_subframes[str(y - 1)].grid(row=y - 1, column=0,
-                                                            sticky=ctk.NSEW)  # replace the frame in grid
-                self.view.buttons[f"subtract label data {y - 1}"].configure(
-                    command=partial(self.remove_label_data, f'{y - 1}'))
+            self.view.ellipsis[n_labels][0].pop(0).remove()
+            del self.view.scatters[n_labels]
+            self.view.ellipsis[n_labels][0].pop(0).remove()
+            del self.view.scatters[n_labels]
 
-        self.model.n_labels -= 1
+            self.model.n_labels -= 1
+
+
+    def trace_vars_to_model(self, key, *args):
+        if key in self.model.plot_general_settings.keys():
+            self.model.plot_general_settings[key] = self.view.vars[key].get()
+        elif key in self.model.plot_axes.keys():
+            self.model.plot_axes[key] = self.view.vars[key].get()
+        elif key in self.model.plot_legend.keys():
+            self.model.plot_legend[key] = self.view.vars[key].get()
+        elif key in self.model.plot_data.keys():
+            self.model.plot_data[key] = self.view.vars[key].get()
