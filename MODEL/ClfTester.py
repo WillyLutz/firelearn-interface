@@ -1,5 +1,6 @@
 import pickle
 
+import numpy as np
 from sklearn.model_selection import train_test_split
 
 
@@ -54,7 +55,7 @@ class ClfTester:
             self.train_metrics[label] = {"true": [], "false": []}
 
         if not self.trained:
-            self.clf.fit(X, y)
+            self.clf.fit(np.array(X), np.array(y))
             self.train_metrics = self.test_classifier(X, y)
             self.train_acc = self.accuracy_computation(self.train_metrics)
 
@@ -73,7 +74,7 @@ class ClfTester:
             metrics[label] = ([], [])
 
         for i in X.index:
-            row = X.loc[i, :]
+            row = np.array(X.loc[i, :])
             y_pred = self.clf.predict([row])[0]
             proba_class = self.clf.predict_proba([row])[0]
 

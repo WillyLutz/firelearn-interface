@@ -31,7 +31,6 @@ class PlotModel:
                           'y ticks rotation': p.DEFAULT_FONTROTATION, 'x ticks size': p.DEFAULT_FONTSIZE,
                           'y ticks size': p.DEFAULT_FONTSIZE, 'round x ticks': p.DEFAULT_ROUND,
                           'round y ticks': p.DEFAULT_ROUND, 'axes font': p.DEFAULT_FONT,
-                          '3D x rotation': 0, '3D y rotation': 0, '3D z rotation': 0,
                           }
 
         self.plot_general_settings = {'title': '', 'title font': p.DEFAULT_FONT,

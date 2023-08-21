@@ -40,7 +40,7 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         # --------------- INIT FRAME
         init_frame = ctk.CTkFrame(master=self.master)
-        init_frame.place(relx=0, rely=0, relheight=0.1, relwidth=0.6)
+        init_frame.place(relx=0, rely=0, relheight=0.1, relwidth=0.31)
 
         load_clf_label = ctk.CTkLabel(master=init_frame, text="Loaded trained classifier:")
         load_clf_button = ctk.CTkButton(master=init_frame, text="Load Classifier")

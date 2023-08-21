@@ -26,7 +26,7 @@ class ProgressBar(threading.Thread, ):
 
         progress_window.focus_force()
 
-        # todo : make the processing stop when the thread is killed
+
 
     def stop(self):
         self._stop_event.set()
@@ -60,6 +60,3 @@ class ProgressBar(threading.Thread, ):
         self.task = task
         self.update_progress()
         return self
-
-
-    # todo : after processing when closing the windows, 'while executing --- ("after" script) probably due to daemon threading

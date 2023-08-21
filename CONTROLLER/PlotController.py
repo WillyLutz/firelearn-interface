@@ -339,7 +339,7 @@ class PlotController:
             elif ax.get_legend():
                 ax.get_legend().remove()
 
-            plt.tight_layout()  # todo : tight layout() not effective anymore because of legend ?
+            plt.tight_layout()
 
         else:
             ax.clear()

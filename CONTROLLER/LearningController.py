@@ -113,6 +113,8 @@ class LearningController:
             self.progress.update_task("Splitting")
             target_column = self.model.cbboxes["target column"]
 
+            df = df[df[target_column].isin(self.model.targets)]
+
             y = df[target_column]
             y = self.label_encoding(y)
             X = df.loc[:, df.columns != target_column]
@@ -163,7 +165,7 @@ class LearningController:
 
             self.update_metrics_textbox(metrics_elements)
             if self.view.switches["save rfc"].get():
-                MainController.save_object(rfc, self.view.entries["save rfc"].get())  # todo : save rfc not functional
+                MainController.save_object(rfc, self.view.entries["save rfc"].get())
 
     @staticmethod
     def extract_rfc_params(rfc_params_string_var):
@@ -351,9 +353,7 @@ class LearningController:
             if not os.path.exists(os.path.dirname(self.view.entries["save rfc"].get())):
                 messagebox.showerror("Value error", "Path to save the classifier does not exist.")
                 return False
-            if not os.path.isfile(os.path.isfile(self.view.entries["save rfc"].get())):
-                messagebox.showerror("Value error", "Path to save the classifier is not valid.")
-                return False
+
 
         if not ival.widget_value_is_positive_int_or_empty(self.view.entries["n iter"]) or \
                 int(self.view.entries["n iter"].get()) == 0:

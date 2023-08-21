@@ -1,5 +1,6 @@
 import tkinter as tk
 from functools import partial
+import matplotlib.pyplot as plt
 from tkinter import ttk
 
 import customtkinter as ctk
@@ -28,8 +29,6 @@ class PcaView(ctk.CTkFrame):
         self.figures = {}
         self.scrollable_frames = {}
 
-        self.scatters = {}
-        self.ellipsis = {}
 
         self.labels_subframes = {}
         self.manage_pca_tab()
@@ -40,7 +39,7 @@ class PcaView(ctk.CTkFrame):
         load_dataset_button = ctk.CTkButton(master=init_frame, text="Load dataset:")
         load_dataset_var = tk.StringVar()
         load_dataset_entry = ctk.CTkEntry(master=init_frame, state='disabled', textvariable=load_dataset_var)
-        init_frame.place(relx=0, rely=0, relheight=0.1, relwidth=0.6)
+        init_frame.place(relx=0, rely=0, relheight=0.1, relwidth=0.31)
         load_dataset_button.place(relx=0.0, rely=0)
         load_dataset_entry.place(relx=0, rely=0.5, relwidth=0.5)
         self.vars["load dataset"] = load_dataset_var
@@ -48,14 +47,12 @@ class PcaView(ctk.CTkFrame):
         # ------ GENERAL SETTINGS
 
         curves_frame = ctk.CTkFrame(master=self.master)
+        curves_frame.place(relx=0, rely=0.13, relheight=0.87, relwidth=0.31)
+
         general_settings_frame = ctk.CTkFrame(master=curves_frame)
         general_settings_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.32)
 
-
-        general_settings_label = ctk.CTkLabel(master=general_settings_frame, text='GENERAL SETTINGS')
-        general_settings_label.place(relx=0, rely=0)
-
-        label_column_label = ctk.CTkLabel(master=general_settings_label, text="Labels column:")
+        label_column_label = ctk.CTkLabel(master=general_settings_frame, text="Labels column:")
         label_column_var = tk.StringVar(value='None')
         label_column_cbbox = tk.ttk.Combobox(master=general_settings_frame, values=['None', ], state='readonly',
                                              textvariable=label_column_var)
@@ -64,12 +61,6 @@ class PcaView(ctk.CTkFrame):
         self.cbboxes["label column"] = label_column_cbbox
         self.vars["label column"] = label_column_var
 
-        n_components_label = ctk.CTkLabel(master=general_settings_frame, text="Number of components:")
-        n_components_var = tk.StringVar(value="2")
-        n_components_entry = ctk.CTkEntry(master=general_settings_frame, state='normal', textvariable=n_components_var)
-        n_components_label.place(relx=0.5, rely=0.15)
-        n_components_entry.place(relx=0.5, rely=0.3, relwidth=0.2)
-        self.vars["n components"] = n_components_var
 
         label_2D = ctk.CTkLabel(master=general_settings_frame, text="2D settings:")
         ellipsis_var = tk.IntVar(value=1)
@@ -81,42 +72,16 @@ class PcaView(ctk.CTkFrame):
 
         ellipsis_alpha_label = ctk.CTkLabel(master=general_settings_frame, text="Alpha:")
         ellipsis_alpha_var = tk.DoubleVar(value=p.DEFAULT_ALPHA)
-        ellipsis_alpha_slider = ctk.CTkSlider(master=general_settings_frame, from_=0, to=1, number_of_steps=10, variable=ellipsis_alpha_var)
+        ellipsis_alpha_slider = ctk.CTkSlider(master=general_settings_frame, from_=0, to=1, number_of_steps=10,
+                                              variable=ellipsis_alpha_var)
         ellipsis_alpha_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=ellipsis_alpha_var)
         ellipsis_alpha_label.place(relx=0, rely=0.75)
         ellipsis_alpha_slider.place(relx=0, rely=0.9, relwidth=0.4)
         ellipsis_alpha_value_label.place(relx=0.3, rely=0.75)
         self.vars["ellipsis alpha"] = ellipsis_alpha_var
 
-        label_3D = ctk.CTkLabel(master=general_settings_frame, text="3D rotation settings:")
-        x_rotation_label = ctk.CTkLabel(master=general_settings_frame, text="x:")
-        y_rotation_label = ctk.CTkLabel(master=general_settings_frame, text="y:")
-        z_rotation_label = ctk.CTkLabel(master=general_settings_frame, text="z:")
-        label_3D.place(relx=0.5, rely=0.5)
-        x_rotation_label.place(relx=0.5, rely=0.65)
-        y_rotation_label.place(relx=0.5, rely=0.77)
-        z_rotation_label.place(relx=0.5, rely=0.89)
 
-        x_rot_var = tk.IntVar(value=0)
-        y_rot_var = tk.IntVar(value=0)
-        z_rot_var = tk.IntVar(value=0)
-        x_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36, variable=x_rot_var)
-        x_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=x_rot_var)
-        x_rot_slider.place(relx=0.55, rely=0.65, relwidth=0.35)
-        x_rot_value_label.place(relx=0.95, rely=0.65)
-        self.vars["3D x rotation"] = x_rot_var
 
-        y_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36, variable=y_rot_var)
-        y_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=y_rot_var)
-        y_rot_slider.place(relx=0.55, rely=0.77, relwidth=0.35)
-        y_rot_value_label.place(relx=0.95, rely=0.77)
-        self.vars["3D y rotation"] = y_rot_var
-
-        z_rot_slider = ctk.CTkSlider(master=general_settings_frame, from_=-180, to=180, number_of_steps=36, variable=z_rot_var)
-        z_rot_value_label = ctk.CTkLabel(master=general_settings_frame, textvariable=z_rot_var)
-        z_rot_slider.place(relx=0.55, rely=0.89, relwidth=0.35)
-        z_rot_value_label.place(relx=0.95, rely=0.89)
-        self.vars["3D z rotation"] = z_rot_var
 
         add_label_data_button = ctk.CTkButton(master=general_settings_frame, text="+", width=25, height=25,
                                               state='normal')
@@ -127,38 +92,53 @@ class PcaView(ctk.CTkFrame):
 
         # ----- Y DATA
         pca_frame = ctk.CTkScrollableFrame(master=curves_frame)
-        curves_frame.place(relx=0, rely=0.13, relheight=0.87, relwidth=0.31)
         pca_frame.place(relx=0.01, rely=0.35, relwidth=0.98, relheight=0.64)
         pca_frame.grid_columnconfigure(0, weight=1)
         self.scrollable_frames["ydata"] = pca_frame
 
         # --------------- PLOT
         plot_frame = ctk.CTkFrame(master=self.master)
-        plot_frame.place(relx=0.63, rely=0, relheight=0.8, relwidth=0.37)
+        plot_frame.place(relx=0.45, rely=0, relheight=1, relwidth=0.55)
 
-        fig, ax = self.dummy_figure()
-        self.figures["pca"] = (fig, ax)
+        fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
         canvas.get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
+        self.figures["pca"] = (fig, ax)
         self.canvas["pca"] = canvas
 
-        # --------------- EXEC
+        # ----- CUSTOM PLOT
+        custom_plot_frame = ctk.CTkFrame(master=self.master)
+        custom_plot_frame.place(relx=0.32, rely=0.0, relwidth=0.12, relheight=1)
 
-        exec_frame = ctk.CTkFrame(master=self.master)
-        exec_frame.place(relx=0.63, rely=0.85, relheight=0.15, relwidth=0.37)
+        general_settings_button = ctk.CTkButton(master=custom_plot_frame, text='General settings')
+        general_settings_button.place(anchor=tk.CENTER, relx=0.5, rely=0.1, relwidth=0.5, relheight=0.05)
 
-        save_figure_button = ctk.CTkButton(master=exec_frame, text="Save figure", fg_color="green")
-        save_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.66)
+        axes_button = ctk.CTkButton(master=custom_plot_frame, text='Axes')
+        axes_button.place(anchor=tk.CENTER, relx=0.5, rely=0.2, relwidth=0.5, relheight=0.05)
+
+        legend_button = ctk.CTkButton(master=custom_plot_frame, text='Legend')
+        legend_button.place(anchor=tk.CENTER, relx=0.5, rely=0.3, relwidth=0.5, relheight=0.05)
+
+        load_config_button = ctk.CTkButton(master=custom_plot_frame, text="Load config", fg_color="lightslategray")
+        load_config_button.place(anchor=tk.CENTER, relx=0.5, rely=0.4, relheight=0.05)
+
+        save_config_button = ctk.CTkButton(master=custom_plot_frame, text="Save config", fg_color="lightslategray")
+        save_config_button.place(anchor=tk.CENTER, relx=0.5, rely=0.5, relheight=0.05)
+
+        save_figure_button = ctk.CTkButton(master=custom_plot_frame, text="Save figure", fg_color="green")
+        save_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.6, relheight=0.05)
+
+        draw_figure_button = ctk.CTkButton(master=custom_plot_frame, text='Draw figure',
+                                           fg_color='green')
+        draw_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.8, relheight=0.1)
+
+        self.buttons["general settings"] = general_settings_button
+        self.buttons["axes"] = axes_button
+        self.buttons["legend"] = legend_button
         self.buttons["save fig"] = save_figure_button
-        load_config_button = ctk.CTkButton(master=exec_frame, text="Load config", fg_color="lightslategray")
-        load_config_button.place(anchor=tk.CENTER, relx=0.25, rely=0.33)
         self.buttons["load config"] = load_config_button
-        save_config_button = ctk.CTkButton(master=exec_frame, text="Save config", fg_color="lightslategray")
-        save_config_button.place(anchor=tk.CENTER, relx=0.25, rely=0.66)
         self.buttons["save config"] = save_config_button
-        draw_button = ctk.CTkButton(master=exec_frame, text="Draw", fg_color="green")
-        draw_button.place(anchor=tk.CENTER, relx=0.75, rely=0.5, relheight=0.5)
-        self.buttons["draw"] = draw_button
+        self.buttons["draw figure"] = draw_figure_button
 
         # ---------------- CONFIGURE
         add_label_data_button.configure(command=partial(self.add_label_data, pca_frame))
@@ -170,15 +150,16 @@ class PcaView(ctk.CTkFrame):
 
         save_figure_button.configure(command=partial(self.save_figure, self.figures["pca"][0]))
 
-        draw_button.configure(command=self.draw_figure)
+        general_settings_button.configure(command=self.general_settings_toplevel)
+        axes_button.configure(command=self.axes_toplevel)
+        legend_button.configure(command=self.legend_toplevel)
+
+        draw_figure_button.configure(command=self.draw_figure)
 
         # ----- TRACE
-        for key, widget in {'n components': n_components_var, '3D z rotation': z_rot_var,
-                            '3D x rotation': x_rot_var, '3D y rotation': y_rot_var,
-                            'ellipsis alpha': ellipsis_alpha_var, 'label column': label_column_var,
+        for key, widget in {'ellipsis alpha': ellipsis_alpha_var, 'label column': label_column_var,
                             'ellipsis': ellipsis_var}.items():
             widget.trace("w", partial(self.trace_vars_to_model, key))
-
 
     def set_label_data_columns(self):
         pass
@@ -382,7 +363,6 @@ class PcaView(ctk.CTkFrame):
         round_yticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round y ticks'))
         axes_font_var.trace("w", partial(self.trace_vars_to_model, 'axes font'))
 
-
     def legend_toplevel(self):
         # todo : allow single window
 
@@ -541,7 +521,6 @@ class PcaView(ctk.CTkFrame):
         title_size_var.trace("w", partial(self.trace_vars_to_model, 'title size'))
         title_font_var.trace("w", partial(self.trace_vars_to_model, 'title font'))
         dpi_strvar.trace("w", partial(self.trace_vars_to_model, 'dpi'))
-
 
     def trace_vars_to_model(self, key, *args):
         if self.controller:

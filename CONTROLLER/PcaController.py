@@ -26,7 +26,7 @@ class PcaController:
         self.view.controller = self  # set controller
         self.progress = None
 
-    def dummy_figure(self):  # todo create plot
+    def dummy_figure(self):
         fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
         t = np.arange(0, 3, .01)
         ax.plot(t, random.randint(1, 4) *
@@ -72,6 +72,8 @@ class PcaController:
         fig, ax = self.view.figures["pca"]
         n_labels = self.model.n_labels
         if self.model.n_labels >= 0:
+            ax.clear()
+
             df = self.model.dataset
             label_column = self.view.vars["label column"].get()
 
@@ -79,7 +81,6 @@ class PcaController:
             n_yticks = int(self.model.plot_axes["n y ticks"])
 
             # ---- FIT AND APPLY PCA
-            # todo : plotting
             labels_to_fit = []
             labels_to_apply = []
             for yi in range(self.model.n_labels + 1):
@@ -94,7 +95,6 @@ class PcaController:
             df_apply = df[df[label_column].isin(labels_to_apply)]
             pcdf_applied = self.apply_pca(pca, df_apply, label_column=label_column)
 
-            ax.clear()
 
             # ----- PLOTTING
             all_ymin = []  # for ticks
@@ -102,21 +102,21 @@ class PcaController:
             all_xmin = []
             all_xmax = []
             for yi in range(self.model.n_labels + 1):
+                current_label = self.view.cbboxes[f"label data {yi}"].get()
+                x_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[0]]
+                all_xmax.append(max(x_data))
+                all_xmin.append(min(x_data))
+                y_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[1]]
+                all_ymin.append(min(y_data))
+                all_ymax.append(max(y_data))
+
+                if self.view.vars[f"label data legend {str(yi)}"].get():
+                    label = self.view.vars[f"label data legend {str(yi)}"].get()
+                else:
+                    label = self.view.vars[f"label data {str(yi)}"].get()
+                    
                 if n_components == 2:
-                    current_label = self.view.cbboxes[f"label data {yi}"].get()
-                    x_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[0]]
-                    all_xmax.append(max(x_data))
-                    all_xmin.append(min(x_data))
-                    y_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[1]]
-                    all_ymin.append(min(y_data))
-                    all_ymax.append(max(y_data))
-
-                    if self.view.vars[f"label data legend {str(yi)}"].get():
-                        label = self.view.vars[f"label data legend {str(yi)}"].get()
-                    else:
-                        label = self.view.vars[f"label data {str(yi)}"].get()
-
-                    self.view.scatters[n_labels] = ax.scatter(x_data, y_data,
+                    ax.scatter(x_data, y_data,
                                s=int(self.view.vars[f"marker size {str(yi)}"].get()),
                                marker=p.MARKERS[self.view.vars[f"marker style {str(yi)}"].get()],
                                color=self.view.vars[f"color {str(yi)}"].get(),
@@ -129,112 +129,83 @@ class PcaController:
                                    color=self.view.vars[f"color {str(yi)}"].get(),
                                    linewidth=2,
                                    s=160)
-                        confidence_ellipse(x_data, y_data, ax, n_std=1.0,
+                        confidence_ellipse(x_data, y_data, ax, n_std=1.0, alpha=self.model.plot_data["ellipsis alpha"],
                                            color=self.view.vars[f"color {str(yi)}"].get(),
                                            fill=False, linewidth=2)
 
-                    # ---- LABELS
-                    ax.set_xlabel(self.model.plot_axes["x label"],
-                                  fontdict={"font": self.model.plot_axes["axes font"],
-                                            "fontsize": self.model.plot_axes["x label size"]})
-                    ax.set_ylabel(self.model.plot_axes["y label"],
-                                  fontdict={"font": self.model.plot_axes["axes font"],
-                                            "fontsize": self.model.plot_axes["y label size"]})
-                    ax.set_title(self.model.plot_general_settings["title"],)
-
-                    # ---- TICKS
-                    xmin = min(all_xmin)
-                    xmax = max(all_xmax)
-                    xstep = (xmax - xmin) / (n_xticks - 1)
-                    xtick = xmin
-                    xticks = []
-                    for i in range(n_xticks - 1):
-                        xticks.append(xtick)
-                        xtick += xstep
-                    xticks.append(xmax)
-                    rounded_xticks = list(np.around(np.array(xticks), int(self.model.plot_axes["round x ticks"])))
-                    ax.set_xticks(rounded_xticks)
-                    ax.tick_params(axis='x',
-                                   labelsize=self.model.plot_axes["x ticks size"],
-                                   labelrotation=float(self.model.plot_axes["x ticks rotation"]))
-
-                    ymin = min(all_ymin)
-                    ymax = max(all_ymax)
-                    ystep = (ymax - ymin) / (n_yticks - 1)
-                    ytick = ymin
-                    yticks = []
-                    for i in range(n_yticks - 1):
-                        yticks.append(ytick)
-                        ytick += ystep
-                    yticks.append(ymax)
-                    rounded_yticks = list(np.around(np.array(yticks), int(self.model.plot_axes["round y ticks"])))
-                    ax.set_yticks(rounded_yticks)
-                    ax.tick_params(axis='y',
-                                   labelsize=self.model.plot_axes["y ticks size"],
-                                   labelrotation=float(self.model.plot_axes["y ticks rotation"]))
-
-                    # ----- LEGEND
-                    if self.model.plot_legend["show legend"]:
-                        if self.model.plot_legend["legend anchor"] == 'custom':
-                            legend = ax.legend(loc="upper left",
-                                               bbox_to_anchor=(self.model.plot_legend["legend x pos"],
-                                                               self.model.plot_legend["legend y pos"]))
-                        else:
-                            legend = ax.legend(loc=self.model.plot_legend["legend anchor"], )
-                        for lh in legend.legendHandles:
-                            lh.set_alpha(self.model.plot_legend["legend alpha"])
 
 
-        # todo : 3D
+            # ---- LABELS
+            ax.set_xlabel(self.model.plot_axes["x label"],
+                          fontdict={"font": self.model.plot_axes["axes font"],
+                                    "fontsize": self.model.plot_axes["x label size"]})
+            ax.set_ylabel(self.model.plot_axes["y label"],
+                          fontdict={"font": self.model.plot_axes["axes font"],
+                                    "fontsize": self.model.plot_axes["y label size"]})
+            ax.set_title(self.model.plot_general_settings["title"],
+                         fontdict={"font": self.model.plot_general_settings["title font"],
+                                   "fontsize": self.model.plot_general_settings["title size"]},)
 
-        #     def update(handle, orig):
-        #         handle.update_from(orig)
-        #         handle.set_alpha(1)
-        #
-        #     plt.legend(prop={'size': 25}, handler_map={PathCollection: HandlerPathCollection(update_func=update),
-        #                                                plt.Line2D: HandlerLine2D(update_func=update)})
-        # elif options['n_components'] == 3:
-        #     label_params = {'fontsize': 20, "labelpad": 8}
-        #     ticks_params = {'fontsize': 20, }
-        #     plt.figure(figsize=(10, 10))
-        #     ax = plt.axes(projection='3d')
-        #
-        #     xlabel = f'Principal Component-1 ({options["ratios"][0]}%)'
-        #     ylabel = f'Principal Component-2 ({options["ratios"][1]}%)'
-        #     zlabel = f'Principal Component-3 ({options["ratios"][2]}%)'
-        #     if len(options['pc_ratios']):
-        #         xlabel += f" ({round(options['pc_ratios'][0] * 100, 2)}%)"
-        #         ylabel += f" ({round(options['pc_ratios'][1] * 100, 2)}%)"
-        #         zlabel += f" ({round(options['pc_ratios'][2] * 100, 2)}%)"
-        #
-        #     ax.set_xlabel(xlabel, **label_params)
-        #     ax.set_ylabel(ylabel, **label_params)
-        #     ax.set_zlabel(zlabel, **label_params)
-        #     for target, color in zip(targets, colors):
-        #         indicesToKeep = dataframe['label'] == target
-        #         x = dataframe.loc[indicesToKeep, 'principal component 1']
-        #         y = dataframe.loc[indicesToKeep, 'principal component 2']
-        #         z = dataframe.loc[indicesToKeep, 'principal component 3']
-        #         ax.scatter3D(x, y, z, c=color, s=10)
-        #     plt.legend(targets, prop={'size': 18})
-        #
-        # if options['savedir']:
-        #     if options["title"] == "":
-        #         if options['commentary']:
-        #             options["title"] += options["commentary"]
-        #
-        #     plt.savefig(os.path.join(options['savedir'], options["title"] + ".png"), dpi=1200)
-        #
-        # if options['show']:
-        #     plt.show()
-        # plt.close()
-        #
-        #
-        #
-        #
-        #
+            # ---- TICKS
+            xmin = min(all_xmin)
+            xmax = max(all_xmax)
+            xstep = (xmax - xmin) / (n_xticks - 1)
+            xtick = xmin
+            xticks = []
+            for i in range(n_xticks - 1):
+                xticks.append(xtick)
+                xtick += xstep
+            xticks.append(xmax)
+            rounded_xticks = list(np.around(np.array(xticks), int(self.model.plot_axes["round x ticks"])))
+            ax.set_xticks(rounded_xticks)
+            ax.tick_params(axis='x',
+                           labelsize=self.model.plot_axes["x ticks size"],
+                           labelrotation=float(self.model.plot_axes["x ticks rotation"]))
 
-        plt.tight_layout()  # todo : tight layout() not effective anymore because of legend ?
+            ymin = min(all_ymin)
+            ymax = max(all_ymax)
+            ystep = (ymax - ymin) / (n_yticks - 1)
+            ytick = ymin
+            yticks = []
+            for i in range(n_yticks - 1):
+                yticks.append(ytick)
+                ytick += ystep
+            yticks.append(ymax)
+            rounded_yticks = list(np.around(np.array(yticks), int(self.model.plot_axes["round y ticks"])))
+            ax.set_yticks(rounded_yticks)
+            ax.tick_params(axis='y',
+                           labelsize=self.model.plot_axes["y ticks size"],
+                           labelrotation=float(self.model.plot_axes["y ticks rotation"]))
+
+
+            # ----- LEGEND
+            if self.model.plot_legend["show legend"]:
+                if not self.model.plot_legend["legend fontsize"] == '':
+                    if self.model.plot_legend["legend anchor"] == 'custom':
+                        ax.legend(loc='upper left',
+                                  bbox_to_anchor=(float(self.model.plot_legend["legend x pos"]),
+                                                  float(self.model.plot_legend["legend y pos"])),
+                                  draggable=bool(self.model.plot_legend["legend draggable"]),
+                                  ncols=int(self.model.plot_legend["legend ncols"]),
+                                  fontsize=int(self.model.plot_legend["legend fontsize"]),
+                                  framealpha=float(self.model.plot_legend["legend alpha"]),
+                                  )
+                    else:
+                        ax.legend(loc=self.model.plot_legend["legend anchor"],
+                                  draggable=bool(self.model.plot_legend["legend draggable"]),
+                                  ncols=int(self.model.plot_legend["legend ncols"]),
+                                  fontsize=int(self.model.plot_legend["legend fontsize"]),
+                                  framealpha=float(self.model.plot_legend["legend alpha"]),
+                                  )
+
+                    for t, lh in zip(ax.get_legend().texts, ax.get_legend().legendHandles):
+                        t.set_alpha(float(self.model.plot_legend["legend alpha"]))
+                        lh.set_alpha(float(self.model.plot_legend["legend alpha"]))
+
+            elif ax.get_legend():
+                ax.get_legend().remove()
+
+        plt.tight_layout()
 
         self.view.figures["pca"] = (fig, ax)
         self.view.canvas["pca"].draw()
@@ -438,7 +409,7 @@ class PcaController:
             # destroying all items related in dicts
             del self.view.buttons[f"color {n_labels}"]
             del self.view.cbboxes[f"label data {n_labels}"]
-            del self.view.cbboxes[f"marker {n_labels}"]
+            del self.view.cbboxes[f"marker style {n_labels}"]
             del self.view.vars[f"marker size {n_labels}"]
             del self.view.vars[f"color {n_labels}"]
             del self.view.vars[f"fit {n_labels}"]
@@ -447,13 +418,7 @@ class PcaController:
             del self.view.checkboxes[f"fit {n_labels}"]
             del self.view.checkboxes[f"apply {n_labels}"]
 
-            self.view.scatters[n_labels].pop(0).remove()
-            del self.view.scatters[n_labels]
 
-            self.view.ellipsis[n_labels][0].pop(0).remove()
-            del self.view.scatters[n_labels]
-            self.view.ellipsis[n_labels][0].pop(0).remove()
-            del self.view.scatters[n_labels]
 
             self.model.n_labels -= 1
 
