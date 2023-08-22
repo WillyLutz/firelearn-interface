@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 import VIEW.graphic_params as gp
 from CONTROLLER.LearningController import LearningController
-from VIEW.Helper import Helper
+from WIDGETS.Helper import Helper
 
 
 class LearningView(ctk.CTkFrame):

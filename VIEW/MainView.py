@@ -27,28 +27,11 @@ class MainView(ctk.CTkFrame):
         self.master_frame = ctk.CTkFrame(master=self.app, )
         self.master_frame.place(relwidth=1.0, relheight=1.0)
 
-        # ------------ MENU BAR ------------------------
-        self.menu_bar = tk.Menu()
-        self.file_menu = tk.Menu(self.menu_bar)
-        self.file_menu.add_command(label="Save software state", command='')
-        self.file_menu.add_command(label="Load software state", command='')
-        self.file_menu.add_command(label="Exit", command=self.quit)
-
-        self.help_menu = tk.Menu(self.menu_bar)
-        self.help_menu.add_command(label="Getting Started", command='')
-        self.help_menu.add_command(label="Help ?", command='')
-        self.help_menu.add_command(label="About", command='')
-
-        self.menu_bar.add_cascade(label="File", menu=self.file_menu)
-        self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
-
-        self.app.config(menu=self.menu_bar)
-
         # ------------- TABS MENU ----------------------
         self.tabs_view = ctk.CTkTabview(master=self.master_frame, border_color='red', corner_radius=10)
         self.tabs_view.place(relwidth=1.0, relheight=1.0)
-        self.tabs_view.add("Home")
         self.tabs_view.add("Processing")
+        self.tabs_view.add("Home")
         self.tabs_view.add("Learning")
         self.tabs_view.add("Analysis")
 
