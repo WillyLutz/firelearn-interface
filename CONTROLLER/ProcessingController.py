@@ -18,6 +18,7 @@ from fiiireflyyy import logic_gates as gates
 
 from CONTROLLER import data_processing as dpr
 from CONTROLLER.MainController import MainController
+from PIL import ImageTk, Image
 
 
 class ProcessingController:
@@ -28,7 +29,8 @@ class ProcessingController:
         self.view.controller = self  # set controller
 
     def processing(self, ):
-        if self.check_params_validity():
+        self.check_params_validity()
+        if all([value for key, value in self.view.step_check.items()]):
             self.update_params(self.view.switches)
             self.update_params(self.view.cbboxes)
             self.update_params(self.view.entries)
@@ -280,7 +282,7 @@ class ProcessingController:
             self.model.single_file = filename
 
     def add_subtract_to_include(self, entry, textbox, mode='add'):
-        if ival.widget_value_has_forbidden_character(entry) is False:
+        if ival.value_has_forbidden_character(entry.get()) is False:
             entry.delete(0, ctk.END)
             return False
 
@@ -298,7 +300,7 @@ class ProcessingController:
             messagebox.showerror("Missing Value", "You need te indicate a value to include.")
 
     def add_subtract_to_exclude(self, entry, textbox, mode='add'):
-        if ival.widget_value_has_forbidden_character(entry) is False:
+        if ival.value_has_forbidden_character(entry.get()) is False:
             entry.delete(0, ctk.END)
             return False
         to_exclude = entry.get()
@@ -315,11 +317,11 @@ class ProcessingController:
             messagebox.showerror("Missing Value", "You need te indicate a value to exclude.")
 
     def add_subtract_target(self, key_entry, value_entry, textbox, mode='add'):
-        if ival.widget_value_has_forbidden_character(key_entry) is False:
+        if ival.value_has_forbidden_character(key_entry.get()) is False:
             key_entry.delete(0, ctk.END)
             value_entry.delete(0, ctk.END)
             return False
-        if ival.widget_value_has_forbidden_character(value_entry) is False:
+        if ival.value_has_forbidden_character(value_entry.get()) is False:
             key_entry.delete(0, ctk.END)
             value_entry.delete(0, ctk.END)
             return False
@@ -347,127 +349,25 @@ class ProcessingController:
 
     def update_params(self, widgets: dict, ):
         local_dict = {}
-        for key, value in widgets.items():
-            local_dict[key] = value.get()
-        if type(list(widgets.values())[0]) == ctk.CTkSwitch:
-            self.model.switches.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkEntry:
-            self.model.entries.update(local_dict)
-        if type(list(widgets.values())[0]) == tk.ttk.Combobox:
-            self.model.cbboxes.update(local_dict)
+        if len(widgets.items()) > 0:
+            if type(list(widgets.values())[0]) == ctk.CTkSwitch:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
+                self.model.switches.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkEntry:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
+                self.model.entries.update(local_dict)
+            if type(list(widgets.values())[0]) == tk.ttk.Combobox:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
+                self.model.cbboxes.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkTextbox:
+                local_dict = {}
+                for key, value in widgets.items():
+                    local_dict[key] = value.get(1.0, tk.END)
+                self.model.textboxes.update(local_dict)
 
-    def check_params_validity(self):
-
-        if self.view.switches["make dataset"].get():
-            if not gates.AND([self.view.switches["merge"].get(), self.view.switches["sorting"].get()]):
-                messagebox.showerror(title="Params validity", message="The 'make dataset' option is available only if "
-                                                                      "'Merge' and 'Multiple files analysis' are both True.", )
-                return False
-
-        if all([self.view.switches["single file"].get(), self.view.switches["sorting"].get()]):
-            messagebox.showerror(title="Params validity", message="You can only chose one between Single file "
-                                                                  "analysis or Multiple files analysis.", )
-            return False
-        if not any([self.view.switches["single file"].get(), self.view.switches["sorting"].get()]):
-            messagebox.showerror(title="Params validity", message="You have to select one between Single file "
-                                                                  "analysis or Multiple files analysis.", )
-            return False
-
-        # valid number format
-        for widget in ["raw mea", "n electrodes", "sampling", "filter order", "filter sampling", "first frequency",
-                       "second frequency", "harmonic frequency", "nth harmonic", "fft sampling", "smoothing"]:
-            if ival.widget_value_is_positive_int_or_empty(self.view.entries[widget]) is False:
-                return False
-
-        # correct values
-        if self.view.entries["harmonic frequency"].get():
-            if self.view.entries["nth harmonic"].get():
-                harmonic = int(self.view.entries["harmonic frequency"].get())
-                nth = int(self.view.entries["nth harmonic"].get())
-                frequency = int(self.view.entries["filter sampling"].get())
-                if harmonic * nth > frequency / 2:
-                    messagebox.showerror("Value Error",
-                                         "The chosen nth harmonic is superior to half the sampling frequency."
-                                         f" Please use maximum nth harmonic as nth<{int((frequency / 2) / harmonic)}")
-                    return False
-            else:
-                messagebox.showerror("Value Error", "You have to fill both the harmonic frequency and the nth harmonics"
-                                                    " using valid numbers.")
-                return False
-
-        # forbidden characters
-        if ival.widget_value_has_forbidden_character(self.view.entries["keyword"]) is False:
-            return False
-
-        # invalid paths
-        if self.view.entries["save files"].get() == '':
-            messagebox.showwarning('Path warning', 'You have to select a directory where to save your file(n_sample).')
-            return False
-        elif os.path.isdir(self.view.entries["save files"].get()) is False:
-            messagebox.showerror('Path error',
-                                 f'The selected path {self.view.entries["save files"].get()} does not exist.')
-            return False
-
-        for switch in self.view.switches:
-            if switch == "sorting":
-                if not self.view.entries["sorting"].get():
-                    messagebox.showerror("Missing Value",
-                                         "You have to select a parent directory to run multi-file processing.")
-                    return False
-
-            if switch == "single file" and self.view.switches[switch].get():
-                if not self.view.entries["single file"].get():
-                    messagebox.showerror("Missing Value", "You have to select a file to run single file processing.")
-                    return False
-
-            if switch == "raw mea" and self.view.switches[switch].get():
-                if not self.view.entries["raw mea"].get():
-                    messagebox.showerror("Missing Value",
-                                         "You have to indicate a number of rows to remove from the raw MEA files.")
-                    return False
-
-            if switch == "select electrodes" and self.view.switches[switch].get():
-                if not self.view.entries["n electrodes"].get():
-                    messagebox.showerror("Missing Value", "You have to indicate a number of electrodes to keep.")
-                    return False
-
-            if switch == "sampling" and self.view.switches[switch].get():
-                if not self.view.entries["sampling"].get():
-                    messagebox.showerror("Missing Value", "You have to indicate a number of samples.")
-                    return False
-
-            if switch == "filter" and self.view.switches[switch].get():
-                if not gates.AND(
-                        [self.view.entries[x].get() for x in ["filter order", "filter sampling", "first frequency", ]]):
-                    messagebox.showerror("Missing Value", "You have to fill at least the filter order, sampling "
-                                                          "frequency, and first frequency to use the filtering function.")
-                    return False
-
-                if self.view.entries["second frequency"].get() and (
-                        self.view.cbboxes["filter type"].get() not in ["Bandstop", "Bandpass"]):
-                    messagebox.showerror("Missing Value", f"The second frequency is not needed when using a "
-                                                          f"{self.view.cbboxes['filter type'].get()} filter.")
-                    return False
-                if self.view.cbboxes["filter type"].get() in ["Bandstop", "Bandpass"] and not gates.AND(
-                        [self.view.entries["second frequency"].get(), self.view.entries["first frequency"].get()]):
-                    messagebox.showerror("Missing Value", f"Both low cut and high cut frequencies are needed when"
-                                                          f" using a f{self.view.cbboxes['filter type'].get()} filter")
-                    return False
-
-            if switch == "fft" and self.view.switches[switch].get():
-                if not self.view.entries["fft sampling"].get():
-                    messagebox.showerror("Missing Value",
-                                         "Sampling frequency rate needed to perform Fast Fourier Transform.")
-                    return False
-            if switch == "smoothing" and self.view.switches[switch].get():
-                if not self.view.entries["smoothing"].get():
-                    messagebox.showerror("Missing Value", "Number of final values needed to perform smoothing.")
-                    return False
-            if switch == "keyword" and self.view.switches[switch].get():
-                if not self.view.entries["keyword"].get():
-                    messagebox.showerror("Missing Value", "Keyword needed.")
-                    return False
-        return True
 
     def update_number_of_tasks(self, n_file, n_col, ):
         local_switch = self.model.switches
@@ -493,7 +393,6 @@ class ProcessingController:
             total_tasks += n_file * n_sample
 
         return total_tasks
-
 
     def update_view_from_model(self, ):
 
@@ -525,10 +424,6 @@ class ProcessingController:
             MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
 
     @staticmethod
-    def category_enabling_switch(switch, parent_widget):
-        MainController.category_enabling_switch(switch, parent_widget)
-
-    @staticmethod
     def modulate_entry_state_by_switch(switch, entry):
         MainController.modulate_entry_state_by_switch(switch, entry)
 
@@ -545,8 +440,175 @@ class ProcessingController:
             self.update_params(self.view.sliders)
             self.update_params(self.view.vars)
             self.update_params(self.view.switches)
+            self.update_params(self.view.textboxes)
 
-            f = filedialog.asksaveasfilename(defaultextension=".pltcfg",
-                                             filetypes=[("Analysis - Simple plot", "*.pltcfg"), ])
+            f = filedialog.asksaveasfilename(defaultextension=".pcfg",
+                                             filetypes=[("Processing", "*.pcfg"), ])
             if f:
                 self.model.save_model(path=f, )
+
+    def check_params_validity(self):
+        self.view.errors = {key: [] for (key, _) in self.view.errors.items()}
+        self.update_errors()
+        # -------- CONTENT 1
+        self.check_params_content1()
+        # -------- CONTENT 2
+        self.check_params_content2()
+        # -------- CONTENT 3
+        self.check_params_content3()
+        # -------- CONTENT 4
+        self.check_params_content4()
+        # -------- CONTENT 5
+        self.check_params_content5()
+
+        self.update_errors()
+
+        return True
+
+    def validate_step(self, step):
+        img = ctk.CTkImage(dark_image=Image.open(f"data/{step} green.png"), size=(120, 120))
+        self.view.image_buttons[step].configure(image=img)
+        self.view.step_check[step] = 1
+
+    def invalidate_step(self, step):
+        img = ctk.CTkImage(dark_image=Image.open(f"data/{step} red.png"), size=(120, 120))
+        self.view.image_buttons[str(step)].configure(image=img)
+        self.view.step_check[step] = 0
+
+    def update_errors(self):
+        text = ""
+        for step, errors in self.view.errors.items():
+            for error in errors:
+                text = text + f"STEP {step} - {error}\n\n"
+            if len(self.view.errors[step]) > 0:
+                self.invalidate_step(step)
+            else:
+                self.validate_step(step)
+        self.view.vars["errors"].set(text)
+
+    def check_params_content1(self):
+        def add_error(error):
+            self.view.errors["1"].append(error)
+
+        if all([self.view.switches["single file"].get(), self.view.switches["sorting"].get()]):
+            add_error("You can only chose one between Single file analysis or Multiple files analysis.")
+
+        if not any([self.view.switches["single file"].get(), self.view.switches["sorting"].get()]):
+            add_error("You have to select one between Single file analysis or Multiple files analysis.", )
+
+        if self.view.switches["sorting"].get():
+            if not self.view.entries["sorting"].get():
+                add_error("You have to select a parent directory to run multi-file processing.")
+
+        if self.view.switches["single file"].get():
+            if not self.view.entries["single file"].get():
+                add_error("You have to select a file to run single file processing.")
+
+        # forbidden characters
+        for key, textbox in self.view.textboxes.items():
+            elements = textbox.get(1.0, ctk.END)
+            for element in elements:
+                fcs = ival.value_has_forbidden_character(element)
+                if fcs:
+                    add_error(f"Forbidden characters in '{element}' : {fcs}")
+
+    def check_params_content2(self):
+        def add_error(error):
+            self.view.errors["2"].append(error)
+
+        for widget_key in ["raw mea", "n electrodes", "sampling"]:
+            if ival.widget_value_is_positive_int_or_empty(self.view.entries[widget_key]) is False:
+                add_error(f"entry value \'{self.view.entries[widget_key].get()}\' is not a positive integer.")
+
+        if self.view.switches["raw mea"].get():
+            if not self.view.entries["raw mea"].get():
+                add_error("You have to indicate a number of rows to remove from the raw MEA files.")
+
+        if self.view.switches["select electrodes"].get():
+            if not self.view.entries["n electrodes"].get():
+                add_error("You have to indicate a number of electrodes to select.")
+            if self.view.cbboxes["select electrode mode"].get() == 'None':
+                add_error("You have to select a mode for electrode selection.")
+
+            if self.view.cbboxes["select electrode metric"].get() == 'None':
+                add_error("You have to select a metric to use for the electrode selection.")
+
+        if self.view.switches["sampling"].get():
+            if not self.view.entries["sampling"].get():
+                add_error("You have to indicate a number of samples.")
+
+
+
+    def check_params_content3(self):
+        def add_error(error):
+            self.view.errors["3"].append(error)
+
+        for widget_key in ["filter order", "filter sampling", "first frequency", "second frequency",
+                           "harmonic frequency", "nth harmonic"]:
+            if ival.widget_value_is_positive_int_or_empty(self.view.entries[widget_key]) is False:
+                add_error(f"entry value\'{self.view.entries[widget_key].get()}\' is not a positive integer.")
+
+        if self.view.entries["harmonic frequency"].get():
+            if self.view.entries["nth harmonic"].get():
+                harmonic = int(self.view.entries["harmonic frequency"].get())
+                nth = int(self.view.entries["nth harmonic"].get())
+                frequency = int(self.view.entries["filter sampling"].get())
+                if harmonic * nth > frequency / 2:
+                    add_error("The chosen nth harmonic is superior to half the sampling frequency."
+                              f" Please use maximum nth harmonic as nth<{int((frequency / 2) / harmonic)}")
+            else:
+                add_error("You have to fill both the harmonic frequency and the nth harmonics"
+                          " using valid numbers.")
+
+        if self.view.switches["filter"].get():
+            if not gates.AND(
+                    [self.view.entries[x].get() for x in ["filter order", "filter sampling", "first frequency", ]]):
+                add_error("You have to fill at least the filter order, sampling "
+                          "frequency, and first frequency to use the filtering function.")
+
+            if self.view.entries["second frequency"].get() and (
+                    self.view.cbboxes["filter type"].get() not in ["Bandstop", "Bandpass"]):
+                add_error(f"The second frequency is not needed when using a "
+                          f"{self.view.cbboxes['filter type'].get()} filter.")
+            if self.view.cbboxes["filter type"].get() in ["Bandstop", "Bandpass"] and not gates.AND(
+                    [self.view.entries["second frequency"].get(), self.view.entries["first frequency"].get()]):
+                add_error(f"Both low cut and high cut frequencies are needed when"
+                          f" using a f{self.view.cbboxes['filter type'].get()} filter")
+
+    def check_params_content4(self):
+        def add_error(error):
+            self.view.errors["4"].append(error)
+
+        for widget, step in {"fft sampling": 4, "smoothing": 4}.items():
+            if ival.widget_value_is_positive_int_or_empty(self.view.entries[widget]) is False:
+                add_error(f"entry \'{widget}\' is not positive.")
+
+        if self.view.switches["make dataset"].get():
+            if not gates.AND([self.view.switches["merge"].get(), self.view.switches["sorting"].get()]):
+                add_error(
+                    "The 'make dataset' option is available only if 'Merge' and 'Multiple files analysis' are both True.")
+
+        if self.view.switches["fft"].get():
+            if not self.view.entries["fft sampling"].get():
+                add_error("Sampling frequency rate needed to perform Fast Fourier Transform.")
+
+        if self.view.switches["smoothing"].get():
+            if not self.view.entries["smoothing"].get():
+                add_error("Number of final values needed to perform smoothing.")
+
+    def check_params_content5(self):
+        def add_error(error):
+            self.view.errors["5"].append(error)
+
+        if self.view.entries["save files"].get() == '':
+            add_error('You have to select a directory where to save your file.')
+        elif os.path.isdir(self.view.entries["save files"].get()) is False:
+            add_error(f'The selected path {self.view.entries["save files"].get()} does not exist.')
+
+        if self.view.switches["keyword"].get():
+            if not self.view.entries["keyword"].get():
+                add_error("Keyword needed.")
+            else:
+                fcs = ival.value_has_forbidden_character(self.view.entries["keyword"].get())
+                if fcs:
+                    add_error(f"Forbidden characters in '{self.view.entries['keyword'].get()}' : {fcs}")

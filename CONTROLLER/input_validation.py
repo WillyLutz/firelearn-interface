@@ -4,16 +4,15 @@ from tkinter import messagebox
 # todo : need to add unit tests
 
 
-def widget_value_has_forbidden_character(widget):
+def value_has_forbidden_character(value):
     # forbidden_characters = "<>:\"/\\|?*[]" with slashes
     forbidden_characters = "<>:\"|?*[]"
-    value = str(widget.get())
+    found_forbidden = []
     for fc in forbidden_characters:
         if fc in value:
-            messagebox.showerror("Value error", message=f"Usage of forbidden character {fc} in value"
-                                                        f" {value}.\nThe forbidden characters "
-                                                        f"are {forbidden_characters}")
-            return False
+            found_forbidden.append(fc)
+
+    return found_forbidden
 
 
 def is_number(num):
@@ -53,10 +52,8 @@ def widget_value_is_positive_int_or_empty(widget):
     try:
         n = int(value)
         if not n >= 0:
-            messagebox.showerror("Value error", f"entry \'{value}\' is not positive.")
             return False
         else:
             return True
     except ValueError:
-        messagebox.showerror("Value error", f"entry \'{value}\' is not an integer.")
         return False
