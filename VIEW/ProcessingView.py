@@ -358,7 +358,7 @@ class ProcessingView(ctk.CTkFrame):
         frequency2_filter_label.place(relx=0.8, rely=0.35)
         type_filter_cbox = tk.ttk.Combobox(master=sub_filterframe,
                                            values=["None", "Highpass", "Lowpass", "Bandstop", "Bandpass"],
-                                           state="disabled")
+                                           state="readonly")
         type_filter_cbox.set("None")
         type_filter_cbox.place(relx=0, rely=0.45, relwidth=0.4)
         f1_filter_sv = ctk.StringVar()
@@ -383,7 +383,7 @@ class ProcessingView(ctk.CTkFrame):
 
         type_harmonics_cbox = tk.ttk.Combobox(master=sub_filterframe,
                                               values=["Non", "All", "Even", "Odd", ],
-                                              state="disabled")
+                                              state="readonly")
         type_harmonics_cbox.set("None")
         type_harmonics_cbox.place(relx=0, rely=0.85, relwidth=0.25)
         freq_hamronics_sv = ctk.StringVar()

@@ -2,7 +2,7 @@ import pickle
 from tkinter import messagebox
 
 import params as p
-
+from packaging import version
 
 class PcaModel:
 
@@ -44,13 +44,13 @@ class PcaModel:
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
-            if attr_dict["version"] == self.version:
+            if version.parse(attr_dict["version"]) > version.parse(p.last_version_compatible):
                 self.__dict__.update(attr_dict)
                 messagebox.showinfo("Info", f"Analysis configuration correctly loaded.\nVersion {self.version}")
                 return True
             else:
                 messagebox.showerror("Error", f"You can not load a configuration version ({attr_dict['version']})"
-                                              f" other than the current one in use ({self.version})")
+                                              f" which is incompatible with the one in use ({self.version})")
                 return False
         except Exception as e:
             messagebox.showerror("Error", "Error while loading analysis configuration.\n\n"

@@ -3,7 +3,7 @@ import pickle
 import random
 from functools import partial
 
-import fiiireflyyy.firelearn
+import fiiireflyyy.learn
 import seaborn as sns
 
 import numpy as np
@@ -19,7 +19,7 @@ import params as p
 from CONTROLLER.MainController import MainController
 from MODEL.ClfTester import ClfTester
 
-import fiiireflyyy.firelearn as fl
+import fiiireflyyy.learn as fl
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 

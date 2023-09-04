@@ -12,8 +12,8 @@ import customtkinter as ctk
 from CONTROLLER import input_validation as ival
 import tkinter as tk
 from tkinter import ttk
-from fiiireflyyy import firefiles as ff
-from fiiireflyyy import fireprocess as fp
+from fiiireflyyy import files as ff
+from fiiireflyyy import process as fp
 from fiiireflyyy import logic_gates as gates
 
 from CONTROLLER import data_processing as dpr
@@ -333,6 +333,8 @@ class ProcessingController:
         if mode == 'add':
             if key and value:
                 local_targets[key] = value
+            elif key and not value:
+                local_targets[key] = key
             else:
                 messagebox.showerror("Missing Value", "You need to indicate the key and the value to add a target.")
         elif mode == 'subtract':

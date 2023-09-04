@@ -5,7 +5,9 @@ import customtkinter
 
 import params
 from VIEW.MainView import MainView
-
+import customtkinter as ctk
+from PIL import Image
+import tkinter as tk
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()

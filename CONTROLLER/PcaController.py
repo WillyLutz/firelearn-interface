@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
-from fiiireflyyy.firelearn import confidence_ellipse
+from fiiireflyyy.learn import confidence_ellipse
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler

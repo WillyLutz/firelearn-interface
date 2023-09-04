@@ -30,16 +30,14 @@ class MainView(ctk.CTkFrame):
         # ------------- TABS MENU ----------------------
         self.tabs_view = ctk.CTkTabview(master=self.master_frame, border_color='red', corner_radius=10)
         self.tabs_view.place(relwidth=1.0, relheight=1.0)
-        self.tabs_view.add("Processing")
         self.tabs_view.add("Home")
+        self.tabs_view.add("Processing")
         self.tabs_view.add("Learning")
         self.tabs_view.add("Analysis")
 
-        self.tabs_view.add("Terminal")
 
         # ------------- MANAGING PARENT TABS -----------
         self.manage_home_tab()
-        self.manage_terminal_tab()
 
         # ------------- SETTING CONTROLLER -------------
         self.controller = MainController(self)
@@ -68,12 +66,6 @@ class MainView(ctk.CTkFrame):
     #     # self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"), self.main_controller.analysis_controller)
     #
     #     # self.analysis_view.set_controller(self.main_controller.analysis_controller)
-
-    def manage_terminal_tab(self):
-        term_frame = ctk.CTkFrame(master=self.tabs_view.tab("Terminal"), )
-        term_frame.place(relwidth=1, relheight=1)
-        # self.terminal = Terminal(parent=self.tabs_view.tab("Terminal"))
-        # self.terminal.place(relwidth=1, relheight=1, anchor=ctk.NW)
 
     def manage_home_tab(self):
         message = "FireLearn GUI (Graphical User Interface) is an independent software using 'fiiireflyyy', "\
