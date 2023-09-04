@@ -53,13 +53,8 @@ class PlotController:
 
     def save_figure(self, fig):
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
-        fig.savefig(filepath, dpi=int(self.model.plot_general_settings["dpi"]))
-
-        # df = pd.DataFrame(columns=["X", "Y"])
-        # df["X"] = x_data
-        # df["Y"] = y_data
-        #
-        # df.to_csv(filepath, index=False)
+        if filepath:
+            fig.savefig(filepath, dpi=int(self.model.plot_general_settings["dpi"]))
 
     def check_params_validity(self):
         if not self.input_validation_plot():

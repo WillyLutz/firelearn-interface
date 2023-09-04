@@ -148,7 +148,8 @@ class ConfusionController:
 
     def save_figure(self, fig):
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
-        fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()), bbox_inches='tight')
+        if filepath:
+            fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()), bbox_inches='tight')
 
     def export_figure_data(self, ax): # todo : export
         pass

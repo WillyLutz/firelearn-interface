@@ -1,5 +1,7 @@
 # This is a sample Python script.
+import traceback
 from functools import partial
+from tkinter import messagebox
 
 import customtkinter
 
@@ -15,7 +17,6 @@ class App(customtkinter.CTk):
         self.title(f'FireLearn GUI v{params.version}')
         view = MainView(self)
         self.after(50, self.deiconify)
-
 
 def onClosure(app):
     app.quit()
