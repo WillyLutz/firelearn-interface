@@ -46,7 +46,7 @@ class LearningController:
 
     def add_subtract_target(self, mode='add'):
 
-        if ival.widget_value_has_forbidden_character(self.view.entries["key target"]) is False:
+        if ival.value_has_forbidden_character(self.view.entries["key target"].get()) is False:
             self.view.entries["key target"].delete(0, ctk.END)
             return False
 

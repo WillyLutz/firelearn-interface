@@ -34,7 +34,6 @@ class ConfusionController:
     def load_model(self, ):
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("AI model", "*.rfc"),))
-        print(filename)
         if filename:
             clf = pickle.load(open(filename, "rb"))
             self.model.clf = clf

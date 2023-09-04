@@ -321,7 +321,7 @@ class ProcessingView(ctk.CTkFrame):
 
         # ------ CONFIGURE
 
-    def generate_content3(self):  # todo : managing here
+    def generate_content3(self):
         filter_frame = ctk.CTkScrollableFrame(master=self.frames["content 3"], )
         filter_frame.place(relwidth=0.9, relheight=0.9, rely=0.05, relx=0.05)
         filter_frame.grid_columnconfigure(0, weight=1)

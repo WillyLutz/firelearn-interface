@@ -20,6 +20,7 @@ from CONTROLLER import data_processing as dpr
 from CONTROLLER.MainController import MainController
 from PIL import ImageTk, Image
 
+pd.options.mode.chained_assignment = None
 
 class ProcessingController:
     def __init__(self, view):
@@ -114,7 +115,7 @@ class ProcessingController:
                 # select electrodes
                 if local_switch["select electrodes"]:
                     self.processing_progress.update_task("Selecting columns")
-                    df = dpr.top_n_electrodes(df, int(local_entry["n electrodes"]), "TimeStamp")
+                    df = dpr.top_n_electrodes(df, int(local_entry["n electrodes"]), "TimeStamp [µs]")
                     self.processing_progress.increment_progress(1)
 
                 # down sampling recordings

@@ -23,6 +23,7 @@ def is_number(num):
     except ValueError:
         return False
 
+
 def isfloat(num):
     try:
         float(num)
@@ -44,6 +45,7 @@ def value_is_empty_or_none(val):
         return True
     else:
         return False
+
 
 def widget_value_is_positive_int_or_empty(widget):
     value = widget.get()
