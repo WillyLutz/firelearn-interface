@@ -311,7 +311,6 @@ class PcaController:
             labels_label = ctk.CTkLabel(master=label_data_subframe, text="Label:")
             label_var = tk.StringVar(value=all_labels[0])
             labels_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=all_labels, state='readonly', textvariable=label_var)
-            labels_cbbox.set(all_labels[0])
             labels_label.place(relx=0, rely=0)
             labels_cbbox.place(relx=0, rely=0.12)
             self.view.vars[f"label data {n_labels}"] = label_var
@@ -339,7 +338,6 @@ class PcaController:
             markerstyle_var = tk.StringVar(value='point')
             markerstyle_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=list(sorted(p.MARKERS.keys())),
                                                 state='readonly', textvariable=markerstyle_var)
-            markerstyle_cbbox.set(markerstyle_var.get())
             markerstyle_label.place(relx=0, rely=0.5)
             markerstyle_cbbox.place(relx=0, rely=0.62, relwidth=0.25)
             self.view.cbboxes[f"marker style {n_labels}"] = markerstyle_cbbox

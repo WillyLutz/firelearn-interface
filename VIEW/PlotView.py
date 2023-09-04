@@ -67,7 +67,6 @@ class PlotView(ctk.CTkFrame):
         xdata_var = tk.StringVar(value="None")
         xdata_cbbox = tk.ttk.Combobox(master=xdata_frame, values=["None", ], state='readonly',
                                       textvariable=xdata_var)
-        xdata_cbbox.set(xdata_var.get())
 
         ydata_label = ctk.CTkLabel(master=xdata_frame, text="Y-data column:")
         add_ydata_button = ctk.CTkButton(master=xdata_frame, text="+", width=25, height=25, state='normal')
@@ -216,7 +215,6 @@ class PlotView(ctk.CTkFrame):
         legend_anchor_var = tk.StringVar(value=self.controller.model.plot_legend["legend anchor"])
         legend_anchor_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.LEGEND_POS, state='readonly',
                                               textvariable=legend_anchor_var)
-        legend_anchor_cbbox.set(legend_anchor_var.get())
         legend_anchor_label.place(x=0, y=60)
         legend_anchor_cbbox.place(x=0, y=100)
         self.cbboxes["legend anchor"] = legend_anchor_cbbox
@@ -314,7 +312,6 @@ class PlotView(ctk.CTkFrame):
         title_font_label = ctk.CTkLabel(master=general_toplevel, text="Title font:")
         title_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
                                            textvariable=title_font_var)
-        title_font_cbbox.set(title_font_var.get())
 
         title_font_label.place(x=225, y=0)
         title_font_cbbox.place(x=225, y=40, relwidth=0.4)
@@ -485,7 +482,6 @@ class PlotView(ctk.CTkFrame):
         axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
         axes_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
                                           textvariable=axes_font_var)
-        axes_font_cbbox.set(axes_font_var.get())
         axes_font_label.place(x=0, y=640)
         axes_font_cbbox.place(x=0, y=680, relwidth=0.4)
         self.cbboxes["axes font"] = axes_font_cbbox

@@ -126,7 +126,6 @@ class PlotController:
             ydata_cbbox_var = tk.StringVar(value=columns[-1])
             ydata_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=columns, state='readonly',
                                           textvariable=ydata_cbbox_var)
-            ydata_cbbox.set(ydata_cbbox_var.get())
 
             ydata_label.place(relx=0, rely=0)
             ydata_cbbox.place(relx=0, rely=0.15)
@@ -146,7 +145,6 @@ class PlotController:
             linestyle_var = tk.StringVar(value=p.DEFAULT_LINESTYLE)
             linestyle_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=list(p.LINESTYLES.keys()), state='readonly',
                                               textvariable=linestyle_var)
-            linestyle_cbbox.set(linestyle_var.get())
 
             linestyle_label.place(relx=0, rely=0.3)
             linestyle_cbbox.place(relx=0, rely=0.5, relwidth=0.35)

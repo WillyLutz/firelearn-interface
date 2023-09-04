@@ -69,7 +69,6 @@ class ConfusionView(ctk.CTkFrame):
         label_column_var = tk.StringVar(value='None')
         label_column_cbbox = tk.ttk.Combobox(master=body_frame, values=['None', ], textvariable=label_column_var,
                                              state='readonly')
-        label_column_cbbox.set('None')
         self.vars["label column"] = label_column_var
         self.cbboxes["label column"] = label_column_cbbox
 
@@ -199,7 +198,6 @@ class ConfusionView(ctk.CTkFrame):
         legend_anchor_var = tk.StringVar(value=self.controller.model.plot_legend["legend anchor"])
         legend_anchor_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.LEGEND_POS, state='readonly',
                                               textvariable=legend_anchor_var)
-        legend_anchor_cbbox.set(legend_anchor_var.get())
         legend_anchor_label.place(x=0, y=60)
         legend_anchor_cbbox.place(x=0, y=100)
         self.cbboxes["legend anchor"] = legend_anchor_cbbox
@@ -297,7 +295,6 @@ class ConfusionView(ctk.CTkFrame):
         title_font_label = ctk.CTkLabel(master=general_toplevel, text="Title font:")
         title_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
                                            textvariable=title_font_var)
-        title_font_cbbox.set(title_font_var.get())
 
         title_font_label.place(x=225, y=0)
         title_font_cbbox.place(x=225, y=40, relwidth=0.4)
@@ -437,7 +434,6 @@ class ConfusionView(ctk.CTkFrame):
             axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
             axes_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
                                               textvariable=axes_font_var)
-            axes_font_cbbox.set(axes_font_var.get())
             axes_font_label.place(x=0, y=440)
             axes_font_cbbox.place(x=80, y=440, relwidth=0.4)
             self.cbboxes["axes font"] = axes_font_cbbox

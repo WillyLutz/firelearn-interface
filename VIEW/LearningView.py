@@ -101,10 +101,12 @@ class LearningView(ctk.CTkFrame):
         label_column_label = ctk.CTkLabel(master=manage_dataset_frame, text="Select targets column")
         label_column_label.place(relx=0, rely=0.1)
 
-        label_column_cbbox = tk.ttk.Combobox(master=manage_dataset_frame, state='disabled', values=["None", ])
-        label_column_cbbox.set("None")
+        label_column_var = tk.StringVar(value='None')
+        label_column_cbbox = tk.ttk.Combobox(master=manage_dataset_frame, state='disabled', values=["None", ],
+                                             textvariable=label_column_var)
         label_column_cbbox.place(relx=0, rely=0.15, relwidth=0.8)
         self.cbboxes["target column"] = label_column_cbbox
+        self.vars["target column"] = label_column_var
 
         training_targets_helper = Helper(master=manage_dataset_frame, event_key="training targets")
         training_targets_helper.place(relx=0.28, rely=0.22)

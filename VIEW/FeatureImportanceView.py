@@ -68,11 +68,10 @@ class FeatureImportanceView(ctk.CTkFrame):
         title_font_label = ctk.CTkLabel(master=params_frame, text="Title font:")
         title_font_var = tk.StringVar(value=p.DEFAULT_FONT)
         title_font_cbbox = tk.ttk.Combobox(master=params_frame, values=p.FONTS, state='readonly', textvariable=title_font_var)
-        title_font_cbbox.set(p.DEFAULT_FONT)
         body_label.place(relx=0, rely=0)
         title_font_label.place(relx=0, rely=0.1)
         title_font_cbbox.place(relx=0, rely=0.18, relwidth=0.4)
-        self.vars["title font"] = title_font_cbbox
+        self.vars["title font"] = title_font_var
 
         title_label = ctk.CTkLabel(master=params_frame, text="Title:")
         title_var = tk.StringVar()
@@ -92,11 +91,11 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         linestyle_label = ctk.CTkLabel(master=params_frame, text="Linestyle:")
         linestyle_var = tk.StringVar(value=p.DEFAULT_LINESTYLE)
-        linestyle_cbbox = tk.ttk.Combobox(master=params_frame, values=list(p.LINESTYLES.keys()), state='readonly', textvariable=linestyle_var)
-        linestyle_cbbox.set(p.DEFAULT_LINESTYLE)
+        linestyle_cbbox = tk.ttk.Combobox(master=params_frame, values=list(p.LINESTYLES.keys()), state='readonly',
+                                          textvariable=linestyle_var)
         linestyle_label.place(relx=0, rely=0.30)
         linestyle_cbbox.place(relx=0, rely=0.38, relwidth=0.40)
-        self.vars["linestyle"] = linestyle_cbbox
+        self.vars["linestyle"] = linestyle_var
 
         linewidth_label = ctk.CTkLabel(master=params_frame, text="Linewidth:")
         linewidth_var = tk.StringVar(value=p.DEFAULT_LINEWIDTH)
@@ -126,10 +125,9 @@ class FeatureImportanceView(ctk.CTkFrame):
         fill_label = ctk.CTkLabel(master=params_frame, text="Fill:")
         fill_var = tk.StringVar(value="None")
         fill_cbbox = tk.ttk.Combobox(master=params_frame, values=["None", "Above", "Below"], state='readonly', textvariable=fill_var)
-        fill_cbbox.set('None')
         fill_label.place(relx=0.5, rely=0.5)
         fill_cbbox.place(relx=0.5, rely=0.58, relwidth=0.40)
-        self.vars["fill"] = fill_cbbox
+        self.vars["fill"] = fill_var
 
         alpha_fill_label = ctk.CTkLabel(master=params_frame, text="Fill alpha:")
         alpha_fill_var = tk.DoubleVar(value=p.DEFAULT_FILLALPHA)
@@ -381,7 +379,6 @@ class FeatureImportanceView(ctk.CTkFrame):
         axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
         axes_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
                                           textvariable=axes_font_var)
-        axes_font_cbbox.set(p.DEFAULT_FONT)
         axes_font_label.place(x=0, y=640)
         axes_font_cbbox.place(x=0, y=680, relwidth=0.4)
         self.cbboxes["axes font"] = axes_font_cbbox

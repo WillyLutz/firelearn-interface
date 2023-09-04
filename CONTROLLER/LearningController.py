@@ -41,7 +41,7 @@ class LearningController:
             df = pd.read_csv(filename, index_col=False)
             label_cbbox.configure(state='normal')
             label_cbbox.configure(values=[str(c) for c in df.columns])
-            label_cbbox.set(str(df.columns[0]))
+            self.view.vars["target column"].set(str(df.columns[0]))
             label_cbbox.configure(state='readonly')
 
     def add_subtract_target(self, mode='add'):

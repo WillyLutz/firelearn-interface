@@ -342,7 +342,6 @@ class PcaView(ctk.CTkFrame):
         axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
         axes_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
                                           textvariable=axes_font_var)
-        axes_font_cbbox.set(p.DEFAULT_FONT)
         axes_font_label.place(x=0, y=640)
         axes_font_cbbox.place(x=0, y=680, relwidth=0.4)
         self.cbboxes["axes font"] = axes_font_cbbox
@@ -389,7 +388,6 @@ class PcaView(ctk.CTkFrame):
         legend_anchor_var = tk.StringVar(value=self.controller.model.plot_legend["legend anchor"])
         legend_anchor_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.LEGEND_POS, state='readonly',
                                               textvariable=legend_anchor_var)
-        legend_anchor_cbbox.set(legend_anchor_var.get())
         legend_anchor_label.place(x=0, y=60)
         legend_anchor_cbbox.place(x=0, y=100)
         self.cbboxes["legend anchor"] = legend_anchor_cbbox
@@ -482,12 +480,10 @@ class PcaView(ctk.CTkFrame):
         self.vars["title"] = title_var
         self.entries["title"] = title_entry
 
-        title_font_var = tk.StringVar()
-        title_font_var.set(self.controller.model.plot_general_settings['title font'])
+        title_font_var = tk.StringVar(value=self.controller.model.plot_general_settings['title font'])
         title_font_label = ctk.CTkLabel(master=general_toplevel, text="Title font:")
         title_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
                                            textvariable=title_font_var)
-        title_font_cbbox.set(title_font_var.get())
 
         title_font_label.place(x=225, y=0)
         title_font_cbbox.place(x=225, y=40, relwidth=0.4)

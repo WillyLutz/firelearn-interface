@@ -25,7 +25,6 @@ class FeatureImportanceController:
     def load_clf(self, ):
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("AI model", "*.rfc"),))
-        print(filename)
         if filename:
             clf = pickle.load(open(filename, "rb"))
             self.model.clf = clf
@@ -93,7 +92,7 @@ class FeatureImportanceController:
             ax.set_title(self.model.plot_general_settings["title"],
                          fontdict={"font": self.model.plot_general_settings["title font"],
                                    "fontsize": self.model.plot_general_settings["title size"], })
-
+            print(self.model.plot_general_settings["title font"])
             xmin = min(x_data)
             xmax = max(x_data)
             xstep = (xmax - xmin) / (n_xticks - 1)
@@ -258,6 +257,7 @@ class FeatureImportanceController:
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()
+            print(self.model.plot_general_settings["title font"])
         elif key in self.model.plot_axes.keys():
             self.model.plot_axes[key] = self.view.vars[key].get()
         elif key in self.model.plot_legend.keys():
