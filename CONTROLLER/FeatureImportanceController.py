@@ -160,11 +160,6 @@ class FeatureImportanceController:
 
     def save_config(self, ):
         if self.check_params_validity():
-            self.update_params(self.view.entries)
-            self.update_params(self.view.cbboxes)
-            self.update_params(self.view.sliders)
-            self.update_params(self.view.vars)
-
             f = filedialog.asksaveasfilename(defaultextension=".ficfg",
                                              filetypes=[("Analysis - Feature Importance", "*.ficfg"), ])
             if f:
@@ -177,25 +172,26 @@ class FeatureImportanceController:
                 local_dict[key] = value.get('1.0', tk.END)
             else:
                 local_dict[key] = value.get()
-        if type(list(widgets.values())[0]) == ctk.CTkSwitch:
-            self.model.switches.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkEntry:
-            self.model.entries.update(local_dict)
-        if type(list(widgets.values())[0]) == tk.ttk.Combobox:
-            self.model.cbboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkTextbox:
-            local_dict = {}
-            for key, value in widgets.items():
-                local_dict[key] = value.get('1.0', tk.END)
-            self.model.textboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkSlider:
-            self.model.sliders.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkCheckBox:
-            self.model.checkboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == tk.IntVar or \
-                type(list(widgets.values())[0]) == tk.StringVar or \
-                type(list(widgets.values())[0]) == tk.DoubleVar:
-            self.model.vars.update(local_dict)
+        if len(list(widgets.values())) > 0 :
+            if type(list(widgets.values())[0]) == ctk.CTkSwitch:
+                self.model.switches.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkEntry:
+                self.model.entries.update(local_dict)
+            if type(list(widgets.values())[0]) == tk.ttk.Combobox:
+                self.model.cbboxes.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkTextbox:
+                local_dict = {}
+                for key, value in widgets.items():
+                    local_dict[key] = value.get('1.0', tk.END)
+                self.model.textboxes.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkSlider:
+                self.model.sliders.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkCheckBox:
+                self.model.checkboxes.update(local_dict)
+            if type(list(widgets.values())[0]) == tk.IntVar or \
+                    type(list(widgets.values())[0]) == tk.StringVar or \
+                    type(list(widgets.values())[0]) == tk.DoubleVar:
+                self.model.vars.update(local_dict)
 
     def load_config(self, ):
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Feature Importance", "*.ficfg"),))
@@ -204,38 +200,14 @@ class FeatureImportanceController:
                 self.update_view_from_model()
 
     def update_view_from_model(self, ):
-
-        for key, widget in self.view.cbboxes.items():
-            if widget.cget('state') == "normal":
-                widget.set(self.model.cbboxes[key])
-            else:
-                widget.configure(state='normal')
-                widget.set(self.model.cbboxes[key])
-                widget.configure(state='readonly')
-                pass
-        for key, widget in self.view.entries.items():
-            if widget.cget('state') == 'normal':
-                widget.delete(0, ctk.END)
-                widget.insert(0, self.model.entries[key])
-            else:
-                widget.configure(state='normal')
-                widget.insert(0, self.model.entries[key])
-                widget.configure(state='disabled')
-
-        for key, widget in self.view.switches.items():
-            if widget.cget('state') == 'normal':
-                if self.model.switches[key]:
-                    widget.select()
-                else:
-                    widget.deselect()
-
-        for key, widget in self.view.sliders.items():
-            if widget.cget('state') == "normal":
-                self.view.vars[key].set(self.model.vars[key])
-                self.view.sliders[key].set(self.model.sliders[key])
-
-        for key, widget in self.view.textboxes.items():
-            MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
+        # for key, value in self.model.plot_data.items():
+        #     self.view.vars[key].set(value)
+        # for key, value in self.model.plot_legend.items():
+        #     self.view.vars[key].set(value)
+        for key, value in self.model.plot_axes.items():
+            self.view.vars[key].set(value)
+        for key, value in self.model.plot_general_settings.items():
+            self.view.vars[key].set(value)
 
     def load_plot_dataset(self, ):
         filename = filedialog.askopenfilename(title="Open file",
@@ -257,7 +229,6 @@ class FeatureImportanceController:
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()
-            print(self.model.plot_general_settings["title font"])
         elif key in self.model.plot_axes.keys():
             self.model.plot_axes[key] = self.view.vars[key].get()
         elif key in self.model.plot_legend.keys():

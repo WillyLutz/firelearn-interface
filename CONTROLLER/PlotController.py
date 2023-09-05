@@ -78,13 +78,17 @@ class PlotController:
     def update_view_from_model(self, ):
 
         for key, value in self.model.plot_data.items():
-            self.view.vars[key].set(value)
+            if key in self.view.vars.keys():
+                self.view.vars[key].set(value)
         for key, value in self.model.plot_legend.items():
-            self.view.vars[key].set(value)
+            if key in self.view.vars.keys():
+                self.view.vars[key].set(value)
         for key, value in self.model.plot_axes.items():
-            self.view.vars[key].set(value)
+            if key in self.view.vars.keys():
+                self.view.vars[key].set(value)
         for key, value in self.model.plot_general_settings.items():
-            self.view.vars[key].set(value)
+            if key in self.view.vars.keys():
+                self.view.vars[key].set(value)
 
 
     def load_plot_dataset(self, ):
@@ -103,7 +107,12 @@ class PlotController:
 
             columns = list(df.columns)
             self.view.cbboxes["xdata"].configure(values=columns)
-            self.view.vars["xdata"].set(columns[0])
+
+            label_col = columns[0]
+            for col in columns:
+                if 'label' in col or 'target' in col:  # try to auto-detect the label column
+                    label_col = col
+            self.view.cbboxes["xdata"].set(label_col)
 
             ydata_curves = {key: value for (key, value) in self.view.cbboxes.items() if "ydata " in key}
             for key, value in ydata_curves.items():

@@ -198,7 +198,6 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         # ----- TRACE
         alpha_var.trace("w", partial(self.trace_vars_to_model, "alpha"))
-        dpi_var.trace("w", partial(self.trace_vars_to_model, "dpi"))
         title_size_var.trace("w", partial(self.trace_vars_to_model, "title size"))
         alpha_fill_var.trace("w", partial(self.trace_vars_to_model, "alpha fill"))
         fill_var.trace("w", partial(self.trace_vars_to_model, "fill"))
