@@ -98,7 +98,7 @@ class ProcessingController:
             if not local_switch["random key"] and not local_switch["keyword"] and not local_switch["timestamp"]:
                 processing_basename.append("FL_processed")
 
-            if local_cbox["harmonic type"].get() != "None":
+            if local_cbox["harmonic type"] != "None":
                 harmonics = MainController.generate_harmonics(int(local_entry["harmonic frequency"]),
                                                               int(local_entry["nth harmonic"]),
                                                               local_cbox["harmonic type"])
