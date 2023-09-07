@@ -114,7 +114,7 @@ class LearningController:
             target_column = self.model.cbboxes["target column"]
 
             df = df[df[target_column].isin(self.model.targets)]
-
+            df.reset_index(inplace=True, drop=True)
             y = df[target_column]
             y = self.label_encoding(y)
             X = df.loc[:, df.columns != target_column]
@@ -436,9 +436,9 @@ class LearningController:
                 else:
                     widget.deselect()
 
-        for key, widget in self.view.textboxes.items():
-            MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
-
+        # for key, widget in self.view.textboxes.items():
+        #     MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
+        # todo : fix
     def save_config(self, ):
         if self.check_params_validity():
             self.update_params(self.view.entries)

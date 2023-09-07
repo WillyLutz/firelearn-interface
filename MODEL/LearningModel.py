@@ -27,7 +27,6 @@ class LearningModel:
         self.figures = {}
         self.targets = []
 
-        self.targets = []
 
     def load_model(self, path):
         try:
