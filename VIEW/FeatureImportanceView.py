@@ -17,6 +17,7 @@ class FeatureImportanceView(ctk.CTkFrame):
         self.parent_view = parent_view
         self.controller = FeatureImportanceController(self,)
 
+        self.toplevels = {}
         self.entries = {}
         self.buttons = {}
         self.cbboxes = {}
@@ -209,6 +210,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         load_clf_var.trace("w", partial(self.trace_vars_to_model, "load clf"))
         title_var.trace("w", partial(self.trace_vars_to_model, "title"))
 
+        self.axes_toplevel()
+
     def select_color(self, view, selection_button_name):
         self.parent_view.parent_view.select_color(view=view, selection_button_name=selection_button_name)
         
@@ -243,10 +246,18 @@ class FeatureImportanceView(ctk.CTkFrame):
         if self.controller:
             self.controller.save_figure(fig)
 
+    def deiconify_toplevel(self, toplevel : ctk.CTkToplevel):
+        if toplevel.state() == 'withdrawn':
+            toplevel.deiconify()
+
     def axes_toplevel(self):
         width = 500
         height = 800
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
+        general_toplevel.withdraw()
+        self.buttons["axes"].configure(command=partial(self.deiconify_toplevel, general_toplevel))
+
         general_toplevel.title("Axes settings (Plot)")
         general_toplevel.resizable(False, False)
         general_toplevel.attributes("-topmost", 1)

@@ -25,6 +25,6 @@ def onClosure(app):
 
 if __name__ == '__main__':
     app = App()
-    app.protocol('WM_DELETE_WINDOW', partial(onClosure, app))  # root is your root window
+    app.protocol('WM_DELETE_WINDOW', partial(onClosure, app))
     app.mainloop()
 
