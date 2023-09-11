@@ -165,7 +165,7 @@ class LearningController:
 
             self.update_metrics_textbox(metrics_elements)
             if self.view.switches["save rfc"].get():
-                MainController.save_object(rfc, self.view.entries["save rfc"].get())
+                MainController.save_object(rfc, self.view.entries["save rfc"].get()+".rfc")
 
     @staticmethod
     def extract_rfc_params(rfc_params_string_var):

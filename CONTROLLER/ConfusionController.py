@@ -23,7 +23,6 @@ import fiiireflyyy.learn as fl
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
-
 class ConfusionController:
     def __init__(self, view, ):
         self.model = ConfusionModel()
@@ -63,7 +62,8 @@ class ConfusionController:
             all_testing_classes = {key: value for (key, value) in self.view.vars.items() if "test label " in key}
 
             checked_classes = {key: value for (key, value) in all_testing_classes.items() if value.get() == 1}
-            checked_classes_names = {self.view.checkboxes[key].cget('text'): value for (key, value) in checked_classes.items()}.keys()
+            checked_classes_names = {self.view.checkboxes[key].cget('text'): value for (key, value) in
+                                     checked_classes.items()}.keys()
             testing_classes = tuple(checked_classes_names)
 
             self.model.training_classes = training_classes
@@ -72,8 +72,10 @@ class ConfusionController:
             df = self.model.dataset
             df = df[df[self.view.vars["label column"].get()].isin(testing_classes)]
 
-            overall_matrix, mixed_labels_matrix, CORRESPONDENCE\
-                = fl.test_clf_by_confusion(self.model.clf, df, training_targets=training_classes, testing_targets=testing_classes, show=False, iterations=self.view.vars["iterations"].get(), return_data=True)
+            overall_matrix, mixed_labels_matrix, CORRESPONDENCE \
+                = fl.test_clf_by_confusion(self.model.clf, df, training_targets=training_classes,
+                                           testing_targets=testing_classes, show=False,
+                                           iterations=self.view.vars["iterations"].get(), return_data=True)
             self.model.confusion_data["overall matrix"] = overall_matrix
             self.model.confusion_data["mixed labels matrix"] = mixed_labels_matrix
             self.model.confusion_data["correspondence"] = CORRESPONDENCE
@@ -84,8 +86,6 @@ class ConfusionController:
         overall_matrix = self.model.confusion_data["overall matrix"]
         mixed_labels_matrix = self.model.confusion_data["mixed labels matrix"]
         CORRESPONDENCE = self.model.confusion_data["correspondence"]
-
-
 
         # plot
         fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
@@ -98,9 +98,9 @@ class ConfusionController:
         ax.xaxis.tick_top()
         ax.xaxis.set_label_position('top')
         ax.set_ylabel(self.model.plot_axes["y label"], fontdict={"font": self.model.plot_axes["axes font"],
-                                    "fontsize": self.model.plot_axes["y label size"]})
+                                                                 "fontsize": self.model.plot_axes["y label size"]})
         ax.set_xlabel(self.model.plot_axes["x label"], {"font": self.model.plot_axes["axes font"],
-                                    "fontsize": self.model.plot_axes["x label size"]})
+                                                        "fontsize": self.model.plot_axes["x label size"]})
 
         renames_queries = {key: value.get() for (key, value) in self.view.vars.items() if "x rename " in key}
         original_labels = {key: value.get() for (key, value) in self.view.vars.items() if "x label " in key}
@@ -121,11 +121,6 @@ class ConfusionController:
 
             self.view.vars[label].set(new_key)
 
-
-
-
-
-
         ax.set_xticks([CORRESPONDENCE[x] + 0.5 for x in self.model.testing_classes], self.model.testing_classes)
         ax.set_yticks([CORRESPONDENCE[x] + 0.5 for x in self.model.training_classes], self.model.training_classes)
 
@@ -133,6 +128,8 @@ class ConfusionController:
 
         self.view.figures["confusion"] = (fig, ax)
         self.view.canvas["confusion"].draw()
+
+        self.view.buttons["save figure"].configure(command=partial(self.save_figure, self.view.figures["confusion"][0]))
 
     def input_validation(self):
 
@@ -147,11 +144,13 @@ class ConfusionController:
         return True
 
     def save_figure(self, fig):
+
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
         if filepath:
-            fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()), bbox_inches='tight')
+            if self.view.entries["dpi"]:
+                fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()), bbox_inches='tight')
 
-    def export_figure_data(self, ax): # todo : export
+    def export_figure_data(self, ax):  # todo : export
         pass
 
     def save_config(self, ):
@@ -302,7 +301,7 @@ class ConfusionController:
             self.model.plot_data[f"y label {training_classes.index(target)}"] = target_train_label_var.get()
 
             for key, widget in {f"y rename {training_classes.index(target)}": rename_train_var,
-                        f"y label {training_classes.index(target)}": target_train_label_var}.items():
+                                f"y label {training_classes.index(target)}": target_train_label_var}.items():
                 widget.trace("w", partial(self.trace_vars_to_model, key))
 
         for target in testing_classes:
@@ -313,7 +312,6 @@ class ConfusionController:
             rename_test_label = ctk.CTkLabel(master=target_test_frame, text="Rename target")
             rename_test_var = tk.StringVar()
             rename_test_entry = ctk.CTkEntry(master=target_test_frame, textvariable=rename_test_var)
-
 
             original_test_label.place(relx=0.05, rely=0)
             target_test_label.place(relx=0.05, rely=0.2)
@@ -335,7 +333,3 @@ class ConfusionController:
     def rename_dict_key(d, old_key, new_key):
         if old_key in d:
             d[new_key] = d.pop(old_key)
-
-
-
-
