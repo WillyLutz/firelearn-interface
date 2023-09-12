@@ -33,6 +33,10 @@ class PcaView(ctk.CTkFrame):
         self.labels_subframes = {}
         self.manage_pca_tab()
 
+        self.axes_toplevel()
+        self.general_settings_toplevel()
+        self.legend_toplevel()
+
     def manage_pca_tab(self):
         # --------------- INIT FRAME
         init_frame = ctk.CTkFrame(master=self.master)
@@ -149,10 +153,6 @@ class PcaView(ctk.CTkFrame):
         load_config_button.configure(command=self.load_config)
 
         save_figure_button.configure(command=partial(self.save_figure, self.figures["pca"][0]))
-
-        general_settings_button.configure(command=self.general_settings_toplevel)
-        axes_button.configure(command=self.axes_toplevel)
-        legend_button.configure(command=self.legend_toplevel)
 
         draw_figure_button.configure(command=self.draw_figure)
 

@@ -35,6 +35,9 @@ class PlotView(ctk.CTkFrame):
 
         self.ydata_subframes = {}
         self.manage_plot_tab()
+        self.axes_toplevel()
+        self.general_settings_toplevel()
+        self.legend_toplevel()
 
     def set_controller(self, controller):
         self.controller = controller
@@ -144,10 +147,6 @@ class PlotView(ctk.CTkFrame):
         load_config_button.configure(command=self.load_config)
 
         save_figure_button.configure(command=partial(self.save_figure, self.figures["plot"][0]))
-
-        general_settings_button.configure(command=self.general_settings_toplevel)
-        axes_button.configure(command=self.axes_toplevel)
-        legend_button.configure(command=self.legend_toplevel)
 
         draw_figure_button.configure(command=self.draw_figure)
 

@@ -36,6 +36,9 @@ class ConfusionView(ctk.CTkFrame):
 
         self.ydata_subframes = {}
         self.manage_confusion_tab()
+        self.axes_toplevel()
+        self.general_settings_toplevel()
+        self.legend_toplevel()
 
     def set_controller(self, controller):
         self.controller = controller
@@ -166,9 +169,6 @@ class ConfusionView(ctk.CTkFrame):
         draw_figure_button.configure(command=self.controller.draw_figure)
         update_figure_button.configure(command=self.controller.update_figure)
 
-        general_settings_button.configure(command=self.general_settings_toplevel)
-        axes_button.configure(command=self.axes_toplevel)
-        legend_button.configure(command=self.legend_toplevel)
 
         # --------------- TRACE
         for key, widget in {"load dataset": load_dataset_var, "load clf": load_model_var,
@@ -342,145 +342,143 @@ class ConfusionView(ctk.CTkFrame):
         dpi_strvar.trace("w", partial(self.controller.trace_vars_to_model, 'dpi'))
 
     def axes_toplevel(self):
+        width = 500
+        height = 800
+        general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
+        general_toplevel.withdraw()
+        self.buttons["axes"].configure(command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
+
+        general_toplevel.title("Axes settings (Confusion)")
+        general_toplevel.resizable(False, False)
+        general_toplevel.attributes("-topmost", 1)
+
+        x_major_label = ctk.CTkLabel(master=general_toplevel, text="X-AXIS")
+        x_major_label.place(anchor=tk.CENTER, x=125, y=20)
+        y_major_label = ctk.CTkLabel(master=general_toplevel, text="Y-AXIS")
+        y_major_label.place(anchor=tk.CENTER, x=375, y=20)
+
+        x_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
+        x_label_var = tk.StringVar(value=self.controller.model.plot_axes['x label'])
+        x_label_entry = ctk.CTkEntry(master=general_toplevel, width=200, textvariable=x_label_var)
+        x_label.place(x=0, y=50)
+        x_label_entry.place(x=0, y=90)
+        self.entries["x label"] = x_label_entry
+        self.vars['x label'] = x_label_var
+
+        y_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
+        y_label_var = tk.StringVar(value=self.controller.model.plot_axes['y label'])
+        y_label_entry = ctk.CTkEntry(master=general_toplevel, width=200, textvariable=y_label_var)
+        y_label.place(x=250, y=50)
+        y_label_entry.place(x=250, y=90)
+        self.entries["y label"] = y_label_entry
+        self.vars['y label'] = y_label_var
+
+        x_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
+        x_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['x label size'])
+        x_label_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                       variable=x_label_size_var)
+        x_label_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=x_label_size_var)
+        x_label_value_label.place(x=100, y=130)
+        x_label_slider.place(x=0, y=170, relwidth=0.4)
+        x_size_label.place(x=0, y=130)
+        self.vars["x label size"] = x_label_size_var
+        self.sliders["x label size"] = x_label_slider
+
+        y_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
+        y_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['y label size'])
+        y_label_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                       variable=y_label_size_var)
+        y_label_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=y_label_size_var)
+        y_label_value_label.place(x=350, y=130)
+        y_label_slider.place(x=250, y=170, relwidth=0.4)
+        y_size_label.place(x=250, y=130)
+        self.vars["y label size"] = y_label_size_var
+        self.sliders["y label size"] = y_label_slider
+
+        # -----TICKS
+
+        xticks_rotation_label = ctk.CTkLabel(master=general_toplevel, text="Tick rotation:")
+        xticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks rotation'])
+        xticks_rotation_slider = ctk.CTkSlider(master=general_toplevel, from_=-180, to=180, number_of_steps=36,
+                                               variable=xticks_rotation_var)
+        xticks_rotation_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=xticks_rotation_var)
+        xticks_rotation_slider.place(x=0, y=290, relwidth=0.4)
+        xticks_rotation_label.place(x=0, y=250)
+        xticks_rotation_value_label.place(x=100, y=250)
+        self.vars["x ticks rotation"] = xticks_rotation_var
+        self.sliders["x ticks rotation"] = xticks_rotation_slider
+
+        yticks_rotation_label = ctk.CTkLabel(master=general_toplevel, text="Tick rotation:")
+        yticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks rotation'])
+        yticks_rotation_slider = ctk.CTkSlider(master=general_toplevel, from_=-180, to=180, number_of_steps=36,
+                                               variable=yticks_rotation_var)
+        yticks_rotation_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=yticks_rotation_var)
+        yticks_rotation_slider.place(x=250, y=290, relwidth=0.4)
+        yticks_rotation_label.place(x=250, y=250)
+        yticks_rotation_value_label.place(x=350, y=250)
+        self.vars["y ticks rotation"] = yticks_rotation_var
+        self.sliders["y ticks rotation"] = yticks_rotation_slider
+
+        xticks_label = ctk.CTkLabel(master=general_toplevel, text="Tick size:")
+        xticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks size'])
+        xticks_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                      variable=xticks_size_var)
+        xticks_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=xticks_size_var)
+        xticks_label.place(x=0, y=330)
+        xticks_slider.place(x=0, y=370, relwidth=0.4)
+        xticks_value_label.place(x=100, y=330)
+        self.vars["x ticks size"] = xticks_size_var
+        self.sliders["x ticks size"] = xticks_slider
+
+        yticks_label = ctk.CTkLabel(master=general_toplevel, text="Tick size:")
+        yticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks size'])
+        yticks_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
+                                      variable=yticks_size_var)
+        yticks_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=yticks_size_var)
+        yticks_label.place(x=250, y=330)
+        yticks_slider.place(x=250, y=370, relwidth=0.4)
+        yticks_value_label.place(x=350, y=330)
+        self.vars["y ticks size"] = yticks_size_var
+        self.sliders["y ticks size"] = yticks_slider
+
+        general_label = ctk.CTkLabel(master=general_toplevel, text='GENERAL')
+        general_label.place(x=0, y=400)
+
+        axes_font_label = ctk.CTkLabel(master=general_toplevel, text="Axes font:")
+        axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
+        axes_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
+                                          textvariable=axes_font_var)
+        axes_font_label.place(x=0, y=440)
+        axes_font_cbbox.place(x=80, y=440, relwidth=0.4)
+        self.cbboxes["axes font"] = axes_font_cbbox
+        self.vars["axes font"] = axes_font_var
+
+        ticks_train_scrollable = ctk.CTkScrollableFrame(master=general_toplevel, height=300, width=200)
+        ticks_train_scrollable.grid_columnconfigure(0, weight=1)
+        ticks_train_scrollable.place(relx=0.05, y=470, )
+        self.scrollable_frames["ticks train"] = ticks_train_scrollable
+
+        ticks_test_scrollable = ctk.CTkScrollableFrame(master=general_toplevel, height=300, width=200)
+        ticks_test_scrollable.grid_columnconfigure(0, weight=1)
+        ticks_test_scrollable.place(relx=0.55, y=470, )
+        self.scrollable_frames["ticks test"] = ticks_test_scrollable
+
+        update_ticks_button = ctk.CTkButton(master=general_toplevel, text='Update train/test ticks',
+                                            command=self.controller.update_confusion_ticks)
+        update_ticks_button.place(x=300, y=440)
         if self.controller.model.dataset_path:
-            width = 500
-            height = 800
-            general_toplevel = ctk.CTkToplevel(width=width, height=height)
-            general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
-            general_toplevel.withdraw()
-            self.buttons["axes"].configure(command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
-            
-            general_toplevel.title("Axes settings (Confusion)")
-            general_toplevel.resizable(False, False)
-            general_toplevel.attributes("-topmost", 1)
-
-            x_major_label = ctk.CTkLabel(master=general_toplevel, text="X-AXIS")
-            x_major_label.place(anchor=tk.CENTER, x=125, y=20)
-            y_major_label = ctk.CTkLabel(master=general_toplevel, text="Y-AXIS")
-            y_major_label.place(anchor=tk.CENTER, x=375, y=20)
-
-            x_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
-            x_label_var = tk.StringVar(value=self.controller.model.plot_axes['x label'])
-            x_label_entry = ctk.CTkEntry(master=general_toplevel, width=200, textvariable=x_label_var)
-            x_label.place(x=0, y=50)
-            x_label_entry.place(x=0, y=90)
-            self.entries["x label"] = x_label_entry
-            self.vars['x label'] = x_label_var
-
-            y_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
-            y_label_var = tk.StringVar(value=self.controller.model.plot_axes['y label'])
-            y_label_entry = ctk.CTkEntry(master=general_toplevel, width=200, textvariable=y_label_var)
-            y_label.place(x=250, y=50)
-            y_label_entry.place(x=250, y=90)
-            self.entries["y label"] = y_label_entry
-            self.vars['y label'] = y_label_var
-
-            x_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
-            x_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['x label size'])
-            x_label_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
-                                           variable=x_label_size_var)
-            x_label_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=x_label_size_var)
-            x_label_value_label.place(x=100, y=130)
-            x_label_slider.place(x=0, y=170, relwidth=0.4)
-            x_size_label.place(x=0, y=130)
-            self.vars["x label size"] = x_label_size_var
-            self.sliders["x label size"] = x_label_slider
-
-            y_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
-            y_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['y label size'])
-            y_label_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
-                                           variable=y_label_size_var)
-            y_label_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=y_label_size_var)
-            y_label_value_label.place(x=350, y=130)
-            y_label_slider.place(x=250, y=170, relwidth=0.4)
-            y_size_label.place(x=250, y=130)
-            self.vars["y label size"] = y_label_size_var
-            self.sliders["y label size"] = y_label_slider
-
-            # -----TICKS
-
-            xticks_rotation_label = ctk.CTkLabel(master=general_toplevel, text="Tick rotation:")
-            xticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks rotation'])
-            xticks_rotation_slider = ctk.CTkSlider(master=general_toplevel, from_=-180, to=180, number_of_steps=36,
-                                                   variable=xticks_rotation_var)
-            xticks_rotation_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=xticks_rotation_var)
-            xticks_rotation_slider.place(x=0, y=290, relwidth=0.4)
-            xticks_rotation_label.place(x=0, y=250)
-            xticks_rotation_value_label.place(x=100, y=250)
-            self.vars["x ticks rotation"] = xticks_rotation_var
-            self.sliders["x ticks rotation"] = xticks_rotation_slider
-
-            yticks_rotation_label = ctk.CTkLabel(master=general_toplevel, text="Tick rotation:")
-            yticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks rotation'])
-            yticks_rotation_slider = ctk.CTkSlider(master=general_toplevel, from_=-180, to=180, number_of_steps=36,
-                                                   variable=yticks_rotation_var)
-            yticks_rotation_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=yticks_rotation_var)
-            yticks_rotation_slider.place(x=250, y=290, relwidth=0.4)
-            yticks_rotation_label.place(x=250, y=250)
-            yticks_rotation_value_label.place(x=350, y=250)
-            self.vars["y ticks rotation"] = yticks_rotation_var
-            self.sliders["y ticks rotation"] = yticks_rotation_slider
-
-            xticks_label = ctk.CTkLabel(master=general_toplevel, text="Tick size:")
-            xticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks size'])
-            xticks_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
-                                          variable=xticks_size_var)
-            xticks_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=xticks_size_var)
-            xticks_label.place(x=0, y=330)
-            xticks_slider.place(x=0, y=370, relwidth=0.4)
-            xticks_value_label.place(x=100, y=330)
-            self.vars["x ticks size"] = xticks_size_var
-            self.sliders["x ticks size"] = xticks_slider
-
-            yticks_label = ctk.CTkLabel(master=general_toplevel, text="Tick size:")
-            yticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks size'])
-            yticks_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
-                                          variable=yticks_size_var)
-            yticks_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=yticks_size_var)
-            yticks_label.place(x=250, y=330)
-            yticks_slider.place(x=250, y=370, relwidth=0.4)
-            yticks_value_label.place(x=350, y=330)
-            self.vars["y ticks size"] = yticks_size_var
-            self.sliders["y ticks size"] = yticks_slider
-
-            general_label = ctk.CTkLabel(master=general_toplevel, text='GENERAL')
-            general_label.place(x=0, y=400)
-
-            axes_font_label = ctk.CTkLabel(master=general_toplevel, text="Axes font:")
-            axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
-            axes_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
-                                              textvariable=axes_font_var)
-            axes_font_label.place(x=0, y=440)
-            axes_font_cbbox.place(x=80, y=440, relwidth=0.4)
-            self.cbboxes["axes font"] = axes_font_cbbox
-            self.vars["axes font"] = axes_font_var
-
-            ticks_train_scrollable = ctk.CTkScrollableFrame(master=general_toplevel, height=300, width=200)
-            ticks_train_scrollable.grid_columnconfigure(0, weight=1)
-            ticks_train_scrollable.place(relx=0.05, y=470, )
-            self.scrollable_frames["ticks train"] = ticks_train_scrollable
-
-            ticks_test_scrollable = ctk.CTkScrollableFrame(master=general_toplevel, height=300, width=200)
-            ticks_test_scrollable.grid_columnconfigure(0, weight=1)
-            ticks_test_scrollable.place(relx=0.55, y=470, )
-            self.scrollable_frames["ticks test"] = ticks_test_scrollable
-
-            update_ticks_button = ctk.CTkButton(master=general_toplevel, text='Update train/test ticks',
-                                                command=self.controller.update_confusion_ticks)
-            update_ticks_button.place(x=300, y=440)
             self.controller.update_confusion_ticks()
 
-            # ----- TRACE
-            x_label_var.trace("w", partial(self.controller.trace_vars_to_model, 'x label'))
-            y_label_var.trace("w", partial(self.controller.trace_vars_to_model, 'y label'))
-            x_label_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'x label size'))
-            y_label_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'y label size'))
-            xticks_rotation_var.trace("w", partial(self.controller.trace_vars_to_model, 'x ticks rotation'))
-            yticks_rotation_var.trace("w", partial(self.controller.trace_vars_to_model, 'y ticks rotation'))
-            xticks_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'x ticks size'))
-            yticks_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'y ticks size'))
-            axes_font_var.trace("w", partial(self.controller.trace_vars_to_model, 'axes font'))
+        # ----- TRACE
+        x_label_var.trace("w", partial(self.controller.trace_vars_to_model, 'x label'))
+        y_label_var.trace("w", partial(self.controller.trace_vars_to_model, 'y label'))
+        x_label_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'x label size'))
+        y_label_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'y label size'))
+        xticks_rotation_var.trace("w", partial(self.controller.trace_vars_to_model, 'x ticks rotation'))
+        yticks_rotation_var.trace("w", partial(self.controller.trace_vars_to_model, 'y ticks rotation'))
+        xticks_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'x ticks size'))
+        yticks_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'y ticks size'))
+        axes_font_var.trace("w", partial(self.controller.trace_vars_to_model, 'axes font'))
 
-        else:
-            messagebox.showerror("", "No dataset loaded.")
-            return False
+

@@ -254,80 +254,81 @@ class ConfusionController:
             self.model.plot_legend[key] = self.view.vars[key].get()
 
     def update_confusion_ticks(self, ):
-        ticks_train_scrollable = self.view.scrollable_frames["ticks train"]
-        ticks_test_scrollable = self.view.scrollable_frames["ticks test"]
+        if self.model.dataset_path and self.model.clf:
+            ticks_train_scrollable = self.view.scrollable_frames["ticks train"]
+            ticks_test_scrollable = self.view.scrollable_frames["ticks test"]
 
-        vars_and_model_to_destroy = []
-        for key, value in self.model.plot_data.items():
-            for key_to_destroy in ["y rename", "y label", "x rename", "x label"]:
-                if key_to_destroy in key:
-                    vars_and_model_to_destroy.append(key)
-        for key in vars_and_model_to_destroy:
-            del self.view.vars[key]
-            del self.model.plot_data[key]
+            vars_and_model_to_destroy = []
+            for key, value in self.model.plot_data.items():
+                for key_to_destroy in ["y rename", "y label", "x rename", "x label"]:
+                    if key_to_destroy in key:
+                        vars_and_model_to_destroy.append(key)
+            for key in vars_and_model_to_destroy:
+                del self.view.vars[key]
+                del self.model.plot_data[key]
 
-        for child in ticks_test_scrollable.winfo_children():
-            child.destroy()
-        for child in ticks_train_scrollable.winfo_children():
-            child.destroy()
+            for child in ticks_test_scrollable.winfo_children():
+                child.destroy()
+            for child in ticks_train_scrollable.winfo_children():
+                child.destroy()
 
-        training_classes = tuple(list(set(list(self.model.clf.classes_))))
-        all_testing_classes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
+            training_classes = tuple(list(set(list(self.model.clf.classes_))))
+            all_testing_classes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
 
-        checked_classes = {key: value for (key, value) in all_testing_classes.items() if value.get() == 1}
-        checked_classes_names = {self.view.checkboxes[key].cget('text'): value for (key, value) in
-                                 checked_classes.items()}.keys()
-        testing_classes = tuple(checked_classes_names)
+            checked_classes = {key: value for (key, value) in all_testing_classes.items() if value.get() == 1}
+            checked_classes_names = {self.view.checkboxes[key].cget('text'): value for (key, value) in
+                                     checked_classes.items()}.keys()
+            testing_classes = tuple(checked_classes_names)
 
-        for target in training_classes:
-            target_train_frame = ctk.CTkFrame(master=ticks_train_scrollable, height=130, width=225)
-            original_train_label = ctk.CTkLabel(master=target_train_frame, text="Original target:")
-            target_train_label_var = tk.StringVar(value=target)
-            target_train_label = ctk.CTkLabel(master=target_train_frame, textvariable=target_train_label_var)
-            rename_train_label = ctk.CTkLabel(master=target_train_frame, text="Rename target")
-            rename_train_var = tk.StringVar()
-            rename_train_entry = ctk.CTkEntry(master=target_train_frame, textvariable=rename_train_var)
+            for target in training_classes:
+                target_train_frame = ctk.CTkFrame(master=ticks_train_scrollable, height=130, width=225)
+                original_train_label = ctk.CTkLabel(master=target_train_frame, text="Original target:")
+                target_train_label_var = tk.StringVar(value=target)
+                target_train_label = ctk.CTkLabel(master=target_train_frame, textvariable=target_train_label_var)
+                rename_train_label = ctk.CTkLabel(master=target_train_frame, text="Rename target")
+                rename_train_var = tk.StringVar()
+                rename_train_entry = ctk.CTkEntry(master=target_train_frame, textvariable=rename_train_var)
 
-            original_train_label.place(relx=0.05, rely=0)
-            target_train_label.place(relx=0.05, rely=0.2)
-            rename_train_label.place(relx=0.05, rely=0.5)
-            rename_train_entry.place(relx=0.05, rely=0.7)
-            target_train_frame.grid(row=training_classes.index(target), column=0, pady=10)
+                original_train_label.place(relx=0.05, rely=0)
+                target_train_label.place(relx=0.05, rely=0.2)
+                rename_train_label.place(relx=0.05, rely=0.5)
+                rename_train_entry.place(relx=0.05, rely=0.7)
+                target_train_frame.grid(row=training_classes.index(target), column=0, pady=10)
 
-            self.view.vars[f"y rename {training_classes.index(target)}"] = rename_train_var
-            self.view.vars[f"y label {training_classes.index((target))}"] = target_train_label_var
+                self.view.vars[f"y rename {training_classes.index(target)}"] = rename_train_var
+                self.view.vars[f"y label {training_classes.index((target))}"] = target_train_label_var
 
-            self.model.plot_data[f"y rename {training_classes.index(target)}"] = rename_train_var.get()
-            self.model.plot_data[f"y label {training_classes.index(target)}"] = target_train_label_var.get()
+                self.model.plot_data[f"y rename {training_classes.index(target)}"] = rename_train_var.get()
+                self.model.plot_data[f"y label {training_classes.index(target)}"] = target_train_label_var.get()
 
-            for key, widget in {f"y rename {training_classes.index(target)}": rename_train_var,
-                                f"y label {training_classes.index(target)}": target_train_label_var}.items():
-                widget.trace("w", partial(self.trace_vars_to_model, key))
+                for key, widget in {f"y rename {training_classes.index(target)}": rename_train_var,
+                                    f"y label {training_classes.index(target)}": target_train_label_var}.items():
+                    widget.trace("w", partial(self.trace_vars_to_model, key))
 
-        for target in testing_classes:
-            target_test_frame = ctk.CTkFrame(master=ticks_test_scrollable, height=130, width=225)
-            original_test_label = ctk.CTkLabel(master=target_test_frame, text="Original target:")
-            target_test_label_var = tk.StringVar(value=target)
-            target_test_label = ctk.CTkLabel(master=target_test_frame, textvariable=target_test_label_var)
-            rename_test_label = ctk.CTkLabel(master=target_test_frame, text="Rename target")
-            rename_test_var = tk.StringVar()
-            rename_test_entry = ctk.CTkEntry(master=target_test_frame, textvariable=rename_test_var)
+            for target in testing_classes:
+                target_test_frame = ctk.CTkFrame(master=ticks_test_scrollable, height=130, width=225)
+                original_test_label = ctk.CTkLabel(master=target_test_frame, text="Original target:")
+                target_test_label_var = tk.StringVar(value=target)
+                target_test_label = ctk.CTkLabel(master=target_test_frame, textvariable=target_test_label_var)
+                rename_test_label = ctk.CTkLabel(master=target_test_frame, text="Rename target")
+                rename_test_var = tk.StringVar()
+                rename_test_entry = ctk.CTkEntry(master=target_test_frame, textvariable=rename_test_var)
 
-            original_test_label.place(relx=0.05, rely=0)
-            target_test_label.place(relx=0.05, rely=0.2)
-            rename_test_label.place(relx=0.05, rely=0.5)
-            rename_test_entry.place(relx=0.05, rely=0.7)
-            target_test_frame.grid(row=testing_classes.index(target), column=0, pady=10)
+                original_test_label.place(relx=0.05, rely=0)
+                target_test_label.place(relx=0.05, rely=0.2)
+                rename_test_label.place(relx=0.05, rely=0.5)
+                rename_test_entry.place(relx=0.05, rely=0.7)
+                target_test_frame.grid(row=testing_classes.index(target), column=0, pady=10)
 
-            self.view.vars[f"x rename {testing_classes.index(target)}"] = rename_test_var
-            self.view.vars[f"x label {testing_classes.index((target))}"] = target_test_label_var
+                self.view.vars[f"x rename {testing_classes.index(target)}"] = rename_test_var
+                self.view.vars[f"x label {testing_classes.index((target))}"] = target_test_label_var
 
-            self.model.plot_data[f"x rename {testing_classes.index(target)}"] = rename_test_var.get()
-            self.model.plot_data[f"x label {testing_classes.index(target)}"] = target_test_label_var.get()
+                self.model.plot_data[f"x rename {testing_classes.index(target)}"] = rename_test_var.get()
+                self.model.plot_data[f"x label {testing_classes.index(target)}"] = target_test_label_var.get()
 
-            for key, widget in {f"x rename {testing_classes.index(target)}": rename_test_var,
-                                f"x label {testing_classes.index(target)}": target_test_label_var}.items():
-                widget.trace("w", partial(self.trace_vars_to_model, key))
+                for key, widget in {f"x rename {testing_classes.index(target)}": rename_test_var,
+                                    f"x label {testing_classes.index(target)}": target_test_label_var}.items():
+                    widget.trace("w", partial(self.trace_vars_to_model, key))
 
     @staticmethod
     def rename_dict_key(d, old_key, new_key):
