@@ -246,9 +246,6 @@ class FeatureImportanceView(ctk.CTkFrame):
         if self.controller:
             self.controller.save_figure(fig)
 
-    def deiconify_toplevel(self, toplevel : ctk.CTkToplevel):
-        if toplevel.state() == 'withdrawn':
-            toplevel.deiconify()
 
     def axes_toplevel(self):
         width = 500
@@ -256,7 +253,7 @@ class FeatureImportanceView(ctk.CTkFrame):
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
         general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
         general_toplevel.withdraw()
-        self.buttons["axes"].configure(command=partial(self.deiconify_toplevel, general_toplevel))
+        self.buttons["axes"].configure(command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
 
         general_toplevel.title("Axes settings (Plot)")
         general_toplevel.resizable(False, False)

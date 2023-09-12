@@ -21,7 +21,7 @@ class MainView(ctk.CTkFrame):
         self.app = app
         self.app.geometry("1920x1080")
         self.app.resizable(1, 1)
-        #self.app.configure(height=720, width=1080)
+        # self.app.configure(height=720, width=1080)
         self.app.minsize(height=900, width=1440)
 
         self.master_frame = ctk.CTkFrame(master=self.app, )
@@ -34,7 +34,6 @@ class MainView(ctk.CTkFrame):
         self.tabs_view.add("Processing")
         self.tabs_view.add("Learning")
         self.tabs_view.add("Analysis")
-
 
         # ------------- MANAGING PARENT TABS -----------
         self.manage_home_tab()
@@ -68,14 +67,14 @@ class MainView(ctk.CTkFrame):
     #     # self.analysis_view.set_controller(self.main_controller.analysis_controller)
 
     def manage_home_tab(self):
-        message = "FireLearn GUI (Graphical User Interface) is an independent software using 'fiiireflyyy', "\
+        message = "FireLearn GUI (Graphical User Interface) is an independent software using 'fiiireflyyy', " \
                   "a third party python library developed by the same author. \n\n" \
-                  "It aims to provide machine learning and deep learning solutions in a user-friendly manner for biologists."\
+                  "It aims to provide machine learning and deep learning solutions in a user-friendly manner for biologists." \
                   "This tool is especially made for an approach of artificial intelligence applied to biology data " \
-                  "such as electrical recordings, or any kind of temporal data for instance. "\
-                  "It provides several tools for processing, learning and "\
+                  "such as electrical recordings, or any kind of temporal data for instance. " \
+                  "It provides several tools for processing, learning and " \
                   "analysis that can be used independently and on a variety of data within certain boundaries. \n\n" \
-                  "Help is available for each section of the software by clicking the small '?' icons next to each section. "\
+                  "Help is available for each section of the software by clicking the small '?' icons next to each section. " \
                   "FireLearn GUI is destined to be improved (bug tracking, more AI models, more analysis...). "
         bug_title_message = "There is a bug ? do you have a suggestion ?"
         bug_message = " You can help with the development of the project " \
@@ -85,7 +84,8 @@ class MainView(ctk.CTkFrame):
         disclaimer_message = f"In development, for personal use only - LUTZ W. 2023\nv{params.version}"
 
         disclaimer_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=disclaimer_message)
-        welcome_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=f"Welcome to FireLearn GUI", font=('', 18, 'bold'))
+        welcome_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=f"Welcome to FireLearn GUI",
+                                     font=('', 18, 'bold'))
         welcome_message_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=message, font=('', 15), wraplength=500)
         bug_title_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=bug_title_message, font=('', 18, 'bold'))
         bug_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=bug_message, font=('', 15), wraplength=500)
@@ -136,3 +136,8 @@ class MainView(ctk.CTkFrame):
     def chose_color(view, color_button, selection_button_name):
         view.buttons[selection_button_name].configure(fg_color=color_button.cget('fg_color'))
         view.vars[selection_button_name].set(color_button.cget('text'))
+
+    @staticmethod
+    def deiconify_toplevel(toplevel: ctk.CTkToplevel):
+        if toplevel.state() == 'withdrawn':
+            toplevel.deiconify()

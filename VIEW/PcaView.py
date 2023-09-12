@@ -161,8 +161,6 @@ class PcaView(ctk.CTkFrame):
                             'ellipsis': ellipsis_var}.items():
             widget.trace("w", partial(self.trace_vars_to_model, key))
 
-    def set_label_data_columns(self):
-        pass
 
     def add_label_data(self, scrollable_frame):
         if self.controller:
@@ -211,6 +209,10 @@ class PcaView(ctk.CTkFrame):
         width = 500
         height = 800
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
+        general_toplevel.withdraw()
+        self.buttons["axes"].configure(command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
+
         general_toplevel.title("Axes settings (Plot)")
         general_toplevel.resizable(False, False)
         general_toplevel.attributes("-topmost", 1)
@@ -368,6 +370,11 @@ class PcaView(ctk.CTkFrame):
         width = 450
         height = 400
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
+        general_toplevel.withdraw()
+        self.buttons["legend"].configure(
+            command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
+
         general_toplevel.title("Legend (Plot)")
         general_toplevel.resizable(False, False)
         general_toplevel.attributes("-topmost", 1)
@@ -466,6 +473,11 @@ class PcaView(ctk.CTkFrame):
         width = 450
         height = 250
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
+        general_toplevel.withdraw()
+        self.buttons["general settings"].configure(
+            command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
+
         general_toplevel.title("General settings (Plot)")
         general_toplevel.resizable(False, False)
         general_toplevel.attributes("-topmost", 1)

@@ -139,6 +139,10 @@ class ConfusionView(ctk.CTkFrame):
         export_data_button.place(anchor=tk.CENTER, relx=0.5, rely=0.7, relheight=0.05)
         draw_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.85, relheight=0.1)
         update_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.95, relheight=0.05)
+        
+        self.buttons["general settings"] = general_settings_button
+        self.buttons["legend"] = legend_button
+        self.buttons["axes"] = axes_button
 
         # --------------- PLOT_FRAME
         plot_frame = ctk.CTkFrame(master=self.master)
@@ -178,6 +182,10 @@ class ConfusionView(ctk.CTkFrame):
         width = 450
         height = 400
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
+        general_toplevel.withdraw()
+        self.buttons["legend"].configure(command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
+        
         general_toplevel.title("Legend (Confusion)")
         general_toplevel.resizable(False, False)
         general_toplevel.attributes("-topmost", 1)
@@ -276,6 +284,10 @@ class ConfusionView(ctk.CTkFrame):
         width = 450
         height = 250
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
+        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
+        general_toplevel.withdraw()
+        self.buttons["general settings"].configure(command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
+        
         general_toplevel.title("General settings (Confusion)")
         general_toplevel.resizable(False, False)
         general_toplevel.attributes("-topmost", 1)
@@ -334,6 +346,10 @@ class ConfusionView(ctk.CTkFrame):
             width = 500
             height = 800
             general_toplevel = ctk.CTkToplevel(width=width, height=height)
+            general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
+            general_toplevel.withdraw()
+            self.buttons["axes"].configure(command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
+            
             general_toplevel.title("Axes settings (Confusion)")
             general_toplevel.resizable(False, False)
             general_toplevel.attributes("-topmost", 1)
