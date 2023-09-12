@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 
 import customtkinter as ctk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
+from tkinter import ttk
 import params as p
 from CONTROLLER.FeatureImportanceController import FeatureImportanceController
+
+from CONTROLLER import input_validation as ival
 
 
 class FeatureImportanceView(ctk.CTkFrame):
@@ -15,7 +17,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         super().__init__(master=app)
         self.master = master
         self.parent_view = parent_view
-        self.controller = FeatureImportanceController(self,)
+        self.main_view = self.parent_view.parent_view
+        self.controller = FeatureImportanceController(self, )
 
         self.toplevels = {}
         self.entries = {}
@@ -31,13 +34,11 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         self.manage_features_tab()
 
-
     def set_controller(self, controller):
         self.controller = controller
-        
+
     def manage_features_tab(self):
         # ---------------- FRAMES
-
 
         # --------------- INIT FRAME
         init_frame = ctk.CTkFrame(master=self.master)
@@ -68,7 +69,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         body_label = ctk.CTkLabel(master=params_frame, text="BODY")
         title_font_label = ctk.CTkLabel(master=params_frame, text="Title font:")
         title_font_var = tk.StringVar(value=p.DEFAULT_FONT)
-        title_font_cbbox = tk.ttk.Combobox(master=params_frame, values=p.FONTS, state='readonly', textvariable=title_font_var)
+        title_font_cbbox = tk.ttk.Combobox(master=params_frame, values=p.FONTS, state='readonly',
+                                           textvariable=title_font_var)
         body_label.place(relx=0, rely=0)
         title_font_label.place(relx=0, rely=0.1)
         title_font_cbbox.place(relx=0, rely=0.18, relwidth=0.4)
@@ -83,7 +85,8 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         title_size_label = ctk.CTkLabel(master=params_frame, text="Title size:")
         title_size_var = tk.IntVar(value=p.DEFAULT_FONTSIZE)
-        title_size_slider = ctk.CTkSlider(master=params_frame, from_=8, to=32, number_of_steps=24, variable=title_size_var)
+        title_size_slider = ctk.CTkSlider(master=params_frame, from_=8, to=32, number_of_steps=24,
+                                          variable=title_size_var)
         title_size_value_label = ctk.CTkLabel(master=params_frame, textvariable=title_size_var)
         title_size_label.place(relx=0.5, rely=0.15)
         title_size_slider.place(relx=0.5, rely=0.23, relwidth=0.4)
@@ -100,10 +103,13 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         linewidth_label = ctk.CTkLabel(master=params_frame, text="Linewidth:")
         linewidth_var = tk.StringVar(value=p.DEFAULT_LINEWIDTH)
-        linewidth_entry = ctk.CTkEntry(master=params_frame, textvariable=linewidth_var)
+        linewidth_entry = ttk.Entry(master=params_frame, textvariable=linewidth_var, validate='focus',)
+
+
         linewidth_label.place(relx=0.5, rely=0.30)
         linewidth_entry.place(relx=0.5, rely=0.38, relwidth=0.2)
         self.vars["linewidth"] = linewidth_var
+        self.entries["linewidth"] = linewidth_entry
 
         color_label = ctk.CTkLabel(master=params_frame, text="Color:")
         color_var = tk.StringVar(value="green")
@@ -125,14 +131,16 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         fill_label = ctk.CTkLabel(master=params_frame, text="Fill:")
         fill_var = tk.StringVar(value="None")
-        fill_cbbox = tk.ttk.Combobox(master=params_frame, values=["None", "Above", "Below"], state='readonly', textvariable=fill_var)
+        fill_cbbox = tk.ttk.Combobox(master=params_frame, values=["None", "Above", "Below"], state='readonly',
+                                     textvariable=fill_var)
         fill_label.place(relx=0.5, rely=0.5)
         fill_cbbox.place(relx=0.5, rely=0.58, relwidth=0.40)
         self.vars["fill"] = fill_var
 
         alpha_fill_label = ctk.CTkLabel(master=params_frame, text="Fill alpha:")
         alpha_fill_var = tk.DoubleVar(value=p.DEFAULT_FILLALPHA)
-        alpha_fill_slider = ctk.CTkSlider(master=params_frame, from_=0, to=1, number_of_steps=10, variable=alpha_fill_var)
+        alpha_fill_slider = ctk.CTkSlider(master=params_frame, from_=0, to=1, number_of_steps=10,
+                                          variable=alpha_fill_var)
         alpha_fill_value_label = ctk.CTkLabel(master=params_frame, textvariable=alpha_fill_var)
         alpha_fill_label.place(relx=0.5, rely=0.68)
         alpha_fill_slider.place(relx=0.5, rely=0.77, relwidth=0.4)
@@ -146,7 +154,6 @@ class FeatureImportanceView(ctk.CTkFrame):
         dpi_entry.place(relx=0, rely=0.9, relwidth=0.2)
         self.entries["dpi"] = dpi_entry
         self.vars["dpi"] = dpi_var
-
 
         # --------------- PLOT
 
@@ -188,14 +195,15 @@ class FeatureImportanceView(ctk.CTkFrame):
         load_clf_button.configure(command=self.load_clf)
         draw_button.configure(command=self.draw_figure)
         color_button.configure(command=partial(self.select_color, view=self, selection_button_name='color'))
-
         axes_button.configure(command=self.axes_toplevel)
-
         save_figure_button.configure(command=partial(self.save_figure, self.figures["feature importance"][0]))
         export_button.configure(command=partial(self.export_figure_data, self.figures["feature importance"][1]))
-
         save_config_button.configure(command=self.save_config)
         load_config_button.configure(command=self.load_config)
+
+        linewidth_entry.configure(validatecommand=(self.register(partial(self.main_view.is_empty_or_int,
+                                                                         linewidth_entry)), '%P'), )
+
 
         # ----- TRACE
         alpha_var.trace("w", partial(self.trace_vars_to_model, "alpha"))
@@ -214,10 +222,10 @@ class FeatureImportanceView(ctk.CTkFrame):
 
     def select_color(self, view, selection_button_name):
         self.parent_view.parent_view.select_color(view=view, selection_button_name=selection_button_name)
-        
+
     def update_slider_value(self, value, var):
         self.parent_view.update_slider_value(value, var)
-    
+
     def dummy_figure(self):
         if self.controller:
             return self.controller.dummy_figure()
@@ -246,14 +254,14 @@ class FeatureImportanceView(ctk.CTkFrame):
         if self.controller:
             self.controller.save_figure(fig)
 
-
     def axes_toplevel(self):
         width = 500
         height = 800
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
         general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
         general_toplevel.withdraw()
-        self.buttons["axes"].configure(command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
+        self.buttons["axes"].configure(
+            command=partial(self.parent_view.parent_view.deiconify_toplevel, general_toplevel))
 
         general_toplevel.title("Axes settings (Plot)")
         general_toplevel.resizable(False, False)

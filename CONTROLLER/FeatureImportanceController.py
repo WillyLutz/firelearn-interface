@@ -153,13 +153,8 @@ class FeatureImportanceController:
 
         df.to_csv(filepath, index=False)
 
-    def check_params_validity(self):
-        if not self.input_validation_feature_importance():
-            return False
-        return True
-
     def save_config(self, ):
-        if self.check_params_validity():
+        if self.input_validation_feature_importance():
             f = filedialog.asksaveasfilename(defaultextension=".ficfg",
                                              filetypes=[("Analysis - Feature Importance", "*.ficfg"), ])
             if f:

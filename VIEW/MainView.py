@@ -141,3 +141,20 @@ class MainView(ctk.CTkFrame):
     def deiconify_toplevel(toplevel: ctk.CTkToplevel):
         if toplevel.state() == 'withdrawn':
             toplevel.deiconify()
+
+
+    def is_empty_or_int(self, widget, *args):
+        try:
+            value = widget.get()
+            if value == "":
+                return True
+            int(value)
+            self.change_entry_color(widget, 'black')
+            return True
+        except ValueError:
+            self.change_entry_color(widget, 'red')
+            return False
+
+    def change_entry_color(self, widget, color, *args):
+        widget.configure(foreground=color)
+
