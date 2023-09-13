@@ -8,7 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import ttk
 import params as p
 from CONTROLLER.FeatureImportanceController import FeatureImportanceController
-
+from WIDGETS.ErrEntry import ErrEntry
 from CONTROLLER import input_validation as ival
 
 
@@ -103,8 +103,7 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         linewidth_label = ctk.CTkLabel(master=params_frame, text="Linewidth:")
         linewidth_var = tk.StringVar(value=p.DEFAULT_LINEWIDTH)
-        linewidth_entry = ttk.Entry(master=params_frame, textvariable=linewidth_var, validate='focus',)
-
+        linewidth_entry = ErrEntry(master=params_frame, textvariable=linewidth_var, error_message='blablabla' )
 
         linewidth_label.place(relx=0.5, rely=0.30)
         linewidth_entry.place(relx=0.5, rely=0.38, relwidth=0.2)
@@ -201,8 +200,15 @@ class FeatureImportanceView(ctk.CTkFrame):
         save_config_button.configure(command=self.save_config)
         load_config_button.configure(command=self.load_config)
 
-        linewidth_entry.configure(validatecommand=(self.register(partial(self.main_view.is_empty_or_int,
+        linewidth_entry.configure(validate='focus',
+                                  validatecommand=(self.register(partial(self.main_view.is_empty_or_int,
                                                                          linewidth_entry)), '%P'), )
+        dpi_entry.configure(validate='focus',
+                                  validatecommand=(self.register(partial(self.main_view.is_empty_or_int,
+                                                                         dpi_entry)), '%P'), )
+        title_entry.configure(validate='focus',
+                                  validatecommand=(self.register(partial(self.main_view.has_forbidden_characters,
+                                                                         title_entry)), '%P'), )
 
 
         # ----- TRACE

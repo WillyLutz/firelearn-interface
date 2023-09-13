@@ -155,6 +155,35 @@ class MainView(ctk.CTkFrame):
             self.change_entry_color(widget, 'red')
             return False
 
+    def is_positive_int_or_emtpy(self, widget, *args):
+        try:
+            value = widget.get()
+            if value == "":
+                return True
+
+            if int(value) >= 0:
+                self.change_entry_color(widget, 'black')
+                return True
+        except ValueError:
+            self.change_entry_color(widget, 'red')
+            return False
+
+    def has_forbidden_characters(self, widget, *args):
+        forbidden_characters = "<>:\"|?*[]"
+        found_forbidden = []
+        value = widget.get()
+        for fc in forbidden_characters:
+            if fc in value:
+                found_forbidden.append(fc)
+        if found_forbidden:
+            self.change_entry_color(widget, 'red')
+            return False
+        else:
+            self.change_entry_color(widget, 'black')
+            return True
+
     def change_entry_color(self, widget, color, *args):
-        widget.configure(foreground=color)
+        widget.configure(fg=color)
+
+
 
