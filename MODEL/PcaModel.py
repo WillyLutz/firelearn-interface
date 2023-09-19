@@ -38,7 +38,8 @@ class PcaModel:
                                       'title size': p.DEFAULT_FONTSIZE, 'dpi': p.DEFAULT_DPI,
                                       }
 
-        self.plot_data = {'xdata': 'None', 'n components': 2, 'ellipsis alpha': p.DEFAULT_ALPHA}
+        self.plot_data = {'xdata': 'None', 'n components': 2, 'ellipsis alpha': p.DEFAULT_ALPHA, 'show ratio': 1,
+                           }
 
 
     def load_model(self, path):

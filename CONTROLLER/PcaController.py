@@ -95,6 +95,12 @@ class PcaController:
             df_apply = df[df[label_column].isin(labels_to_apply)]
             pcdf_applied = self.apply_pca(pca, df_apply, label_column=label_column)
 
+            ratio = [round(x, 2) for x in ratio]
+            show_ratiox = ''
+            show_ratioy = ''
+            if self.view.vars["show ratio"].get():
+                show_ratiox = f' ({ratio[0]}%)'
+                show_ratioy = f' ({ratio[1]}%)'
 
             # ----- PLOTTING
             all_ymin = []  # for ticks
@@ -136,10 +142,10 @@ class PcaController:
 
 
             # ---- LABELS
-            ax.set_xlabel(self.model.plot_axes["x label"],
+            ax.set_xlabel(self.model.plot_axes["x label"] + show_ratiox,
                           fontdict={"font": self.model.plot_axes["axes font"],
                                     "fontsize": self.model.plot_axes["x label size"]})
-            ax.set_ylabel(self.model.plot_axes["y label"],
+            ax.set_ylabel(self.model.plot_axes["y label"] + show_ratioy,
                           fontdict={"font": self.model.plot_axes["axes font"],
                                     "fontsize": self.model.plot_axes["y label size"]})
             ax.set_title(self.model.plot_general_settings["title"],

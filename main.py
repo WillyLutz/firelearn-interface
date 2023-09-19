@@ -8,8 +8,11 @@ import customtkinter
 import params
 from VIEW.MainView import MainView
 import customtkinter as ctk
-from PIL import Image
+from PIL import Image, ImageTk
 import tkinter as tk
+
+import ctypes
+
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
@@ -24,7 +27,10 @@ def onClosure(app):
 
 
 if __name__ == '__main__':
+
+
     app = App()
     app.protocol('WM_DELETE_WINDOW', partial(onClosure, app))
+
     app.mainloop()
 

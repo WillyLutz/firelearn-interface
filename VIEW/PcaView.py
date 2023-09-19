@@ -349,6 +349,12 @@ class PcaView(ctk.CTkFrame):
         self.cbboxes["axes font"] = axes_font_cbbox
         self.vars["axes font"] = axes_font_var
 
+        ratio_var = tk.IntVar(value=self.controller.model.plot_data['show ratio'])
+        ratio_switch = ctk.CTkSwitch(master=general_toplevel, state='readonly', text='Show components ratios',  variable=ratio_var)
+        ratio_switch.place(x=0, y=720)
+        self.switches["show ratio"] = ratio_switch
+        self.vars["show ratio"] = ratio_var
+
         # ----- TRACE
         x_label_var.trace("w", partial(self.trace_vars_to_model, 'x label'))
         y_label_var.trace("w", partial(self.trace_vars_to_model, 'y label'))
@@ -363,6 +369,7 @@ class PcaView(ctk.CTkFrame):
         round_xticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round x ticks'))
         round_yticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round y ticks'))
         axes_font_var.trace("w", partial(self.trace_vars_to_model, 'axes font'))
+        ratio_var.trace('w', partial(self.trace_vars_to_model, 'show ratio'))
 
     def legend_toplevel(self):
         # todo : allow single window
