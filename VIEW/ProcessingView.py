@@ -214,7 +214,7 @@ class ProcessingView(ctk.CTkFrame):
 
         sorting_button.configure(command=partial(self.select_parent_directory, sorting_sv))
         add_include_button.configure(
-            command=partial(self.add_subtract_to_include, include_entry, include_textbox, mode='add'))
+            command=partial(self.add_subtract_to_include, entry=include_entry, textbox=include_textbox, mode='add'))
         subtract_include_button.configure(
             command=partial(self.add_subtract_to_include, include_entry, include_textbox, mode='subtract'))
         add_exclude_button.configure(
@@ -229,6 +229,27 @@ class ProcessingView(ctk.CTkFrame):
                             mode='subtract'))
 
         single_file_button.configure(command=partial(self.select_single_file, single_file_sv))
+
+        include_entry.bind('<Return>',
+                           lambda event: self.add_subtract_to_include(include_entry, include_textbox, 'add'))
+        include_entry.bind('<Control-BackSpace>',
+                           lambda event: self.add_subtract_to_include(include_entry, include_textbox, 'subtract'))
+        exclude_entry.bind('<Return>',
+                           lambda event: self.add_subtract_to_exclude(exclude_entry, exclude_textbox, mode='add'))
+        exclude_entry.bind('<Control-BackSpace>',
+                           lambda event: self.add_subtract_to_exclude(exclude_entry, exclude_textbox, mode='subtract'))
+        id_target_entry.bind('<Return>',
+                             lambda event: self.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                    target_textbox,
+                                                                    'add'))
+        id_target_entry.bind('<Control-BackSpace>',
+                             lambda event: self.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                    target_textbox,
+                                                                    'subtract'))
+        rename_target_entry.bind('<Return>',
+                                 lambda event: self.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                        target_textbox,
+                                                                        'add'))
 
     def generate_content2(self):
 
@@ -559,16 +580,16 @@ class ProcessingView(ctk.CTkFrame):
         if self.controller:
             self.controller.select_single_file(strvar)
 
-    def add_subtract_to_include(self, entry, textbox, mode='add'):
+    def add_subtract_to_include(self, entry, textbox, mode='add', *args):
         if self.controller:
             self.controller.add_subtract_to_include(entry, textbox, mode)
 
-    def add_subtract_to_exclude(self, entry, textbox, mode='add'):
+    def add_subtract_to_exclude(self, entry, textbox, mode='add', *args):
         if self.controller:
             self.controller.add_subtract_to_exclude(entry, textbox, mode)
 
     def add_subtract_target(self, key_entry, value_entry, textbox,
-                            mode='add'):
+                            mode='add', *args):
         if self.controller:
             self.controller.add_subtract_target(key_entry, value_entry, textbox, mode)
 

@@ -241,12 +241,19 @@ class LearningView(ctk.CTkFrame):
         save_config_button.configure(command=self.save_config)
         learning_button.configure(command=self.learning)
         export_button.configure(command=self.export)
-        add_target_button.configure(command=partial(self.add_subtract_target, mode='add'))
-        subtract_target_button.configure(command=partial(self.add_subtract_target, mode='subtract'))
+        add_target_button.configure(command=partial(self.add_target, mode='add'))
+        subtract_target_button.configure(command=partial(self.subtract_target, mode='subtract'))
 
-    def add_subtract_target(self, mode='add'):
+        id_target_entry.bind('<Return>', self.add_target)
+        id_target_entry.bind('<Control-BackSpace>', self.subtract_target)
+
+    def add_target(self, *args):
         if self.controller:
-            self.controller.add_subtract_target(mode)
+            self.controller.add_subtract_target('add')
+
+    def subtract_target(self, *args):
+        if self.controller:
+            self.controller.add_subtract_target('subtract')
 
     def load_classifier(self):
         if self.switches["load rfc"].get():
