@@ -454,45 +454,8 @@ class ProcessingController:
     def check_params_validity(self):
         self.view.errors = {key: [] for (key, _) in self.view.errors.items()}
         self.update_errors()
+
         # -------- CONTENT 1
-        self.check_params_content1()
-        # -------- CONTENT 2
-        self.check_params_content2()
-        # -------- CONTENT 3
-        self.check_params_content3()
-        # -------- CONTENT 4
-        self.check_params_content4()
-        # -------- CONTENT 5
-        self.check_params_content5()
-
-        self.update_errors()
-
-        return True
-
-    def validate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(f"data/{step} green.png"), size=(120, 120))
-        self.view.image_buttons[step].configure(image=img)
-        self.view.step_check[step] = 1
-
-    def invalidate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(f"data/{step} red.png"), size=(120, 120))
-        self.view.image_buttons[str(step)].configure(image=img)
-        self.view.step_check[step] = 0
-
-    def update_errors(self):
-        text = ""
-        for step, errors in self.view.errors.items():
-            for error in errors:
-                text = text + f"STEP {step} - {error}\n\n"
-            if len(self.view.errors[step]) > 0:
-                self.invalidate_step(step)
-            else:
-                self.validate_step(step)
-        self.view.vars["errors"].set(text)
-
-    def check_params_content1(self):
-        def add_error(error):
-            self.view.errors["1"].append(error)
 
         if all([self.view.switches["single file"].get(), self.view.switches["sorting"].get()]):
             add_error("You can only chose one between Single file analysis or Multiple files analysis.")
@@ -516,10 +479,7 @@ class ProcessingController:
                 if fcs:
                     add_error(f"Forbidden characters in '{element}' : {fcs}")
 
-    def check_params_content2(self):
-        def add_error(error):
-            self.view.errors["2"].append(error)
-
+        # -------- CONTENT 2
         for widget_key in ["raw mea", "n electrodes", "sampling"]:
             if ival.widget_value_is_positive_int_or_empty(self.view.entries[widget_key]) is False:
                 add_error(f"entry value \'{self.view.entries[widget_key].get()}\' is not a positive integer.")
@@ -541,12 +501,7 @@ class ProcessingController:
             if not self.view.entries["sampling"].get():
                 add_error("You have to indicate a number of samples.")
 
-
-
-    def check_params_content3(self):
-        def add_error(error):
-            self.view.errors["3"].append(error)
-
+        # -------- CONTENT 3
         for widget_key in ["filter order", "filter sampling", "first frequency", "second frequency",
                            "harmonic frequency", "nth harmonic"]:
             if ival.widget_value_is_positive_int_or_empty(self.view.entries[widget_key]) is False:
@@ -579,10 +534,7 @@ class ProcessingController:
                 add_error(f"Both low cut and high cut frequencies are needed when"
                           f" using a f{self.view.cbboxes['filter type'].get()} filter")
 
-    def check_params_content4(self):
-        def add_error(error):
-            self.view.errors["4"].append(error)
-
+        # -------- CONTENT 4
         for widget, step in {"fft sampling": 4, "smoothing": 4}.items():
             if ival.widget_value_is_positive_int_or_empty(self.view.entries[widget]) is False:
                 add_error(f"entry \'{widget}\' is not positive.")
@@ -600,10 +552,7 @@ class ProcessingController:
             if not self.view.entries["smoothing"].get():
                 add_error("Number of final values needed to perform smoothing.")
 
-    def check_params_content5(self):
-        def add_error(error):
-            self.view.errors["5"].append(error)
-
+        # -------- CONTENT 5
         if self.view.entries["save files"].get() == '':
             add_error('You have to select a directory where to save your file.')
         elif os.path.isdir(self.view.entries["save files"].get()) is False:
@@ -616,3 +565,31 @@ class ProcessingController:
                 fcs = ival.value_has_forbidden_character(self.view.entries["keyword"].get())
                 if fcs:
                     add_error(f"Forbidden characters in '{self.view.entries['keyword'].get()}' : {fcs}")
+
+        self.update_errors()
+
+        return True
+
+    def validate_step(self, step):
+        img = ctk.CTkImage(dark_image=Image.open(f"data/{step} green.png"), size=(120, 120))
+        self.view.image_buttons[step].configure(image=img)
+        self.view.step_check[step] = 1
+
+    def invalidate_step(self, step):
+        img = ctk.CTkImage(dark_image=Image.open(f"data/{step} red.png"), size=(120, 120))
+        self.view.image_buttons[str(step)].configure(image=img)
+        self.view.step_check[step] = 0
+
+    def update_errors(self):
+        text = ""
+        for step, errors in self.view.errors.items():
+            for error in errors:
+                text = text + f"STEP {step} - {error}\n\n"
+            if len(self.view.errors[step]) > 0:
+                self.invalidate_step(step)
+            else:
+                self.validate_step(step)
+        self.view.vars["errors"].set(text)
+
+
+

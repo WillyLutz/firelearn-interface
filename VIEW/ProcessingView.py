@@ -30,12 +30,10 @@ class ProcessingView(ctk.CTkFrame):
         self.image_buttons = {}
         self.labels = {}
 
-        self.errors = {"1": [], "2": [], "3": [], "4": [], "5": [], }
-
         self.frames = {}
         self.step_check = {"1": 2, "2": 2, "3": 2, "4": 2, "5": 2}
         self.content_frame = ctk.CTkFrame(master=self.master)
-        self.content_frame.place(relx=0.15, rely=0, relwidth=0.55, relheight=0.9)
+        self.content_frame.place(relx=0.15, rely=0, relwidth=0.85, relheight=0.9)
 
         self.manage_processing_tab()
 
@@ -53,55 +51,46 @@ class ProcessingView(ctk.CTkFrame):
         four_ibutton = ImageButton(master=self.master,
                                    img=ctk.CTkImage(dark_image=Image.open("data/4 grey.png"), size=(120, 120)),
                                    command=partial(self.show_content4, ))
-        five_ibutton = ImageButton(master=self.master,
-                                   img=ctk.CTkImage(dark_image=Image.open("data/5 grey.png"), size=(120, 120)),
-                                   command=partial(self.show_content5, ))
+
 
         one_ibutton.place(relx=0, rely=0)
         two_ibutton.place(relx=0, rely=0.2)
         three_ibutton.place(relx=0, rely=0.4)
         four_ibutton.place(relx=0, rely=0.6)
-        five_ibutton.place(relx=0, rely=0.8)
 
         self.image_buttons["1"] = one_ibutton
         self.image_buttons["2"] = two_ibutton
         self.image_buttons["3"] = three_ibutton
         self.image_buttons["4"] = four_ibutton
-        self.image_buttons["5"] = five_ibutton
 
         content_1_frame = ctk.CTkFrame(master=self.content_frame, )
         content_2_frame = ctk.CTkFrame(master=self.content_frame, )
         content_3_frame = ctk.CTkFrame(master=self.content_frame, )
         content_4_frame = ctk.CTkFrame(master=self.content_frame, )
-        content_5_frame = ctk.CTkFrame(master=self.content_frame, )
         self.frames["content 1"] = content_1_frame
         self.frames["content 2"] = content_2_frame
         self.frames["content 3"] = content_3_frame
         self.frames["content 4"] = content_4_frame
-        self.frames["content 5"] = content_5_frame
         self.generate_content1()
         self.generate_content2()
         self.generate_content3()
         self.generate_content4()
-        self.generate_content5()
         self.show_content1()
 
         check_all_button = ctk.CTkButton(master=self.master, text="Check all steps",
                                          command=self.controller.check_params_validity,
                                          fg_color="green")
-        check_all_button.place(anchor=tk.S, relx=0.5, rely=1)
+        save_model_button = ctk.CTkButton(master=self.master, text="Save config", fg_color="lightslategray",
+                                          command=self.save_config)
+        load_model_button = ctk.CTkButton(master=self.master, text="Load config", fg_color="lightslategray",
+                                          command=self.load_model)
+        process_exec_button = ctk.CTkButton(master=self.master, fg_color="green", text="Process",
+                                            command=self.processing)
 
-        error_frame = ctk.CTkFrame(master=self.master)
-        error_frame.place(relx=0.75, rely=0, relwidth=0.2, relheight=0.9)
-        self.frames["error"] = error_frame
-
-        fixed_label = ctk.CTkLabel(master=error_frame, text_color='orangered', text="ERRORS:")
-        fixed_label.place(relx=0, rely=0)
-
-        errors = tk.StringVar()
-        error_label = ctk.CTkLabel(master=error_frame, text_color="orangered", textvariable=errors, wraplength=300)
-        error_label.place(relx=0, rely=0.1)
-        self.vars["errors"] = errors
+        check_all_button.place(anchor=tk.S, relx=0.25, rely=0.95)
+        save_model_button.place(anchor=tk.S, relx=0.35, rely=0.95, )
+        load_model_button.place(anchor=tk.S, relx=0.45, rely=0.95, )
+        process_exec_button.place(anchor=tk.S, relx=0.55, rely=0.95, relheight=0.05)
 
     def generate_content1(self):
 
@@ -159,39 +148,64 @@ class ProcessingView(ctk.CTkFrame):
         single_file_entry = ctk.CTkEntry(master=content_1_frame, state='disabled', textvariable=single_file_sv)
         single_file_button = ctk.CTkButton(master=content_1_frame, text="Open", state='normal')
 
+        # ----- EXECUTE
+        exec_helper = Helper(master=content_1_frame, event_key="exec")
+        random_key_exec_switch = ctk.CTkSwitch(master=content_1_frame, text="Add random key to file names")
+        timestamp_exec_switch = ctk.CTkSwitch(master=content_1_frame, text="Add timestamp to file names")
+        keyword_exec_switch = ctk.CTkSwitch(master=content_1_frame, text="Add keyword to file names")
+        keyword_sv = ctk.StringVar()
+        keyword_exec_entry = ctk.CTkEntry(master=content_1_frame, state='normal', textvariable=keyword_sv)
+        make_dataset_switch = ctk.CTkSwitch(master=content_1_frame,
+                                            text="Make resulting files as datasets for learning")
+        save_files_exec_label = ctk.CTkLabel(master=content_1_frame, text="Save processed files under:",
+                                             text_color=gp.enabled_label_color)
+        save_exec_sv = ctk.StringVar()
+        save_exec_entry = ctk.CTkEntry(master=content_1_frame, textvariable=save_exec_sv)
+        save_exec_button = ctk.CTkButton(master=content_1_frame, text="Open")
+
         # ------- MANAGE WIDGETS
         sorting_helper.place(anchor=ctk.NE, relx=1, rely=0)
 
         sorting_files_switch.place(relx=0, rely=0)
         sorting_label.place(relx=0, rely=0.05)
-        sorting_entry.place(relx=0, rely=0.1, relwidth=0.8)
-        sorting_button.place(relx=0.8, rely=0.1, relwidth=0.15)
+        sorting_entry.place(relx=0, rely=0.1, relwidth=0.6)
+        sorting_button.place(relx=0.6, rely=0.1, relwidth=0.10)
 
-        to_include_label.place(relx=0.0, rely=0.2)
-        include_entry.place(relx=0.10, rely=0.2, relwidth=0.20)
-        add_include_button.place(relx=0.35, rely=0.2)
-        subtract_include_button.place(relx=0.40, rely=0.2)
-        include_textbox.place(relx=0.0, rely=0.25, relwidth=0.45, relheight=0.15)
+        to_include_label.place(relx=0.0, rely=0.16)
+        include_entry.place(relx=0.0, rely=0.2, relwidth=0.10)
+        add_include_button.place(relx=0.12, rely=0.2)
+        subtract_include_button.place(relx=0.15, rely=0.2)
+        include_textbox.place(relx=0.0, rely=0.25, relwidth=0.2, relheight=0.15)
 
-        to_exclude_label.place(relx=0.55, rely=0.2)
-        exclude_entry.place(relx=0.65, rely=0.2, relwidth=0.20)
-        add_exclude_button.place(relx=0.9, rely=0.2)
-        subtract_exclude_button.place(relx=0.95, rely=0.2)
-        exclude_textbox.place(relx=0.55, rely=0.25, relwidth=0.45, relheight=0.15)
+        to_exclude_label.place(relx=0.3, rely=0.16)
+        exclude_entry.place(relx=0.3, rely=0.2, relwidth=0.10)
+        add_exclude_button.place(relx=0.42, rely=0.2)
+        subtract_exclude_button.place(relx=0.45, rely=0.2)
+        exclude_textbox.place(relx=0.3, rely=0.25, relwidth=0.2, relheight=0.15)
 
-        key_target_label.place(relx=0.05, rely=0.5)
-        value_target_label.place(relx=0.38, rely=0.5)
-        id_target_entry.place(relx=0.05, rely=0.55, relwidth=0.3)
-        rename_target_entry.place(relx=0.38, rely=0.55, relwidth=0.3)
-        add_target_button.place(relx=0.75, rely=0.55)
-        subtract_target_button.place(relx=0.85, rely=0.55)
-        target_textbox.place(relx=0.05, rely=0.6, relwidth=0.9, relheight=0.15)
+        key_target_label.place(relx=0.6, rely=0.16)
+        value_target_label.place(relx=0.8, rely=0.16)
+        id_target_entry.place(relx=0.6, rely=0.2, relwidth=0.1)
+        rename_target_entry.place(relx=0.8, rely=0.2, relwidth=0.1)
+        add_target_button.place(relx=0.93, rely=0.2)
+        subtract_target_button.place(relx=0.96, rely=0.2)
+        target_textbox.place(relx=0.6, rely=0.25, relwidth=0.4, relheight=0.15)
 
-        single_file_helper.place(anchor=ctk.NE, relx=1, rely=0.85)
-        single_file_switch.place(relx=0, rely=0.85)
-        single_file_label.place(relx=0, rely=0.9)
-        single_file_entry.place(relx=0.2, rely=0.9, relwidth=0.6)
-        single_file_button.place(relx=0.8, rely=0.9, relwidth=0.15)
+        single_file_helper.place(anchor=ctk.NE, relx=1, rely=0.45)
+        single_file_switch.place(relx=0, rely=0.45)
+        single_file_label.place(relx=0, rely=0.5)
+        single_file_entry.place(relx=0, rely=0.55, relwidth=0.6)
+        single_file_button.place(relx=0.6, rely=0.55, relwidth=0.1)
+
+        exec_helper.place(anchor=ctk.NE, relx=1, rely=0.65)
+        random_key_exec_switch.place(relx=0, rely=0.65)
+        timestamp_exec_switch.place(relx=0, rely=0.75)
+        keyword_exec_switch.place(relx=0, rely=0.85)
+        keyword_exec_entry.place(relx=0, rely=0.9, relwidth=0.4)
+        make_dataset_switch.place(relx=0.5, rely=0.65)
+        save_files_exec_label.place(relx=0.5, rely=0.75)
+        save_exec_entry.place(relx=0.5, rely=0.8, relwidth=0.4)
+        save_exec_button.place(relx=0.9, rely=0.8, relwidth=0.1)
 
         self.switches["sorting"] = sorting_files_switch
         self.vars["sorting"] = sorting_sv
@@ -210,6 +224,14 @@ class ProcessingView(ctk.CTkFrame):
         self.vars["to include"] = include_sv
         self.entries["to include"] = include_entry
         self.textboxes["to include"] = include_textbox
+        self.switches["random key"] = random_key_exec_switch
+        self.switches["timestamp"] = timestamp_exec_switch
+        self.switches["keyword"] = keyword_exec_switch
+        self.switches["make dataset"] = make_dataset_switch
+        self.entries["keyword"] = keyword_exec_entry
+        self.entries["save files"] = save_exec_entry
+        self.vars["keyword"] = keyword_sv
+        self.vars["save files"] = save_exec_sv
         # ------------ CONFIGURE
 
         sorting_button.configure(command=partial(self.select_parent_directory, sorting_sv))
@@ -227,6 +249,11 @@ class ProcessingView(ctk.CTkFrame):
         subtract_target_button.configure(
             command=partial(self.add_subtract_target, id_target_entry, rename_target_entry, target_textbox,
                             mode='subtract'))
+        keyword_exec_switch.configure(
+            command=partial(self.controller.modulate_entry_state_by_switch, keyword_exec_switch,
+                            keyword_exec_entry))
+
+        save_exec_button.configure(command=partial(self.select_save_directory, save_exec_sv))
 
         single_file_button.configure(command=partial(self.select_single_file, single_file_sv))
 
@@ -465,71 +492,12 @@ class ProcessingView(ctk.CTkFrame):
         self.vars["smoothing"] = smooth_sv
         self.entries["smoothing"] = smooth_entry
 
-    def generate_content5(self):
-        exec_frame = self.frames['content 5']
-
-        # ------- EXECUTE PROCESSING ---------------
-        exec_helper = Helper(master=exec_frame, event_key="exec")
-        exec_helper.place(anchor=ctk.NE, relx=1, rely=0)
-
-        random_key_exec_switch = ctk.CTkSwitch(master=exec_frame, text="Add random key to file names")
-        random_key_exec_switch.place(relx=0, rely=0)
-
-        timestamp_exec_switch = ctk.CTkSwitch(master=exec_frame, text="Add timestamp to file names")
-        timestamp_exec_switch.place(relx=0, rely=0.10)
-
-        keyword_exec_switch = ctk.CTkSwitch(master=exec_frame, text="Add keyword to file names")
-        keyword_exec_switch.place(relx=0, rely=0.20)
-        keyword_sv = ctk.StringVar()
-        keyword_exec_entry = ctk.CTkEntry(master=exec_frame, state='normal', textvariable=keyword_sv)
-        keyword_exec_entry.place(relx=0, rely=0.30, relwidth=0.7)
-
-        make_dataset_switch = ctk.CTkSwitch(master=exec_frame, text="Make resulting files as datasets for learning")
-        make_dataset_switch.place(relx=0, rely=0.5)
-
-        save_files_exec_label = ctk.CTkLabel(master=exec_frame, text="Save processed files under:",
-                                             text_color=gp.enabled_label_color)
-        save_files_exec_label.place(relx=0, rely=0.6)
-        save_exec_sv = ctk.StringVar()
-        save_exec_entry = ctk.CTkEntry(master=exec_frame, textvariable=save_exec_sv)
-        save_exec_entry.place(relx=0, rely=0.7, relwidth=0.7)
-        save_exec_button = ctk.CTkButton(master=exec_frame, text="Open")
-        save_exec_button.place(relx=0.8, rely=0.7, relwidth=0.15)
-
-        save_model_button = ctk.CTkButton(master=exec_frame, text="Save config", fg_color="lightslategray")
-        save_model_button.place(relx=0, rely=0.9, relwidth=0.3, relheight=0.10)
-        load_model_button = ctk.CTkButton(master=exec_frame, text="Load config", fg_color="lightslategray")
-        load_model_button.place(relx=0.35, rely=0.9, relwidth=0.3, relheight=0.10)
-        process_exec_button = ctk.CTkButton(master=exec_frame, fg_color="green", text="Process")
-        process_exec_button.place(relx=0.7, rely=0.85, relwidth=0.3, relheight=0.15)
-
-        self.switches["random key"] = random_key_exec_switch
-        self.switches["timestamp"] = timestamp_exec_switch
-        self.switches["keyword"] = keyword_exec_switch
-        self.switches["make dataset"] = make_dataset_switch
-        self.entries["keyword"] = keyword_exec_entry
-        self.entries["save files"] = save_exec_entry
-        self.vars["keyword"] = keyword_sv
-        self.vars["save files"] = save_exec_sv
-
-        # -------- CONFIGURE
-        keyword_exec_switch.configure(
-            command=partial(self.controller.modulate_entry_state_by_switch, keyword_exec_switch,
-                            keyword_exec_entry))
-
-        save_exec_button.configure(command=partial(self.select_save_directory, save_exec_sv))
-
-        process_exec_button.configure(command=partial(self.processing, ))
-        save_model_button.configure(command=partial(self.save_config, ))
-        load_model_button.configure(command=partial(self.load_model, ))
-
     def show_content1(self, *args):
         self.select_processing_step(1)
 
         self.frames['content 2'].place_forget()
         self.frames['content 3'].place_forget()
         self.frames['content 4'].place_forget()
-        self.frames['content 5'].place_forget()
         self.frames["content 1"].place(relx=0.05, rely=0.05, relwidth=0.9, relheight=0.9)
 
     def show_content2(self, *args):
@@ -538,7 +506,6 @@ class ProcessingView(ctk.CTkFrame):
         self.frames['content 1'].place_forget()
         self.frames['content 3'].place_forget()
         self.frames['content 4'].place_forget()
-        self.frames['content 5'].place_forget()
         self.frames["content 2"].place(relx=0.05, rely=0.05, relwidth=0.9, relheight=0.9)
 
     def show_content3(self, *args):
@@ -547,7 +514,6 @@ class ProcessingView(ctk.CTkFrame):
         self.frames['content 1'].place_forget()
         self.frames['content 2'].place_forget()
         self.frames['content 4'].place_forget()
-        self.frames['content 5'].place_forget()
         self.frames["content 3"].place(relx=0.05, rely=0.05, relwidth=0.9, relheight=0.9)
 
     def show_content4(self, *args):
@@ -556,7 +522,6 @@ class ProcessingView(ctk.CTkFrame):
         self.frames['content 1'].place_forget()
         self.frames['content 2'].place_forget()
         self.frames['content 3'].place_forget()
-        self.frames['content 5'].place_forget()
         self.frames["content 4"].place(relx=0.05, rely=0.05, relwidth=0.9, relheight=0.9)
 
     def show_content5(self, *args):
@@ -618,7 +583,7 @@ class ProcessingView(ctk.CTkFrame):
             self.controller.load_config()
 
     def select_processing_step(self, step):
-        for i in range(1, 6):
+        for i in range(1, 5):
             if self.step_check[str(i)] == 2:
                 img = ctk.CTkImage(dark_image=Image.open(f"data/{i} grey.png"), size=(120, 120))
                 self.image_buttons[str(i)].configure(image=img)

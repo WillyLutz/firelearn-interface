@@ -103,10 +103,10 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         linewidth_label = ctk.CTkLabel(master=params_frame, text="Linewidth:")
         linewidth_var = tk.StringVar(value=p.DEFAULT_LINEWIDTH)
-        linewidth_entry = ErrEntry(master=params_frame, textvariable=linewidth_var, error_message='blablabla' )
+        linewidth_entry = ErrEntry(master=params_frame, textvariable=linewidth_var, )
 
         linewidth_label.place(relx=0.5, rely=0.30)
-        linewidth_entry.place(relx=0.5, rely=0.38, relwidth=0.2)
+        linewidth_entry.place_entry_err(relx=0.5, rely=0.38, relwidth=0.2,)
         self.vars["linewidth"] = linewidth_var
         self.entries["linewidth"] = linewidth_entry
 

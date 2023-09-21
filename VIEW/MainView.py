@@ -19,7 +19,7 @@ class MainView(ctk.CTkFrame):
         super().__init__(master=app)
 
         self.app = app
-        self.app.geometry("1920x1080")
+        self.app.geometry("1440x900")
         self.app.resizable(1, 1)
         # self.app.configure(height=720, width=1080)
         self.app.minsize(height=900, width=1440)
@@ -150,9 +150,11 @@ class MainView(ctk.CTkFrame):
                 return True
             int(value)
             self.change_entry_color(widget, 'black')
+            widget.set_error('')
             return True
         except ValueError:
             self.change_entry_color(widget, 'red')
+            widget.set_error('blabla')
             return False
 
     def is_positive_int_or_emtpy(self, widget, *args):
@@ -183,7 +185,7 @@ class MainView(ctk.CTkFrame):
             return True
 
     def change_entry_color(self, widget, color, *args):
-        widget.configure(fg=color)
+        widget.configure(text_color=color)
 
 
 
