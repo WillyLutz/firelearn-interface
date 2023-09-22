@@ -326,7 +326,7 @@ class PcaController:
             apply_var = tk.IntVar(value=1)
             fit_ckbox = ctk.CTkCheckBox(master=label_data_subframe, text="Fit", variable=fit_var)
             apply_ckbox = ctk.CTkCheckBox(master=label_data_subframe, text="Apply", variable=apply_var)
-            fit_ckbox.place(relx=0.65, rely=0)
+            fit_ckbox.place(relx=0.6, rely=0)
             apply_ckbox.place(relx=0.75, rely=0)
             self.view.checkboxes[f"fit {n_labels}"] = fit_ckbox
             self.view.checkboxes[f"apply {n_labels}"] = apply_ckbox
