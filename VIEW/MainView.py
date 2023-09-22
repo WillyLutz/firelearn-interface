@@ -1,3 +1,4 @@
+import json
 import tkinter as tk
 from functools import partial
 
@@ -12,7 +13,8 @@ from VIEW.LearningView import LearningView
 from VIEW.ProcessingView import ProcessingView
 
 import params as p
-
+import os
+import pathlib
 
 class MainView(ctk.CTkFrame):
     def __init__(self, app):
@@ -49,22 +51,11 @@ class MainView(ctk.CTkFrame):
 
         self.terminal = None
 
+        self.theme = json.load(open("theme.json"))
+
     def open_web(self, url):
         if self.controller:
             self.controller.open_web(url)
-
-    # def set_subviews(self):
-    #     self.learning_view = LearningView(self.app, self.tabs_view.tab("Learning"), self.controller.learning_controller)
-    #     self.processing_view = ProcessingView(self.app, self.tabs_view.tab("Processing"),
-    #                                           self.controller.processing_controller)
-    #
-    #
-    #     self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"),)
-    #
-    #     self.controller.set_subviews(self.processing_view, self.learning_view, self.analysis_view)
-    #     # self.analysis_view = AnalysisView(self.app, self.tabs_view.tab("Analysis"), self.main_controller.analysis_controller)
-    #
-    #     # self.analysis_view.set_controller(self.main_controller.analysis_controller)
 
     def manage_home_tab(self):
         message = "FireLearn GUI (Graphical User Interface) is an independent software using 'fiiireflyyy', " \
@@ -149,43 +140,65 @@ class MainView(ctk.CTkFrame):
             if value == "":
                 return True
             int(value)
-            self.change_entry_color(widget, 'black')
+            self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
             widget.set_error('')
             return True
         except ValueError:
-            self.change_entry_color(widget, 'red')
-            widget.set_error('blabla')
+            self.change_entry_color(widget, 'tomato')
+            widget.set_error('Value must be integer or empty')
             return False
 
     def is_positive_int_or_emtpy(self, widget, *args):
         try:
             value = widget.get()
             if value == "":
+                self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
+                widget.set_error('')
                 return True
 
             if int(value) >= 0:
-                self.change_entry_color(widget, 'black')
+                self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
+                widget.set_error('')
                 return True
         except ValueError:
-            self.change_entry_color(widget, 'red')
+            self.change_entry_color(widget, 'tomato')
+            widget.set_error('Value must be positive integer or empty')
             return False
 
     def has_forbidden_characters(self, widget, *args):
-        forbidden_characters = "<>:\"|?*[]"
+        forbidden_characters = "<>:\"|?*[]\\/§"
         found_forbidden = []
         value = widget.get()
         for fc in forbidden_characters:
             if fc in value:
                 found_forbidden.append(fc)
         if found_forbidden:
-            self.change_entry_color(widget, 'red')
+            self.change_entry_color(widget, 'tomato')
+            widget.set_error(f'Value can not contains forbidden characters {forbidden_characters}')
             return False
         else:
-            self.change_entry_color(widget, 'black')
+            self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
+            widget.set_error('')
             return True
+
+    def is_valid_directory(self, widget, *args):
+        value = widget.get()
+
+        if pathlib.Path.exists(pathlib.Path(value)):
+            self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
+            widget.set_error('')
+            return True
+
+        else:
+            self.change_entry_color(widget, 'tomato')
+            widget.set_error('Directory does not exist')
+            return False
+
+
 
     def change_entry_color(self, widget, color, *args):
         widget.configure(text_color=color)
+
 
 
 

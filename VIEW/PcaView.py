@@ -115,13 +115,13 @@ class PcaView(ctk.CTkFrame):
         custom_plot_frame.place(relx=0.32, rely=0.0, relwidth=0.12, relheight=1)
 
         general_settings_button = ctk.CTkButton(master=custom_plot_frame, text='General settings')
-        general_settings_button.place(anchor=tk.CENTER, relx=0.5, rely=0.1, relwidth=0.5, relheight=0.05)
+        general_settings_button.place(anchor=tk.CENTER, relx=0.5, rely=0.1, relwidth=0.9, relheight=0.05)
 
         axes_button = ctk.CTkButton(master=custom_plot_frame, text='Axes')
-        axes_button.place(anchor=tk.CENTER, relx=0.5, rely=0.2, relwidth=0.5, relheight=0.05)
+        axes_button.place(anchor=tk.CENTER, relx=0.5, rely=0.2, relwidth=0.9, relheight=0.05)
 
         legend_button = ctk.CTkButton(master=custom_plot_frame, text='Legend')
-        legend_button.place(anchor=tk.CENTER, relx=0.5, rely=0.3, relwidth=0.5, relheight=0.05)
+        legend_button.place(anchor=tk.CENTER, relx=0.5, rely=0.3, relwidth=0.9, relheight=0.05)
 
         load_config_button = ctk.CTkButton(master=custom_plot_frame, text="Load config", fg_color="lightslategray")
         load_config_button.place(anchor=tk.CENTER, relx=0.5, rely=0.4, relheight=0.05)

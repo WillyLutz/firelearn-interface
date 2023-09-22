@@ -106,7 +106,7 @@ class FeatureImportanceView(ctk.CTkFrame):
         linewidth_entry = ErrEntry(master=params_frame, textvariable=linewidth_var, )
 
         linewidth_label.place(relx=0.5, rely=0.30)
-        linewidth_entry.place_entry_err(relx=0.5, rely=0.38, relwidth=0.2,)
+        linewidth_entry.place_errentry(relx=0.5, rely=0.38, relwidth=0.2, )
         self.vars["linewidth"] = linewidth_var
         self.entries["linewidth"] = linewidth_entry
 
@@ -170,7 +170,7 @@ class FeatureImportanceView(ctk.CTkFrame):
         custom_plot_frame.place(relx=0.32, rely=0.0, relwidth=0.12, relheight=1)
 
         axes_button = ctk.CTkButton(master=custom_plot_frame, text='Axes')
-        axes_button.place(anchor=tk.CENTER, relx=0.5, rely=0.2, relwidth=0.5, relheight=0.05)
+        axes_button.place(anchor=tk.CENTER, relx=0.5, rely=0.2, relwidth=0.9, relheight=0.05)
 
         export_button = ctk.CTkButton(master=custom_plot_frame, text="Export data", fg_color="green")
         export_button.place(anchor=tk.CENTER, relx=0.5, rely=0.33)

@@ -133,9 +133,9 @@ class ConfusionView(ctk.CTkFrame):
         export_data_button = ctk.CTkButton(master=exec_frame, text="Export data", fg_color="green", )
         update_figure_button = ctk.CTkButton(master=exec_frame, text="Update figure")
 
-        general_settings_button.place(anchor=tk.CENTER, relx=0.5, rely=0.1, relheight=0.05, )
-        axes_button.place(anchor=tk.CENTER, relx=0.5, rely=0.2, relheight=0.05)
-        legend_button.place(anchor=tk.CENTER, relx=0.5, rely=0.3, relheight=0.05)
+        general_settings_button.place(anchor=tk.CENTER, relx=0.5, rely=0.1, relheight=0.05, relwidth=0.9)
+        axes_button.place(anchor=tk.CENTER, relx=0.5, rely=0.2, relheight=0.05, relwidth=0.9)
+        legend_button.place(anchor=tk.CENTER, relx=0.5, rely=0.3, relheight=0.05, relwidth=0.9)
         load_config_button.place(anchor=tk.CENTER, relx=0.5, rely=0.4, relheight=0.05)
         save_config_button.place(anchor=tk.CENTER, relx=0.5, rely=0.5, relheight=0.05)
         save_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.6, relheight=0.05)

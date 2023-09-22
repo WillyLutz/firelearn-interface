@@ -2,7 +2,7 @@ import customtkinter as ctk
 from WIDGETS.ErrLabel import ErrLabel
 class ErrEntry(ctk.CTkEntry):
 
-    def __init__(self, master,  message='', error_anchor=ctk.NW, error_color='red', **kwargs):
+    def __init__(self, master,  message='', error_anchor=ctk.NW, error_color='tomato', **kwargs):
         super().__init__(master=master, **kwargs)
         self.error_message = ctk.StringVar(value=message)
 
@@ -12,7 +12,7 @@ class ErrEntry(ctk.CTkEntry):
     def place_error(self, **kwargs):
         self.error_label.place(**kwargs)
 
-    def place_entry_err(self, padx=0, pady=-0.04, **kwargs):
+    def place_errentry(self, padx=0, pady=-0.04, **kwargs):
         self.place(**kwargs)
         self.error_label.place(relx=kwargs['relx']+padx, rely=kwargs['rely']+pady)
 
