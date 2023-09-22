@@ -165,6 +165,18 @@ class MainView(ctk.CTkFrame):
             widget.set_error('Value must be positive integer or empty')
             return False
 
+    def is_positive_int(self, widget, *args):
+        try:
+            value = widget.get()
+            if int(value) >= 0:
+                self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
+                widget.set_error('')
+                return True
+        except ValueError:
+            self.change_entry_color(widget, 'tomato')
+            widget.set_error('Value must be positive integer')
+            return False
+
     def has_forbidden_characters(self, widget, *args):
         forbidden_characters = "<>:\"|?*[]\\/§"
         found_forbidden = []
@@ -193,8 +205,6 @@ class MainView(ctk.CTkFrame):
             self.change_entry_color(widget, 'tomato')
             widget.set_error('Directory does not exist')
             return False
-
-
 
     def change_entry_color(self, widget, color, *args):
         widget.configure(text_color=color)
