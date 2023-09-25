@@ -190,7 +190,7 @@ class MainView(ctk.CTkFrame):
                 found_forbidden.append(fc)
         if found_forbidden:
             self.change_entry_color(widget, 'tomato')
-            widget.set_error(f'Value can not contains forbidden characters {forbidden_characters}')
+            widget.set_error(f'Value can not contain forbidden characters {forbidden_characters}')
             return False
         else:
             self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])

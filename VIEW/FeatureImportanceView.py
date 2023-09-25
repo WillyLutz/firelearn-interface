@@ -147,7 +147,7 @@ class FeatureImportanceView(ctk.CTkFrame):
         self.vars["alpha fill"] = alpha_fill_var
 
         dpi_label = ctk.CTkLabel(master=params_frame, text="Figure dpi:")
-        dpi_var = tk.IntVar(value=p.DEFAULT_DPI)
+        dpi_var = tk.StringVar(value=p.DEFAULT_DPI)
         dpi_entry = ErrEntry(master=params_frame, textvariable=dpi_var)
         dpi_label.place(relx=0, rely=0.85)
         dpi_entry.place_errentry(relx=0, rely=0.9, relwidth=0.2)

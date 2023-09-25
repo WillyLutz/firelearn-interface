@@ -124,8 +124,6 @@ class FeatureImportanceController:
                            labelsize=self.model.plot_axes["y ticks size"],
                            labelrotation=float(self.model.plot_axes["y ticks rotation"]))
 
-            # figure = self.create_figure()
-            # self.view.canvas["feature importance"].figure = figure
             plt.tight_layout()
             self.view.figures["feature importance"] = (fig, ax)
             self.view.canvas["feature importance"].draw()

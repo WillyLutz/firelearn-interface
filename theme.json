@@ -55,7 +55,7 @@
     "text_color": "gray84",
     "text_color_disabled": "gray45"
   },
-  "CTkRadioButton": {
+  "CTkRadiobutton": {
     "corner_radius": 1000,
     "border_width_checked": 6,
     "border_width_unchecked": 3,
