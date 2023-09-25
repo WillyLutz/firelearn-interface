@@ -201,15 +201,14 @@ class FeatureImportanceView(ctk.CTkFrame):
         load_config_button.configure(command=self.load_config)
 
         linewidth_entry.configure(validate='focus',
-                                  validatecommand=(self.register(partial(self.main_view.is_empty_or_int,
+                                  validatecommand=(self.register(partial(self.main_view.is_positive_int,
                                                                          linewidth_entry)), '%P'), )
         dpi_entry.configure(validate='focus',
-                                  validatecommand=(self.register(partial(self.main_view.is_empty_or_int,
-                                                                         dpi_entry)), '%P'), )
+                            validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                   dpi_entry)), '%P'), )
         title_entry.configure(validate='focus',
-                                  validatecommand=(self.register(partial(self.main_view.has_forbidden_characters,
-                                                                         title_entry)), '%P'), )
-
+                              validatecommand=(self.register(partial(self.main_view.has_forbidden_characters,
+                                                                     title_entry)), '%P'), )
 
         # ----- TRACE
         alpha_var.trace("w", partial(self.trace_vars_to_model, "alpha"))

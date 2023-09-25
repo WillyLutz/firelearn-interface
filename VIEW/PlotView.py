@@ -10,6 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import params as p
 from CONTROLLER.PlotController import PlotController
+from WIDGETS.ErrEntry import ErrEntry
 
 
 class PlotView(ctk.CTkFrame):
@@ -17,6 +18,7 @@ class PlotView(ctk.CTkFrame):
         super().__init__(master=app)
         self.master = master
         self.parent_view = parent_view
+        self.main_view = self.parent_view.parent_view
         self.controller = PlotController(self, )
 
         self.entries = {}
@@ -476,3 +478,16 @@ class PlotView(ctk.CTkFrame):
         round_xticks_strvar.trace("w", partial(self.controller.trace_vars_to_model, 'round x ticks'))
         round_yticks_strvar.trace("w", partial(self.controller.trace_vars_to_model, 'round y ticks'))
         axes_font_var.trace("w", partial(self.controller.trace_vars_to_model, 'axes font'))
+
+        n_xticks_entry.configure(validate='focus',
+                                 validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                        n_xticks_entry)), '%P'))
+        n_yticks_entry.configure(validate='focus',
+                                 validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                        n_yticks_entry)), '%P'))
+        round_xticks_entry.configure(validate='focus',
+                                     validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                            round_xticks_entry)), '%P'))
+        round_yticks_entry.configure(validate='focus',
+                                     validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                            round_yticks_entry)), '%P'))
