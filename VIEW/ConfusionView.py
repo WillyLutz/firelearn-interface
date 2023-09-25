@@ -106,28 +106,13 @@ class ConfusionView(ctk.CTkFrame):
         fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
 
-        # --------------- CONFIGURE
-        load_model_button.configure(command=self.controller.load_model)
-        load_dataset_button.configure(command=self.controller.load_dataset)
 
-        save_config_button.configure(command=self.controller.save_config)
-        load_config_button.configure(command=self.controller.load_dataset)
-        save_figure_button.configure(command=partial(self.controller.save_figure, self.figures["confusion"][0]))
-        export_data_button.configure(command=partial(self.controller.export_figure_data, self.figures["confusion"][1]))
-        draw_figure_button.configure(command=self.controller.draw_figure)
-        update_figure_button.configure(command=self.controller.update_figure)
-        load_model_entry.configure(validate='focus',
-                                   validatecommand=(self.register(partial(self.main_view.is_valid_directory,
-                                                                          load_model_entry)), '%P'))
-        load_dataset_entry.configure(validate='focus',
-                                     validatecommand=(self.register(partial(self.main_view.is_valid_directory,
-                                                                            load_dataset_entry)), '%P'))
 
         # ---- MANAGING WIDGETS
         load_model_button.place(relx=0.05, rely=0)
         load_dataset_button.place(relx=0.5, rely=0)
-        load_model_entry.place(relx=0.05, rely=0.5, relwidth=0.4)
-        load_dataset_entry.place(relx=0.5, rely=0.5, relwidth=0.4)
+        load_model_entry.place_errentry(relx=0.05, rely=0.5, relwidth=0.4)
+        load_dataset_entry.place_errentry(relx=0.5, rely=0.5, relwidth=0.4)
         body_frame.place(relx=0, rely=0.12, relwidth=0.31, relheight=0.88)
         label_column_label.place(relx=0.05, rely=0)
         label_column_cbbox.place(relx=0.25, rely=0)
@@ -170,7 +155,23 @@ class ConfusionView(ctk.CTkFrame):
         self.frames['plot frame'] = plot_frame
         self.figures["confusion"] = (fig, ax)
         self.canvas["confusion"] = canvas
+        
+        # --------------- CONFIGURE
+        load_model_button.configure(command=self.controller.load_model)
+        load_dataset_button.configure(command=self.controller.load_dataset)
 
+        save_config_button.configure(command=self.controller.save_config)
+        load_config_button.configure(command=self.controller.load_dataset)
+        save_figure_button.configure(command=partial(self.controller.save_figure, self.figures["confusion"][0]))
+        export_data_button.configure(command=partial(self.controller.export_figure_data, self.figures["confusion"][1]))
+        draw_figure_button.configure(command=self.controller.draw_figure)
+        update_figure_button.configure(command=self.controller.update_figure)
+        load_model_entry.configure(validate='focus',
+                                   validatecommand=(self.register(partial(self.main_view.is_valid_directory,
+                                                                          load_model_entry)), '%P'))
+        load_dataset_entry.configure(validate='focus',
+                                     validatecommand=(self.register(partial(self.main_view.is_valid_directory,
+                                                                            load_dataset_entry)), '%P'))
         # --------------- TRACE
         for key, widget in {"load dataset": load_dataset_var, "load clf": load_model_var,
                             "label column": label_column_var, "iterations": iteration_var}.items():
@@ -244,7 +245,7 @@ class ConfusionView(ctk.CTkFrame):
         legend_ypos_slider.place(x=225, y=190, relwidth=0.4)
         legend_ypos_value_label.place(x=300, y=150)
         ncols_label.place(x=0, y=240)
-        ncols_entry.place(x=0, y=280, )
+        ncols_entry.place_errentry(x=0, y=280, )
         fontsize_label.place(x=225, y=240)
         fontsize_slider.place(x=225, y=280, relwidth=0.4)
         fontsize_value_label.place(x=300, y=240)
@@ -317,14 +318,14 @@ class ConfusionView(ctk.CTkFrame):
 
         # ---- MANAGE WIDGETS
         title_label.place(x=0, y=0)
-        title_entry.place(x=0, y=40, )
+        title_entry.place_errentry(x=0, y=40, )
         title_font_label.place(x=225, y=0)
         title_font_cbbox.place(x=225, y=40, relwidth=0.4)
         title_size_label.place(x=0, y=100)
         title_size_slider.place(x=0, y=140, relwidth=0.4)
         title_size_value_label.place(x=60, y=100)
         dpi_label.place(x=225, y=100)
-        dpi_entry.place(x=225, y=140)
+        dpi_entry.place_errentry(x=225, y=140)
         self.vars["title"] = title_var
         self.entries["title"] = title_entry
         self.vars["title font"] = title_font_var
@@ -367,13 +368,13 @@ class ConfusionView(ctk.CTkFrame):
         x_label_var = tk.StringVar(value=self.controller.model.plot_axes['x label'])
         x_label_entry = ErrEntry(master=general_toplevel, width=200, textvariable=x_label_var)
         x_label.place(x=0, y=50)
-        x_label_entry.place(x=0, y=90)
+        x_label_entry.place_errentry(x=0, y=90)
 
         y_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
         y_label_var = tk.StringVar(value=self.controller.model.plot_axes['y label'])
         y_label_entry = ErrEntry(master=general_toplevel, width=200, textvariable=y_label_var)
         y_label.place(x=250, y=50)
-        y_label_entry.place(x=250, y=90)
+        y_label_entry.place_errentry(x=250, y=90)
 
         x_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
         x_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['x label size'])

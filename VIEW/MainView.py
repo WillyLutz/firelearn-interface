@@ -172,7 +172,11 @@ class MainView(ctk.CTkFrame):
                 self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
                 widget.set_error('')
                 return True
-        except ValueError:
+            else:
+                self.change_entry_color(widget, 'tomato')
+                widget.set_error('Value must be positive integer')
+                return False
+        except Exception:
             self.change_entry_color(widget, 'tomato')
             widget.set_error('Value must be positive integer')
             return False

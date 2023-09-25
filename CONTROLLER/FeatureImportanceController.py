@@ -13,6 +13,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import params as p
 from CONTROLLER.MainController import MainController
+from WIDGETS.ErrEntry import ErrEntry
 
 
 class FeatureImportanceController:
@@ -130,11 +131,18 @@ class FeatureImportanceController:
             self.view.canvas["feature importance"].draw()
 
     def input_validation_feature_importance(self):
-
+        errors = []
         if not self.model.clf:
-            messagebox.showerror("Value error", "No classifier loaded.")
-            return False
+            errors.append("No classifier loaded.")
 
+        for key, entry in self.view.entries.items():
+            if type(entry) == ErrEntry:
+                if entry.error_message.get() != '':
+                    errors.append(f"{key} : {entry.error_message.get()}")
+
+        if errors:
+            messagebox.showerror('Value Error','\n'.join(errors))
+            return False
         return True
 
     def save_figure(self, fig):

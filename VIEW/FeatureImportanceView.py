@@ -52,8 +52,8 @@ class FeatureImportanceView(ctk.CTkFrame):
         self.buttons["load clf"] = load_clf_button
 
         load_clf_var = tk.StringVar()
-        load_clf_entry = ctk.CTkEntry(master=init_frame, state='disabled', textvariable=load_clf_var)
-        load_clf_entry.place(relx=0, rely=0.5, relwidth=0.3)
+        load_clf_entry = ErrEntry(master=init_frame, state='disabled', textvariable=load_clf_var)
+        load_clf_entry.place_errentry(relx=0, rely=0.5, relwidth=0.3)
         self.vars["load clf"] = load_clf_var
 
         clf_type_var = tk.StringVar(value="Classifier type:")
@@ -78,9 +78,9 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         title_label = ctk.CTkLabel(master=params_frame, text="Title:")
         title_var = tk.StringVar()
-        title_entry = ctk.CTkEntry(master=params_frame, textvariable=title_var, state='normal')
+        title_entry = ErrEntry(master=params_frame, textvariable=title_var, state='normal')
         title_label.place(relx=0.45, rely=0.0)
-        title_entry.place(relx=0.45, rely=0.07, relwidth=0.5)
+        title_entry.place_errentry(relx=0.45, rely=0.07, relwidth=0.5)
         self.vars["title"] = title_var
 
         title_size_label = ctk.CTkLabel(master=params_frame, text="Title size:")
@@ -148,9 +148,9 @@ class FeatureImportanceView(ctk.CTkFrame):
 
         dpi_label = ctk.CTkLabel(master=params_frame, text="Figure dpi:")
         dpi_var = tk.IntVar(value=p.DEFAULT_DPI)
-        dpi_entry = ctk.CTkEntry(master=params_frame, textvariable=dpi_var)
+        dpi_entry = ErrEntry(master=params_frame, textvariable=dpi_var)
         dpi_label.place(relx=0, rely=0.85)
-        dpi_entry.place(relx=0, rely=0.9, relwidth=0.2)
+        dpi_entry.place_errentry(relx=0, rely=0.9, relwidth=0.2)
         self.entries["dpi"] = dpi_entry
         self.vars["dpi"] = dpi_var
 
@@ -275,23 +275,14 @@ class FeatureImportanceView(ctk.CTkFrame):
         x_major_label = ctk.CTkLabel(master=general_toplevel, text="X-AXIS")
         x_major_label.place(anchor=tk.CENTER, x=125, y=20)
         y_major_label = ctk.CTkLabel(master=general_toplevel, text="Y-AXIS")
-        y_major_label.place(anchor=tk.CENTER, x=375, y=20)
 
         x_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
         x_label_var = tk.StringVar(value=self.controller.model.plot_axes['x label'])
-        x_label_entry = ctk.CTkEntry(master=general_toplevel, width=200, textvariable=x_label_var)
-        x_label.place(x=0, y=50)
-        x_label_entry.place(x=0, y=90)
-        self.entries["x label"] = x_label_entry
-        self.vars['x label'] = x_label_var
+        x_label_entry = ErrEntry(master=general_toplevel, width=200, textvariable=x_label_var)
 
         y_label = ctk.CTkLabel(master=general_toplevel, text="Label:")
         y_label_var = tk.StringVar(value=self.controller.model.plot_axes['y label'])
-        y_label_entry = ctk.CTkEntry(master=general_toplevel, width=200, textvariable=y_label_var)
-        y_label.place(x=250, y=50)
-        y_label_entry.place(x=250, y=90)
-        self.entries["y label"] = y_label_entry
-        self.vars['y label'] = y_label_var
+        y_label_entry = ErrEntry(master=general_toplevel, width=200, textvariable=y_label_var)
 
         x_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
         x_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['x label size'])
@@ -299,10 +290,6 @@ class FeatureImportanceView(ctk.CTkFrame):
                                        variable=x_label_size_var)
         x_label_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=x_label_size_var)
         x_label_value_label.place(x=100, y=130)
-        x_label_slider.place(x=0, y=170, relwidth=0.4)
-        x_size_label.place(x=0, y=130)
-        self.vars["x label size"] = x_label_size_var
-        self.sliders["x label size"] = x_label_slider
 
         y_size_label = ctk.CTkLabel(master=general_toplevel, text="Label size:")
         y_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['y label size'])
@@ -310,97 +297,112 @@ class FeatureImportanceView(ctk.CTkFrame):
                                        variable=y_label_size_var)
         y_label_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=y_label_size_var)
         y_label_value_label.place(x=350, y=130)
-        y_label_slider.place(x=250, y=170, relwidth=0.4)
-        y_size_label.place(x=250, y=130)
-        self.vars["y label size"] = y_label_size_var
-        self.sliders["y label size"] = y_label_slider
 
         # -----TICKS
 
         n_xticks_label = ctk.CTkLabel(master=general_toplevel, text="Number of ticks:")
         n_xticks_var = tk.StringVar(value=self.controller.model.plot_axes['n x ticks'])
-        n_xticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=n_xticks_var)
-        n_xticks_label.place(x=0, y=250)
-        n_xticks_entry.place(x=0, y=290, relwidth=0.2)
-        self.vars["n x ticks"] = n_xticks_var
+        n_xticks_entry = ErrEntry(master=general_toplevel, textvariable=n_xticks_var)
 
         n_yticks_label = ctk.CTkLabel(master=general_toplevel, text="Number of ticks:")
         n_yticks_var = tk.StringVar(value=self.controller.model.plot_axes['n y ticks'])
-        n_yticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=n_yticks_var)
-        n_yticks_label.place(x=250, y=250)
-        n_yticks_entry.place(x=250, y=290, relwidth=0.2)
-        self.entries["n y ticks"] = n_yticks_entry
-        self.vars["n y ticks"] = n_yticks_var
+        n_yticks_entry = ErrEntry(master=general_toplevel, textvariable=n_yticks_var)
 
         xticks_rotation_label = ctk.CTkLabel(master=general_toplevel, text="Tick rotation:")
         xticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks rotation'])
         xticks_rotation_slider = ctk.CTkSlider(master=general_toplevel, from_=-180, to=180, number_of_steps=36,
                                                variable=xticks_rotation_var)
         xticks_rotation_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=xticks_rotation_var)
-        xticks_rotation_slider.place(x=0, y=370, relwidth=0.4)
-        xticks_rotation_label.place(x=0, y=330)
-        xticks_rotation_value_label.place(x=100, y=330)
-        self.vars["x ticks rotation"] = xticks_rotation_var
-        self.sliders["x ticks rotation"] = xticks_rotation_slider
 
         yticks_rotation_label = ctk.CTkLabel(master=general_toplevel, text="Tick rotation:")
         yticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks rotation'])
         yticks_rotation_slider = ctk.CTkSlider(master=general_toplevel, from_=-180, to=180, number_of_steps=36,
                                                variable=yticks_rotation_var)
         yticks_rotation_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=yticks_rotation_var)
-        yticks_rotation_slider.place(x=250, y=370, relwidth=0.4)
-        yticks_rotation_label.place(x=250, y=330)
-        yticks_rotation_value_label.place(x=350, y=330)
-        self.vars["y ticks rotation"] = yticks_rotation_var
-        self.sliders["y ticks rotation"] = yticks_rotation_slider
 
         xticks_label = ctk.CTkLabel(master=general_toplevel, text="Tick size:")
         xticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks size'])
         xticks_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
                                       variable=xticks_size_var)
         xticks_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=xticks_size_var)
-        xticks_label.place(x=0, y=410)
-        xticks_slider.place(x=0, y=440, relwidth=0.4)
-        xticks_value_label.place(x=100, y=410)
-        self.vars["x ticks size"] = xticks_size_var
-        self.sliders["x ticks size"] = xticks_slider
 
         yticks_label = ctk.CTkLabel(master=general_toplevel, text="Tick size:")
         yticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks size'])
         yticks_slider = ctk.CTkSlider(master=general_toplevel, from_=8, to=32, number_of_steps=24,
                                       variable=yticks_size_var)
         yticks_value_label = ctk.CTkLabel(master=general_toplevel, textvariable=yticks_size_var)
-        yticks_label.place(x=250, y=410)
-        yticks_slider.place(x=250, y=440, relwidth=0.4)
-        yticks_value_label.place(x=350, y=410)
-        self.vars["y ticks size"] = yticks_size_var
-        self.sliders["y ticks size"] = yticks_slider
 
         round_xticks_label = ctk.CTkLabel(master=general_toplevel, text="Round ticks:")
         round_xticks_strvar = tk.StringVar(value=self.controller.model.plot_axes['round x ticks'])
-        round_xticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=round_xticks_strvar)
-        round_xticks_label.place(x=0, y=480)
-        round_xticks_entry.place(x=0, y=520, relwidth=0.2)
-        self.entries["round x ticks"] = round_xticks_entry
-        self.vars["round x ticks"] = round_xticks_strvar
+        round_xticks_entry = ErrEntry(master=general_toplevel, textvariable=round_xticks_strvar)
 
         round_yticks_label = ctk.CTkLabel(master=general_toplevel, text="Round ticks:")
         round_yticks_strvar = tk.StringVar(value=self.controller.model.plot_axes['round y ticks'])
-        round_yticks_entry = ctk.CTkEntry(master=general_toplevel, textvariable=round_yticks_strvar)
-        round_yticks_label.place(x=250, y=480)
-        round_yticks_entry.place(x=250, y=520, relwidth=0.2)
-        self.entries["round y ticks"] = round_yticks_entry
-        self.vars["round y ticks"] = round_yticks_strvar
+        round_yticks_entry = ErrEntry(master=general_toplevel, textvariable=round_yticks_strvar)
 
         general_label = ctk.CTkLabel(master=general_toplevel, text='GENERAL')
-        general_label.place(x=0, y=600)
 
         axes_font_label = ctk.CTkLabel(master=general_toplevel, text="Axes font:")
         axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
         axes_font_cbbox = tk.ttk.Combobox(master=general_toplevel, values=p.FONTS, state='readonly',
                                           textvariable=axes_font_var)
+
+        # --- MANAGE WIDGETS
+        y_major_label.place(anchor=tk.CENTER, x=375, y=20)
+        x_label.place(x=0, y=50)
+        x_label_entry.place_errentry(x=0, y=90)
+        y_label.place(x=250, y=50)
+        y_label_entry.place_errentry(x=250, y=90)
+        x_label_slider.place(x=0, y=170, relwidth=0.4)
+        x_size_label.place(x=0, y=130)
+        y_label_slider.place(x=250, y=170, relwidth=0.4)
+        y_size_label.place(x=250, y=130)
+        n_xticks_label.place(x=0, y=250)
+        n_xticks_entry.place_errentry(x=0, y=290, relwidth=0.2)
+        n_yticks_label.place(x=250, y=250)
+        n_yticks_entry.place_errentry(x=250, y=290, relwidth=0.2)
+        xticks_rotation_slider.place(x=0, y=370, relwidth=0.4)
+        xticks_rotation_label.place(x=0, y=330)
+        xticks_rotation_value_label.place(x=100, y=330)
+        yticks_rotation_slider.place(x=250, y=370, relwidth=0.4)
+        yticks_rotation_label.place(x=250, y=330)
+        yticks_rotation_value_label.place(x=350, y=330)
+        xticks_label.place(x=0, y=410)
+        xticks_slider.place(x=0, y=440, relwidth=0.4)
+        xticks_value_label.place(x=100, y=410)
+        yticks_label.place(x=250, y=410)
+        yticks_slider.place(x=250, y=440, relwidth=0.4)
+        yticks_value_label.place(x=350, y=410)
+        round_xticks_label.place(x=0, y=480)
+        round_xticks_entry.place_errentry(x=0, y=520, relwidth=0.2)
+        round_yticks_label.place(x=250, y=480)
+        round_yticks_entry.place_errentry(x=250, y=520, relwidth=0.2)
+        general_label.place(x=0, y=600)
         axes_font_label.place(x=0, y=640)
         axes_font_cbbox.place(x=0, y=680, relwidth=0.4)
+        self.entries["x label"] = x_label_entry
+        self.vars['x label'] = x_label_var
+        self.entries["y label"] = y_label_entry
+        self.vars['y label'] = y_label_var
+        self.vars["x label size"] = x_label_size_var
+        self.sliders["x label size"] = x_label_slider
+        self.vars["y label size"] = y_label_size_var
+        self.sliders["y label size"] = y_label_slider
+        self.vars["n x ticks"] = n_xticks_var
+        self.entries["n y ticks"] = n_yticks_entry
+        self.vars["n y ticks"] = n_yticks_var
+        self.vars["x ticks rotation"] = xticks_rotation_var
+        self.sliders["x ticks rotation"] = xticks_rotation_slider
+        self.vars["y ticks rotation"] = yticks_rotation_var
+        self.sliders["y ticks rotation"] = yticks_rotation_slider
+        self.vars["x ticks size"] = xticks_size_var
+        self.sliders["x ticks size"] = xticks_slider
+        self.vars["y ticks size"] = yticks_size_var
+        self.sliders["y ticks size"] = yticks_slider
+        self.entries["round x ticks"] = round_xticks_entry
+        self.vars["round x ticks"] = round_xticks_strvar
+        self.entries["round y ticks"] = round_yticks_entry
+        self.vars["round y ticks"] = round_yticks_strvar
         self.cbboxes["axes font"] = axes_font_cbbox
         self.vars["axes font"] = axes_font_var
 
@@ -418,6 +420,20 @@ class FeatureImportanceView(ctk.CTkFrame):
         round_xticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round x ticks'))
         round_yticks_strvar.trace("w", partial(self.trace_vars_to_model, 'round y ticks'))
         axes_font_var.trace("w", partial(self.trace_vars_to_model, 'axes font'))
+
+        # --- CONFIGURE
+        round_yticks_entry.configure(validate='focus',
+                                     validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                            round_yticks_entry)), '%P'))
+        round_xticks_entry.configure(validate='focus',
+                                     validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                            round_xticks_entry)), '%P'))
+        n_xticks_entry.configure(validate='focus',
+                                 validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                        n_xticks_entry)), '%P'))
+        n_yticks_entry.configure(validate='focus',
+                                 validatecommand=(self.register(partial(self.main_view.is_positive_int,
+                                                                        n_yticks_entry)), '%P'))
 
     def trace_vars_to_model(self, key, *args):
         if self.controller:
