@@ -32,14 +32,9 @@ class ConfusionController:
         self.view.controller = self  # set controller
         self.progress = None
 
-    def load_model(self, ):
-        filename = filedialog.askopenfilename(title="Open file",
-                                              filetypes=(("AI model", "*.rfc"),))
-        if filename:
-            clf = pickle.load(open(filename, "rb"))
-            self.model.clf = clf
-
-            self.view.vars["load clf"].set(filename)
+    def load_clf(self, loaded=False):
+        if loaded:
+            self.view.vars["load clf"].set(self.model.clf_path)
 
             training_classes = list(set(list(self.model.clf.classes_)))
 
@@ -57,9 +52,35 @@ class ConfusionController:
                 if j > 2:
                     j = 0
                     i += 1
+        else:
+            filename = filedialog.askopenfilename(title="Open file",
+                                                      filetypes=(("AI model", "*.rfc"),))
+            if filename:
+                clf = pickle.load(open(filename, "rb"))
+                self.model.clf = clf
+
+                self.view.vars["load clf"].set(filename)
+
+                training_classes = list(set(list(self.model.clf.classes_)))
+
+                for child in self.view.scrollable_frames["training"].winfo_children():
+                    child.destroy()
+                i, j = 0, 0
+                for t in range(len(training_classes)):
+                    target_radio = ctk.CTkRadioButton(master=self.view.scrollable_frames["training"],
+                                                      text=training_classes[t],
+                                                      state='disabled', text_color_disabled='white'
+                                                      )
+                    target_radio.select()
+                    target_radio.grid(row=i, column=j, padx=10, pady=10)
+                    j += 1
+                    if j > 2:
+                        j = 0
+                        i += 1
 
     def draw_figure(self, ):
         if self.input_validation():
+            plt.close()
             training_classes = tuple(list(set(list(self.model.clf.classes_))))
             all_testing_classes = {key: value for (key, value) in self.view.vars.items() if "test label " in key}
 
@@ -77,7 +98,7 @@ class ConfusionController:
             overall_matrix, mixed_labels_matrix, CORRESPONDENCE \
                 = fl.test_clf_by_confusion(self.model.clf, df, training_targets=training_classes,
                                            testing_targets=testing_classes, show=False,
-                                           iterations=self.view.vars["iterations"].get(), return_data=True)
+                                           iterations=self.view.vars["iterations"].get(), return_data=True) # todo : update fiiireflyyy
             self.model.confusion_data["overall matrix"] = overall_matrix
             self.model.confusion_data["mixed labels matrix"] = mixed_labels_matrix
             self.model.confusion_data["correspondence"] = CORRESPONDENCE
@@ -85,6 +106,7 @@ class ConfusionController:
             self.update_figure()
 
     def update_figure(self):
+        plt.close()
         overall_matrix = self.model.confusion_data["overall matrix"]
         mixed_labels_matrix = self.model.confusion_data["mixed labels matrix"]
         CORRESPONDENCE = self.model.confusion_data["correspondence"]
@@ -164,15 +186,19 @@ class ConfusionController:
 
     def save_config(self, ):
         if self.input_validation():
-            f = filedialog.asksaveasfilename(defaultextension=".pltcfg",
+            f = filedialog.asksaveasfilename(defaultextension=".confcfg",
                                              filetypes=[("Analysis - Confusion", "*.confcfg"), ])
             if f:
                 self.model.save_model(path=f, )
 
     def load_config(self, ):
-        f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Feature Importance", "*.ficfg"),))
+        f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Confusion", "*.confcfg"),))
         if f:
             if self.model.load_model(path=f):
+                if self.model.dataset_path:
+                    self.load_clf(loaded=True)
+                    self.load_dataset(loaded=True)
+
                 self.update_view_from_model()
 
     def update_view_from_model(self, ):
@@ -186,10 +212,8 @@ class ConfusionController:
         for key, value in self.model.plot_general_settings.items():
             self.view.vars[key].set(value)
 
-    def load_dataset(self, ):
-        filename = filedialog.askopenfilename(title="Open file",
-                                              filetypes=(("Tables", "*.txt *.csv"),))
-        if filename:
+    def load_dataset(self, loaded=False):
+        if loaded:
             fig, ax = self.view.figures["confusion"]
             ax.clear()
 
@@ -200,9 +224,8 @@ class ConfusionController:
                 del self.view.checkboxes[key]
                 del self.model.plot_data[key]
 
-            df = pd.read_csv(filename)
-            self.model.dataset = df
-            self.model.dataset_path = filename
+            df = self.model.dataset
+            filename = self.model.dataset_path
 
             columns = list(df.columns)
             self.view.cbboxes["label column"].configure(values=columns)
@@ -212,6 +235,33 @@ class ConfusionController:
                     label_col = col
             self.view.vars["load dataset"].set(filename)
             self.view.vars["label column"].set(label_col)
+
+        else:
+            filename = filedialog.askopenfilename(title="Open file",
+                                                  filetypes=(("Tables", "*.txt *.csv"),))
+            if filename:
+                fig, ax = self.view.figures["confusion"]
+                ax.clear()
+
+                training_labels = {key: value for (key, value) in self.model.plot_data.items() if "training" in key}
+                for key, widget in training_labels.items():
+                    widget.destroy()
+                    del self.view.vars[key]
+                    del self.view.checkboxes[key]
+                    del self.model.plot_data[key]
+
+                df = pd.read_csv(filename)
+                self.model.dataset = df
+                self.model.dataset_path = filename
+
+                columns = list(df.columns)
+                self.view.cbboxes["label column"].configure(values=columns)
+                label_col = columns[0]
+                for col in columns:
+                    if 'label' in col or 'target' in col:  # try to auto-detect the label column
+                        label_col = col
+                self.view.vars["load dataset"].set(filename)
+                self.view.vars["label column"].set(label_col)
 
     def deselect_all_test_targets(self):
         checkboxes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}

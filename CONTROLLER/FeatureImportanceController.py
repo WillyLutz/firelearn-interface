@@ -157,7 +157,7 @@ class FeatureImportanceController:
         df["X"] = x_data
         df["Y"] = y_data
 
-        df.to_csv(filepath, index=False)
+        df.to_csv(filepath+'.csv', index=False)
 
     def save_config(self, ):
         if self.input_validation_feature_importance():

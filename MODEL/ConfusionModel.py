@@ -24,6 +24,8 @@ class ConfusionModel:
         self.canvas = {}
         self.figures = {}
         self.confusion_data = {"overall matrix": None, "mixed labels matrix": None, "correspondence": None}
+
+        self.clf_path = ''
         self.clf = None
 
         self.plot_legend = {'show legend': p.SHOW_LEGEND, 'legend anchor': p.LEGEND_ANCHOR,
@@ -33,17 +35,15 @@ class ConfusionModel:
 
         self.plot_axes = {'x label': 'The input is', 'y label': 'The input is classified as',
                           'x label size': p.DEFAULT_FONTSIZE,
-                          'y label size': p.DEFAULT_FONTSIZE, 'n x ticks': p.DEFAULT_NTICKS,
-                          'n y ticks': p.DEFAULT_NTICKS, 'x ticks rotation': p.DEFAULT_FONTROTATION,
+                          'y label size': p.DEFAULT_FONTSIZE,  'x ticks rotation': p.DEFAULT_FONTROTATION,
                           'y ticks rotation': p.DEFAULT_FONTROTATION, 'x ticks size': p.DEFAULT_FONTSIZE,
-                          'y ticks size': p.DEFAULT_FONTSIZE, 'round x ticks': p.DEFAULT_ROUND,
-                          'round y ticks': p.DEFAULT_ROUND, 'axes font': p.DEFAULT_FONT,
+                          'y ticks size': p.DEFAULT_FONTSIZE,'axes font': p.DEFAULT_FONT,
                           }
 
         self.plot_general_settings = {'title': '', 'title font': p.DEFAULT_FONT,
                                       'title size': p.DEFAULT_FONTSIZE, 'dpi': p.DEFAULT_DPI}
 
-        self.plot_data = {'xdata': 'None', }
+        self.plot_data = { }
 
     def load_model(self, path):
         try:

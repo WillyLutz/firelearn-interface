@@ -155,13 +155,14 @@ class ConfusionView(ctk.CTkFrame):
         self.frames['plot frame'] = plot_frame
         self.figures["confusion"] = (fig, ax)
         self.canvas["confusion"] = canvas
+        self.buttons["save figure"] = save_figure_button
         
         # --------------- CONFIGURE
-        load_model_button.configure(command=self.controller.load_model)
+        load_model_button.configure(command=self.controller.load_clf)
         load_dataset_button.configure(command=self.controller.load_dataset)
 
         save_config_button.configure(command=self.controller.save_config)
-        load_config_button.configure(command=self.controller.load_dataset)
+        load_config_button.configure(command=self.controller.load_config)
         save_figure_button.configure(command=partial(self.controller.save_figure, self.figures["confusion"][0]))
         export_data_button.configure(command=partial(self.controller.export_figure_data, self.figures["confusion"][1]))
         draw_figure_button.configure(command=self.controller.draw_figure)
