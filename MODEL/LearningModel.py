@@ -10,6 +10,7 @@ class LearningModel:
     def __init__(self,):
         self.version = params.version
         self.dataset_path = ""
+        self.dataset = None
         self.save_rfc_directory = ""
         self.rfc = None
 

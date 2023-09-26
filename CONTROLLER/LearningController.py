@@ -37,20 +37,18 @@ class LearningController:
         if filename:
             strvar.set(filename)
             self.model.dataset_path = filename
-
             df = pd.read_csv(filename, index_col=False)
+            self.model.dataset = df
             label_cbbox.configure(state='normal')
             label_cbbox.configure(values=[str(c) for c in df.columns])
             self.view.vars["target column"].set(str(df.columns[0]))
             label_cbbox.configure(state='readonly')
 
+            self.view.vars['target column'].trace('w', self.trace_target_column)
+
     def add_subtract_target(self, mode='add'):
 
-        if ival.value_has_forbidden_character(self.view.entries["key target"].get()) is False:
-            self.view.entries["key target"].delete(0, ctk.END)
-            return False
-
-        key = self.view.entries["key target"].get()
+        key = self.view.vars["key target"].get()
 
         targets = self.model.targets
         if mode == 'add':
@@ -61,7 +59,8 @@ class LearningController:
         elif mode == 'subtract':
             if key:
                 try:
-                    targets.remove(key)
+                    if key in targets:
+                        targets.remove(key)
                 except KeyError:
                     pass
             else:
@@ -69,7 +68,6 @@ class LearningController:
         self.model.targets = targets
 
         MainController.update_textbox(self.view.textboxes["targets"], self.model.targets)
-        self.view.entries["key target"].delete(0, ctk.END)
 
     def savepath_rfc(self, strvar):
         filename = filedialog.asksaveasfilename(title="Save as",
@@ -456,3 +454,11 @@ class LearningController:
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model()
+
+    def trace_target_column(self, *args):
+        values = list(set(list(self.model.dataset[self.view.vars["target column"].get()])))
+
+        if len(values) <= 50:
+            self.view.cbboxes['key target'].configure(values=values)
+        else:
+            messagebox.showerror('Too much values', 'The selected column has more than 50 different values.')

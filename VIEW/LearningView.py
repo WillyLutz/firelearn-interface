@@ -89,7 +89,7 @@ class LearningView(ctk.CTkFrame):
                                         text_color=gp.enabled_label_color)
 
         id_target_sv = ctk.StringVar()
-        id_target_entry = ErrEntry(master=manage_dataset_frame, state='normal', textvariable=id_target_sv)
+        id_target_cbbox = tk.ttk.Combobox(master=manage_dataset_frame, state='readonly', textvariable=id_target_sv,)
         add_target_button = ctk.CTkButton(master=manage_dataset_frame, text="+", width=25, height=25, state='normal')
         subtract_target_button = ctk.CTkButton(master=manage_dataset_frame, text="-", width=25, height=25,
                                                state='normal')
@@ -156,7 +156,7 @@ class LearningView(ctk.CTkFrame):
         label_column_cbbox.place(relx=0, rely=0.15, relwidth=0.8)
         training_targets_helper.place(relx=0.28, rely=0.22)
         key_target_label.place(relx=0.05, rely=0.22)
-        id_target_entry.place_errentry(relx=0.05, rely=0.28, relwidth=0.4)
+        id_target_cbbox.place(relx=0.05, rely=0.28, relwidth=0.4)
         add_target_button.place(relx=0.5, rely=0.28)
         subtract_target_button.place(relx=0.6, rely=0.28)
         training_textbox.place(relx=0.05, rely=0.35, relwidth=0.4, relheight=0.43)
@@ -194,7 +194,7 @@ class LearningView(ctk.CTkFrame):
         self.vars["load dataset"] = load_dataset_strvar
         self.cbboxes["target column"] = label_column_cbbox
         self.vars["target column"] = label_column_var
-        self.entries["key target"] = id_target_entry
+        self.cbboxes["key target"] = id_target_cbbox
         self.vars["key target"] = id_target_sv
         self.buttons["add target"] = add_target_button
         self.buttons["subtract target"] = subtract_target_button
@@ -235,13 +235,8 @@ class LearningView(ctk.CTkFrame):
         add_target_button.configure(command=self.add_target)
         subtract_target_button.configure(command=self.subtract_target)
 
-        id_target_entry.bind('<Return>', self.add_target)
-        id_target_entry.bind('<Control-BackSpace>', self.subtract_target)
-
         load_dataset_entry.configure(validate='focus',
                                      validatecommand=(self.register(partial(self.parent_view.is_valid_directory, load_dataset_entry)), '%P'))
-        id_target_entry.configure(validate='focus',
-                                  validatecommand=(self.register(partial(self.parent_view.has_forbidden_characters, id_target_entry)), '%P'))
         n_iter_entry.configure(validate='focus',
                                validatecommand=(self.register(partial(self.parent_view.is_positive_int, n_iter_entry)), '%P'))
         save_entry.configure(validate='focus',
