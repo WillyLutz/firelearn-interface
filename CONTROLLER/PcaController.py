@@ -17,6 +17,7 @@ from CONTROLLER import input_validation as ival
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import params as p
+from WIDGETS.ErrEntry import ErrEntry
 
 
 class PcaController:
@@ -69,9 +70,10 @@ class PcaController:
         return transformed_df
 
     def draw_figure(self, ):
-        fig, ax = self.view.figures["pca"]
-        n_labels = self.model.n_labels
-        if self.model.n_labels >= 0:
+        if self.check_params_validity():
+            fig, ax = self.view.figures["pca"]
+            n_labels = self.model.n_labels
+
             ax.clear()
 
             df = self.model.dataset
@@ -120,7 +122,7 @@ class PcaController:
                     label = self.view.vars[f"label data legend {str(yi)}"].get()
                 else:
                     label = self.view.vars[f"label data {str(yi)}"].get()
-                    
+
                 if n_components == 2:
                     ax.scatter(x_data, y_data,
                                s=int(self.view.vars[f"marker size {str(yi)}"].get()),
@@ -219,6 +221,7 @@ class PcaController:
     def input_validation_plot(self):
         plt_entries = {key: value for (key, value) in self.view.entries.items() if "plt" in key}
         # todo : input validation /!\ multiple y
+        
         # if float(plt_entries["linewidth"].get()) < 0:
         #     messagebox.showerror("Value error", "Line width must be positive.")
         #
@@ -250,8 +253,19 @@ class PcaController:
             fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()))
 
     def check_params_validity(self):
-        if not self.input_validation_plot():
+        errors = []
+
+        for key, entry in self.view.entries.items():
+            if type(entry) == ErrEntry:
+                if entry.error_message.get() != '':
+                    errors.append(f"{key} : {entry.error_message.get()}")
+
+        if self.model.n_labels < 0:
+            errors.append("Need data to plot.")
+        if errors:
+            messagebox.showerror('Value Error', '\n'.join(errors))
             return False
+
         return True
 
     def save_config(self, ):
@@ -335,9 +349,9 @@ class PcaController:
 
             labels_legend_label = ctk.CTkLabel(master=label_data_subframe, text="Legend label:")
             labels_legend_var = tk.StringVar(value='')
-            labels_legend_entry = ctk.CTkEntry(master=label_data_subframe, textvariable=labels_legend_var)
+            labels_legend_entry = ErrEntry(master=label_data_subframe, textvariable=labels_legend_var)
             labels_legend_label.place(relx=0, rely=0.25)
-            labels_legend_entry.place(relx=0, rely=0.37, relwidth=0.4)
+            labels_legend_entry.place_errentry(relx=0, rely=0.37, relwidth=0.4)
             self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
 
             markerstyle_label = ctk.CTkLabel(master=label_data_subframe, text="Markers:")
@@ -345,15 +359,15 @@ class PcaController:
             markerstyle_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=list(sorted(p.MARKERS.keys())),
                                                 state='readonly', textvariable=markerstyle_var)
             markerstyle_label.place(relx=0, rely=0.5)
-            markerstyle_cbbox.place(relx=0, rely=0.62, relwidth=0.25)
+            markerstyle_cbbox.place(relx=0, rely=0.62,relwidth=0.25)
             self.view.cbboxes[f"marker style {n_labels}"] = markerstyle_cbbox
             self.view.vars[f"marker style {n_labels}"] = markerstyle_var
 
             markersize_label = ctk.CTkLabel(master=label_data_subframe, text="Marker size:")
             markersize_label.place(relx=0.3, rely=0.5)
             markersize_var = tk.StringVar(value='1')
-            markersize_entry = ctk.CTkEntry(master=label_data_subframe, textvariable=markersize_var)
-            markersize_entry.place(relx=0.3, rely=0.62, relwidth=0.2)
+            markersize_entry = ErrEntry(master=label_data_subframe, textvariable=markersize_var)
+            markersize_entry.place_errentry(relx=0.3, rely=0.62,  relpady=0.12,  relwidth=0.2)
             self.view.vars[f"marker size {n_labels}"] = markersize_var
 
             color_label = ctk.CTkLabel(master=label_data_subframe, text="Color:")
@@ -377,6 +391,11 @@ class PcaController:
 
             color_button.configure(command=partial(self.view.select_color, view=self.view,
                                                    selection_button_name=f'color {n_labels}'))
+
+            markersize_entry.configure(validate='focus',
+                                       validatecommand=(self.view.register(partial(self.view.main_view.is_positive_int,
+                                                                                   markersize_entry)), '%P'))
+
 
             # ----- TRACE
             for key, widget in {f'color {n_labels}': color_var, f'fit {n_labels}': fit_var,
