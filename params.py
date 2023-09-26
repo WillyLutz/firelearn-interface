@@ -1,6 +1,6 @@
 from matplotlib import font_manager
 
-version = "0.1.8"
+version = "0.1.9"
 last_version_compatible = "0.1.0"
 
 default_dataset_path = "path/of/your/dataset/here.csv"
