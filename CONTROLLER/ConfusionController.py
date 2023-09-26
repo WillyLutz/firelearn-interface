@@ -22,6 +22,8 @@ from MODEL.ClfTester import ClfTester
 import fiiireflyyy.learn as fl
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+from WIDGETS.ErrEntry import ErrEntry
+
 
 class ConfusionController:
     def __init__(self, view, ):
@@ -132,13 +134,20 @@ class ConfusionController:
         self.view.buttons["save figure"].configure(command=partial(self.save_figure, self.view.figures["confusion"][0]))
 
     def input_validation(self):
-
+        errors = []
         if not self.model.clf:
-            messagebox.showerror("Value error", "No classifier loaded.")
-            return False
+            errors.append("No classifier loaded.")
 
         if self.model.dataset is None:
-            messagebox.showerror("Value error", "No dataset loaded.")
+            errors.append("No dataset loaded.")
+
+        for key, entry in self.view.entries.items():
+            if type(entry) == ErrEntry:
+                if entry.error_message.get() != '':
+                    errors.append(f"{key} : {entry.error_message.get()}")
+
+        if errors:
+            messagebox.showerror('Value Error', '\n'.join(errors))
             return False
 
         return True
@@ -287,12 +296,12 @@ class ConfusionController:
                 target_train_label = ctk.CTkLabel(master=target_train_frame, textvariable=target_train_label_var)
                 rename_train_label = ctk.CTkLabel(master=target_train_frame, text="Rename target")
                 rename_train_var = tk.StringVar()
-                rename_train_entry = ctk.CTkEntry(master=target_train_frame, textvariable=rename_train_var)
+                rename_train_entry = ErrEntry(master=target_train_frame, textvariable=rename_train_var)
 
                 original_train_label.place(relx=0.05, rely=0)
                 target_train_label.place(relx=0.05, rely=0.2)
                 rename_train_label.place(relx=0.05, rely=0.5)
-                rename_train_entry.place(relx=0.05, rely=0.7)
+                rename_train_entry.place_errentry(relx=0.05, rely=0.7)
                 target_train_frame.grid(row=training_classes.index(target), column=0, pady=10)
 
                 self.view.vars[f"y rename {training_classes.index(target)}"] = rename_train_var
@@ -312,12 +321,12 @@ class ConfusionController:
                 target_test_label = ctk.CTkLabel(master=target_test_frame, textvariable=target_test_label_var)
                 rename_test_label = ctk.CTkLabel(master=target_test_frame, text="Rename target")
                 rename_test_var = tk.StringVar()
-                rename_test_entry = ctk.CTkEntry(master=target_test_frame, textvariable=rename_test_var)
+                rename_test_entry = ErrEntry(master=target_test_frame, textvariable=rename_test_var)
 
                 original_test_label.place(relx=0.05, rely=0)
                 target_test_label.place(relx=0.05, rely=0.2)
                 rename_test_label.place(relx=0.05, rely=0.5)
-                rename_test_entry.place(relx=0.05, rely=0.7)
+                rename_test_entry.place_errentry(relx=0.05, rely=0.7)
                 target_test_frame.grid(row=testing_classes.index(target), column=0, pady=10)
 
                 self.view.vars[f"x rename {testing_classes.index(target)}"] = rename_test_var
