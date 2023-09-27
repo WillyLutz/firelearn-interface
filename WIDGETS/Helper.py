@@ -11,7 +11,7 @@ from VIEW.HelperTopLevels import ProcessingHelper, LearningHelper
 class Helper(ctk.CTkLabel):
 
     def __init__(self, event_key, **kwargs):
-        img = ctk.CTkImage(dark_image=Image.open("data/question-button.png"), size=(20, 20))
+        img = ctk.CTkImage(dark_image=Image.open("data/firelearn_img/question-button.png"), size=(20, 20))
         super().__init__(image=img, text="", **kwargs)
         self.bind('<Button-1>', partial(self.on_click, event_key))
 

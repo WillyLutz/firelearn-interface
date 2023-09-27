@@ -87,11 +87,11 @@ class MainView(ctk.CTkFrame):
         bug_label.place(relx=0.1, rely=0.65)
         disclaimer_label.place(anchor=ctk.S, relwidth=1, rely=0.95, relx=0.5)
 
-        fl_logo = ctk.CTkImage(dark_image=Image.open("data/logo firelearn temporary.png"), size=(500, 500))
+        fl_logo = ctk.CTkImage(dark_image=Image.open("data/firelearn_img/logo firelearn temporary.png"), size=(500, 500))
         fl_label = ctk.CTkLabel(master=self.tabs_view.tab("Home"), image=fl_logo, text="")
         fl_label.place(relx=0.5, rely=0, relwidth=0.5, relheight=0.5)
 
-        github_image = customtkinter.CTkImage(dark_image=Image.open("data/github_logo.png"),
+        github_image = customtkinter.CTkImage(dark_image=Image.open("data/firelearn_img/github_logo.png"),
                                               size=(60, 60))
         github_button = ctk.CTkButton(master=self.tabs_view.tab("Home"), image=github_image, text="",
                                       width=70, height=70, corner_radius=10,

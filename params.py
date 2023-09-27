@@ -80,3 +80,7 @@ COLORS = ['black', 'dimgray', 'dimgrey', 'gray', 'grey', 'darkgray', 'darkgrey',
           'darkorchid', 'darkviolet', 'mediumorchid', 'thistle', 'plum', 'violet', 'purple', 'darkmagenta',
           'fuchsia', 'magenta', 'orchid', 'mediumvioletred', 'deeppink', 'hotpink', 'lavenderblush',
           'palevioletred', 'crimson', 'pink', 'lightpink', ]
+
+FONT_TITLE1 = (DEFAULT_FONT, 26, 'bold')
+FONT_TITLE2 = (DEFAULT_FONT, 23, 'bold')
+FONT_TITLE3 = (DEFAULT_FONT, 20, 'bold')

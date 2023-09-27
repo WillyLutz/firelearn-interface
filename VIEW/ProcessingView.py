@@ -41,16 +41,16 @@ class ProcessingView(ctk.CTkFrame):
     def manage_processing_tab(self):
 
         one_ibutton = ImageButton(master=self.master,
-                                  img=ctk.CTkImage(dark_image=Image.open("data/1 grey.png"), size=(120, 120)),
+                                  img=ctk.CTkImage(dark_image=Image.open("data/firelearn_img/1 grey.png"), size=(120, 120)),
                                   command=partial(self.show_content1, ))
         two_ibutton = ImageButton(master=self.master,
-                                  img=ctk.CTkImage(dark_image=Image.open("data/2 grey.png"), size=(120, 120)),
+                                  img=ctk.CTkImage(dark_image=Image.open("data/firelearn_img/2 grey.png"), size=(120, 120)),
                                   command=partial(self.show_content2, ))
         three_ibutton = ImageButton(master=self.master,
-                                    img=ctk.CTkImage(dark_image=Image.open("data/3 grey.png"), size=(120, 120)),
+                                    img=ctk.CTkImage(dark_image=Image.open("data/firelearn_img/3 grey.png"), size=(120, 120)),
                                     command=partial(self.show_content3, ))
         four_ibutton = ImageButton(master=self.master,
-                                   img=ctk.CTkImage(dark_image=Image.open("data/4 grey.png"), size=(120, 120)),
+                                   img=ctk.CTkImage(dark_image=Image.open("data/firelearn_img/4 grey.png"), size=(120, 120)),
                                    command=partial(self.show_content4, ))
 
         one_ibutton.place(relx=0, rely=0)
@@ -622,14 +622,14 @@ class ProcessingView(ctk.CTkFrame):
     def select_processing_step(self, step):
         for i in range(1, 5):
             if self.step_check[str(i)] == 2:
-                img = ctk.CTkImage(dark_image=Image.open(f"data/{i} grey.png"), size=(120, 120))
+                img = ctk.CTkImage(dark_image=Image.open(f"data/firelearn_img/{i} grey.png"), size=(120, 120))
                 self.image_buttons[str(i)].configure(image=img)
             if self.step_check[str(i)] == 1:
-                img = ctk.CTkImage(dark_image=Image.open(f"data/{i} green.png"), size=(120, 120))
+                img = ctk.CTkImage(dark_image=Image.open(f"data/firelearn_img/{i} green.png"), size=(120, 120))
                 self.image_buttons[str(i)].configure(image=img)
             if self.step_check[str(i)] == 0:
-                img = ctk.CTkImage(dark_image=Image.open(f"data/{i} red.png"), size=(120, 120))
+                img = ctk.CTkImage(dark_image=Image.open(f"data/firelearn_img/{i} red.png"), size=(120, 120))
                 self.image_buttons[str(i)].configure(image=img)
             if str(i) == str(step):
-                img = ctk.CTkImage(dark_image=Image.open(f"data/{i} blue.png"), size=(120, 120))
+                img = ctk.CTkImage(dark_image=Image.open(f"data/firelearn_img/{i} blue.png"), size=(120, 120))
                 self.image_buttons[str(i)].configure(image=img)

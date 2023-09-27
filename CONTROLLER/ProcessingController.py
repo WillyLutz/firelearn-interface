@@ -64,6 +64,7 @@ class ProcessingController:
                     n_columns = int(local_entry["n electrodes"])
                 else:
                     n_columns = int(len([col for col in example_dataframe.columns if "time" not in col.lower()]))
+                    # todo : allow to specify the excepted column
 
                 self.processing_progress = ProgressBar("Processing progression", app=self.view.app)
                 self.processing_progress.total_tasks = self.update_number_of_tasks(n_files, n_columns)
