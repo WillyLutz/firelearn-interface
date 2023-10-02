@@ -24,8 +24,8 @@ class PlotController:
         self.progress = None
 
     def input_validation_plot(self):
+        # todo plot validation
         plt_entries = {key: value for (key, value) in self.view.entries.items() if "plt" in key}
-        # todo : input validation /!\ multiple y
         # if float(plt_entries["linewidth"].get()) < 0:
         #     messagebox.showerror("Value error", "Line width must be positive.")
         #

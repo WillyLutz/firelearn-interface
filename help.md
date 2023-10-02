@@ -91,6 +91,7 @@ This functionality simply behead the file a specified number of rows. In the cas
 MEA recordings , there is a header of 6 rows before the actual data (shown below). 
 Be aware that there must not be anything apart from the data and a row for the columns names 
 (starting from row 7 included in the picture below).
+
 ![](data/help/raw_mea_with_header.png)
 
 ### Selecting electrodes
@@ -186,6 +187,8 @@ Allow to specify the directory where the resulting files will be saved.
 
 ### Miscellaneous
 ![](data/help/execution.png)
+
+
 # Learning
 
 # Analysis

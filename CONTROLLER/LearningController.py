@@ -436,7 +436,6 @@ class LearningController:
 
         # for key, widget in self.view.textboxes.items():
         #     MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
-        # todo : fix
     def save_config(self, ):
         if self.check_params_validity():
             self.update_params(self.view.entries)
