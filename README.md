@@ -1,22 +1,23 @@
 # FireLearn GUI : Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 # Processing
-<img src="data/help/warning.png" width="30 height=30">
+
+<img height="30" src="data/help/red_warning.png" width="30"/>
 
 >Please note that the different processes are following a specific order, and can not be modified. 
 > Consider the order to be the order of presentation of the functionalities in this document.
 > As such, it can be considered to be
 > 
-> [sorting](#sorting-multiple-files) > [file beheading](#using-raw-mea-recordings) > 
+> [sorting](#sorting-multiple-files) > [file beheading (using raw MEA recordings)](#using-raw-mea-recordings) > 
 > [electrode selection](#selecting-electrodes) > [down sampling](#recordings-down-sampling) >
 > [filtering](#filtering) > [fast fourier transform](#fast-fourier-transform) >
 > [smoothing](#smoothing) > [averaging electrode signal](#averaging-electrodes) >
-> [dataset making](#dataset-making) > [post-processing](#post-processing) 
+> [dataset making](#resulting-datasets) > [post-processing](#post-processing) 
 > 
 > Depending on which feature is enabled or disabled.
 
 #### Example: directory structure
-For the following tutorial / help; we will proceed considering this directory structure : 
+For this document we will proceed considering this directory structure : 
 ```
 DATA (most parent common directory)
 │
@@ -109,7 +110,7 @@ This functionality will divide row-wisely every file in `n` selected pieces of e
 e.g. In our walkthrough example, we use 1 minute long recordings.
 Specifying a down sampling at `30` implies that the recordings will be divided in 30 pieces of 2 seconds.
 
-<img src="data/help/warning.png" width="30" height="30">
+<img src="data/help/red_warning.png" width="30" height="30">
 
 > If the [make resulting files as dataset](#post-processing) function is not used, be aware that each file
 selected during the [selection process](#sorting-multiple-files) will generate an equal number of different
@@ -148,10 +149,10 @@ Smoothens the signal down to `n` final values. `n` must be inferior to the numbe
 
 Average all columns (except the 'x' column, usually TimeStamp) into one column.
 
-### Dataset making
+### Resulting datasets
 ![](data/help/make_dataset.png)
 
-<img src="data/help/warning.png" width="30 height=30">
+<img src="data/help/red_warning.png" width="30 height=30">
 
 >This feature overwrites the saving of the intermediate files (e.g. those created 
 > from the [down sampling](#recordings-down-sampling) functionality) and save only

@@ -24,7 +24,6 @@ def onClosure(app):
 
 
 def main():
-    # theme = os.path.join(os.getcwd().split("firelearn-interface")[0], "firelearn-interface/theme.json")
     customtkinter.set_default_color_theme(resource_path("data/theme.json"))
     
     app = App()

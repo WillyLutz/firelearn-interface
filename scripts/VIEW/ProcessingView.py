@@ -105,7 +105,7 @@ class ProcessingView(ctk.CTkFrame):
         sorting_entry = ErrEntry(master=content_1_frame, state='disabled', textvariable=sorting_sv)
         sorting_button = ctk.CTkButton(master=content_1_frame, text="Open", state='normal')
 
-        sorting_helper = Helper(master=content_1_frame, event_key="sorting")
+        sorting_helper = Helper(master=content_1_frame, event_key="#sorting-multiple-files")
 
         to_include_label = ctk.CTkLabel(master=content_1_frame, text="To include:",
                                         text_color=gp.enabled_label_color)
@@ -139,7 +139,7 @@ class ProcessingView(ctk.CTkFrame):
         target_textbox = ctk.CTkTextbox(master=content_1_frame, corner_radius=10, state='disabled')
 
         # -------- SINGLE FILE ------------
-        single_file_helper = Helper(master=content_1_frame, event_key="single file")
+        single_file_helper = Helper(master=content_1_frame, event_key="#single-file-analysis")
 
         single_file_switch = ctk.CTkSwitch(master=content_1_frame, text="Single file analysis")
         single_file_label = ctk.CTkLabel(master=content_1_frame, text="Path to file:",
@@ -149,7 +149,7 @@ class ProcessingView(ctk.CTkFrame):
         single_file_button = ctk.CTkButton(master=content_1_frame, text="Open", state='normal')
 
         # ----- EXECUTE
-        exec_helper = Helper(master=content_1_frame, event_key="exec")
+        exec_helper = Helper(master=content_1_frame, event_key="#post-processing")
         random_key_exec_switch = ctk.CTkSwitch(master=content_1_frame, text="Add random key to file names")
         timestamp_exec_switch = ctk.CTkSwitch(master=content_1_frame, text="Add timestamp to file names")
         keyword_exec_switch = ctk.CTkSwitch(master=content_1_frame, text="Add keyword to file names")
@@ -294,7 +294,7 @@ class ProcessingView(ctk.CTkFrame):
         content_2_frame = self.frames["content 2"]
 
         # ------- RAW MEA ------------------
-        raw_mea_helper = Helper(master=content_2_frame, event_key="raw mea")
+        raw_mea_helper = Helper(master=content_2_frame, event_key="#using-raw-mea-recordings")
 
         raw_mea_switch = ctk.CTkSwitch(master=content_2_frame, text="Raw MEA recording files", )
         raw_mea_label = ctk.CTkLabel(master=content_2_frame, text="Size of info headers: ",
@@ -303,7 +303,7 @@ class ProcessingView(ctk.CTkFrame):
         raw_mea_entry = ErrEntry(master=content_2_frame, state='normal', textvariable=raw_mea_sv)
 
         # --------- SELECT ELECTRODES -------
-        select_elec_helper = Helper(master=content_2_frame, event_key="select electrodes")
+        select_elec_helper = Helper(master=content_2_frame, event_key="#selecting-electrodes")
 
         electrode_switch = ctk.CTkSwitch(master=content_2_frame, text="Select electrodes", )
         electrode_mode_label = ctk.CTkLabel(master=content_2_frame, text="mode: ", text_color=gp.enabled_label_color)
@@ -320,7 +320,7 @@ class ProcessingView(ctk.CTkFrame):
         n_electrodes_entry = ErrEntry(master=content_2_frame, state='normal', textvariable=n_electrode_sv)
 
         # ------- SAMPLING ------------------------
-        sampling_helper = Helper(master=content_2_frame, event_key="sampling")
+        sampling_helper = Helper(master=content_2_frame, event_key="#recordings-down-sampling")
 
         sampling_switch = ctk.CTkSwitch(master=content_2_frame, text="Down sampling recordings")
         sampling_divide_label = ctk.CTkLabel(master=content_2_frame, text="Divide recording into ",
@@ -394,7 +394,7 @@ class ProcessingView(ctk.CTkFrame):
         filter_frame.grid_columnconfigure(0, weight=1)
 
         # ------- FILTERING ------------------------
-        filter_helper = Helper(master=filter_frame, event_key="filter")
+        filter_helper = Helper(master=filter_frame, event_key="#filtering")
 
         sub_filterframe = ctk.CTkFrame(master=filter_frame, height=280)
         sub_filterframe.grid(row=0, column=0, sticky=ctk.NSEW)
@@ -493,7 +493,7 @@ class ProcessingView(ctk.CTkFrame):
         frequential_frame = self.frames["content 4"]
 
         # ------- FREQUENTIAL PROCESSING -----------
-        frequential_helper = Helper(master=frequential_frame, event_key="fft")
+        frequential_helper = Helper(master=frequential_frame, event_key="#fast-fourier-transform")
         fft_switch = ctk.CTkSwitch(master=frequential_frame, text="Fast Fourier Transform")
         sampling_fft_label = ctk.CTkLabel(master=frequential_frame, text="Sampling frequency (Hz):",
                                           text_color=gp.enabled_label_color)
