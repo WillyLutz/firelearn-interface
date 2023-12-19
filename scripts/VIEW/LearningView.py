@@ -14,11 +14,13 @@ from scripts.WIDGETS.Helper import Helper
 class LearningView(ctk.CTkFrame):
     def __init__(self, app, master, parent_view):
         super().__init__(master=app)
+        
         self.master = master
         self.app = app
         self.parent_view = parent_view
         self.controller = LearningController(self, )
-
+        
+        
         self.entries = {}
         self.buttons = {}
         self.cbboxes = {}
