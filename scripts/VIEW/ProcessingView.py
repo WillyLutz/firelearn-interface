@@ -13,7 +13,7 @@ from scripts.WIDGETS.ImageButton import ImageButton
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Pipeline import Pipeline
 from scripts.params import resource_path
-
+from scripts.WIDGETS.DragDropListbox import DragDropListbox
 
 class ProcessingView(ctk.CTkFrame):
     def __init__(self, app, master, parent_view):
@@ -38,14 +38,6 @@ class ProcessingView(ctk.CTkFrame):
         self.content_frame = ctk.CTkFrame(master=self.master)
         self.content_frame.place(relx=0.15, rely=0, relwidth=0.85, relheight=0.9)
         
-        self.pipeline_frame = ctk.CTkFrame(master=self.content_frame)
-        self.pipeline_frame.place(relx=0.6, rely=0.05, relwidth=0.45, relheight=0.9)
-        
-        self.canvas = ctk.CTkCanvas(master=self.pipeline_frame, borderwidth=0, highlightthickness=0)
-        self.canvas.place(relx=0, rely=0, relwidth=1, relheight=1)
-        
-        pipe = Pipeline(self.canvas, width=400, height=300, )
-        
         self.manage_processing_tab()
     
     def manage_processing_tab(self):
@@ -67,24 +59,9 @@ class ProcessingView(ctk.CTkFrame):
                                         size=(120, 120)),
                                     command=partial(self.show_filename_frame, ))
         
-        filesorter_ibtn.place(relx=0, rely=0)
-        signal_ibtn.place(relx=0, rely=0.2)
-        filename_ibtn.place(relx=0, rely=0.4)
-        
-        self.image_buttons["filesorter"] = filesorter_ibtn
-        self.image_buttons["signal"] = signal_ibtn
-        self.image_buttons["filename"] = filename_ibtn
-        
         filesorter_frame = ctk.CTkFrame(master=self.content_frame, )
         signal_frame = ctk.CTkFrame(master=self.content_frame, )
         filename_frame = ctk.CTkFrame(master=self.content_frame, )
-        self.frames["filesorter"] = filesorter_frame
-        self.frames["signal"] = signal_frame
-        self.frames["filename"] = filename_frame
-        self.generate_filesorter_content()
-        self.generate_signal_content()
-        self.generate_filename_content()
-        self.show_filesorter_frame()
         
         check_all_button = ctk.CTkButton(master=self.master, text="Check all steps",
                                          command=self.controller.check_params_validity,
@@ -96,10 +73,40 @@ class ProcessingView(ctk.CTkFrame):
         process_exec_button = ctk.CTkButton(master=self.master, fg_color="green", text="Process",
                                             command=self.processing)
         
+        processing_steps_frame = ctk.CTkFrame(master=self.content_frame, )
+        self.frames["processing steps"] = processing_steps_frame
+        processing_steps_frame.place(relx=0.6, rely=0.05, relwidth=0.35, relheight=0.9)
+        dragdrop = DragDropListbox(master=processing_steps_frame)
+        dragdrop.insert(1, "A")
+        dragdrop.insert(2, "B")
+        dragdrop.insert(3, "C")
+        dragdrop.insert(4, "D")
+        dragdrop.insert(5, "E")
+
+        dragdrop.place(relx=0, rely=0)
+
+        self.image_buttons["filesorter"] = filesorter_ibtn
+        self.image_buttons["signal"] = signal_ibtn
+        self.image_buttons["filename"] = filename_ibtn
+        self.frames["filesorter"] = filesorter_frame
+        self.frames["signal"] = signal_frame
+        self.frames["filename"] = filename_frame
+        
         check_all_button.place(anchor=tk.S, relx=0.25, rely=0.95)
         save_model_button.place(anchor=tk.S, relx=0.35, rely=0.95, )
         load_model_button.place(anchor=tk.S, relx=0.45, rely=0.95, )
         process_exec_button.place(anchor=tk.S, relx=0.55, rely=0.95, relheight=0.05)
+        filesorter_ibtn.place(relx=0, rely=0)
+        signal_ibtn.place(relx=0, rely=0.2)
+        filename_ibtn.place(relx=0, rely=0.4)
+        
+        
+        
+        
+        self.generate_filesorter_content()
+        self.generate_signal_content()
+        self.generate_filename_content()
+        self.show_filesorter_frame()
     
     def generate_filesorter_content(self):
         
@@ -191,23 +198,23 @@ class ProcessingView(ctk.CTkFrame):
         single_file_entry.place_errentry(relx=0, rely=0.95, relwidth=0.6, relpady=0.04)
         single_file_button.place(relx=0.6, rely=0.95, relwidth=0.1)
         
-        self.switches["sorting"] = sorting_files_switch
-        self.vars["sorting"] = sorting_sv
-        self.entries["sorting"] = sorting_entry
-        self.switches["single file"] = single_file_switch
-        self.vars["single file"] = single_file_sv
-        self.entries["single file"] = single_file_entry
-        self.vars["key target"] = id_target_sv
-        self.vars["value target"] = rename_target_sv
-        self.entries["key target"] = id_target_entry
-        self.entries["value target"] = rename_target_entry
-        self.textboxes["targets"] = target_textbox
-        self.vars["to exclude"] = exclude_sv
-        self.entries["to exclude"] = exclude_entry
-        self.textboxes["to exclude"] = exclude_textbox
-        self.vars["to include"] = include_sv
-        self.entries["to include"] = include_entry
-        self.textboxes["to include"] = include_textbox
+        self.switches["filesorter multiple"] = sorting_files_switch
+        self.vars["filesorter multiple"] = sorting_sv
+        self.entries["filesorter multiple"] = sorting_entry
+        self.switches["filesorter single"] = single_file_switch
+        self.vars["filesorter single"] = single_file_sv
+        self.entries["filesorter single"] = single_file_entry
+        self.vars["filesorter key target"] = id_target_sv
+        self.vars["filesorter value target"] = rename_target_sv
+        self.entries["filesorter key target"] = id_target_entry
+        self.entries["filesorter value target"] = rename_target_entry
+        self.textboxes["filesorter targets"] = target_textbox
+        self.vars["filesorter exclusion"] = exclude_sv
+        self.entries["filesorter exclusion"] = exclude_entry
+        self.textboxes["filesorter exclusion"] = exclude_textbox
+        self.vars["filesorter inclusion"] = include_sv
+        self.entries["filesorter inclusion"] = include_entry
+        self.textboxes["filesorter inclusion"] = include_textbox
         
         # ------------ CONFIGURE
         
@@ -264,14 +271,14 @@ class ProcessingView(ctk.CTkFrame):
         
         signal_frame = self.frames["signal"]
         
-        # ------- RAW MEA ------------------
+        # ------- signal behead ------------------
         raw_mea_helper = Helper(master=signal_frame, event_key="#using-raw-mea-recordings")
         
-        raw_mea_switch = ctk.CTkSwitch(master=signal_frame, text="Beheading top-file metadata", )
-        raw_mea_sv = ctk.StringVar()
-        raw_mea_entry = ErrEntry(master=signal_frame, state='normal', textvariable=raw_mea_sv)
+        behead_switch = ctk.CTkSwitch(master=signal_frame, text="Beheading top-file metadata", )
+        behead_sv = ctk.StringVar()
+        behead_entry = ErrEntry(master=signal_frame, state='normal', textvariable=behead_sv)
         
-        # --------- SELECT ELECTRODES -------
+        # --------- signal select columns -------
         select_elec_helper = Helper(master=signal_frame, event_key="#selecting-electrodes")
         
         electrode_switch = ctk.CTkSwitch(master=signal_frame, text="Select columns", )
@@ -279,7 +286,7 @@ class ProcessingView(ctk.CTkFrame):
         
         electrode_metric_label = ctk.CTkLabel(master=signal_frame, text="metric: ",
                                               text_color=gp.enabled_label_color)
-        n_electrode_label = ctk.CTkLabel(master=signal_frame, text="n electrodes: ",
+        n_electrode_label = ctk.CTkLabel(master=signal_frame, text="signal select columns number: ",
                                          text_color=gp.enabled_label_color)
         mode_electrode_cbox = tk.ttk.Combobox(master=signal_frame, values=["None", "max", ], state='readonly')
         mode_electrode_cbox.set("None")
@@ -298,9 +305,9 @@ class ProcessingView(ctk.CTkFrame):
         
         # ------- FILTERING ------------------------
         filter_helper = Helper(master=signal_frame, event_key="#filtering")
-
+        
         filter_switch = ctk.CTkSwitch(master=signal_frame, text="Filtering")
-
+        
         order_filter_label = ctk.CTkLabel(master=signal_frame, text="Order: ", text_color=gp.enabled_label_color)
         order_filter_sv = ctk.StringVar()
         order_filter_entry = ErrEntry(master=signal_frame, state='normal', textvariable=order_filter_sv)
@@ -308,7 +315,7 @@ class ProcessingView(ctk.CTkFrame):
                                              text_color=gp.enabled_label_color)
         sampling_filter_sv = ctk.StringVar()
         sampling_filter_entry = ErrEntry(master=signal_frame, state='normal', textvariable=sampling_filter_sv)
-
+        
         type_filter_label = ctk.CTkLabel(master=signal_frame, text="Type: ", text_color=gp.enabled_label_color)
         frequency1_filter_label = ctk.CTkLabel(master=signal_frame, text="First cut frequency (Hz): ",
                                                text_color=gp.enabled_label_color)
@@ -338,7 +345,7 @@ class ProcessingView(ctk.CTkFrame):
                                              textvariable=freq_hamronics_sv)
         nth_hamronics_sv = ctk.StringVar()
         nth_harmonics_entry = ErrEntry(master=signal_frame, state='normal', textvariable=nth_hamronics_sv)
-
+        
         # ------- FREQUENTIAL PROCESSING -----------
         frequential_helper = Helper(master=signal_frame, event_key="#fast-fourier-transform")
         fft_switch = ctk.CTkSwitch(master=signal_frame, text="Fast Fourier Transform. Sampling frequency (Hz):")
@@ -354,8 +361,8 @@ class ProcessingView(ctk.CTkFrame):
         # ------ MANAGING WIDGETS
         
         raw_mea_helper.place(anchor=ctk.NE, relx=1, rely=0)
-        raw_mea_switch.place(relx=0.0, rely=0)
-        raw_mea_entry.place_errentry(relx=0.4, rely=0, relwidth=0.2)
+        behead_switch.place(relx=0.0, rely=0)
+        behead_entry.place_errentry(relx=0.4, rely=0, relwidth=0.2)
         
         select_elec_helper.place(anchor=ctk.NE, relx=1, rely=0.1)
         electrode_switch.place(relx=0.0, rely=0.1)
@@ -381,7 +388,6 @@ class ProcessingView(ctk.CTkFrame):
         smooth_entry.place_errentry(relx=0.38, rely=0.45, relwidth=0.1)
         smooth_label.place(relx=0.5, rely=0.45)
         
-        
         filter_helper.place(anchor=ctk.NE, relx=1, rely=0.55)
         filter_switch.place(relx=0, rely=0.55)
         sampling_filter_label.place(relx=0.4, rely=0.6)
@@ -403,48 +409,48 @@ class ProcessingView(ctk.CTkFrame):
         frequency_harmonics_entry.place_errentry(relx=0.3, rely=0.9, relwidth=0.3)
         nth_harmonics_entry.place_errentry(relx=0.7, rely=0.9, relwidth=0.2)
         
-        self.switches["raw mea"] = raw_mea_switch
-        self.vars["raw mea"] = raw_mea_sv
-        self.entries["raw mea"] = raw_mea_entry
+        self.switches["signal behead"] = behead_switch
+        self.vars["signal behead"] = behead_sv
+        self.entries["signal behead"] = behead_entry
         
-        self.switches["select electrodes"] = electrode_switch
-        self.cbboxes["select electrode mode"] = mode_electrode_cbox
-        self.cbboxes["select electrode metric"] = metric_electrode_cbox
-        self.vars["n electrodes"] = n_electrode_sv
-        self.entries["n electrodes"] = n_electrodes_entry
+        self.switches["signal select columns"] = electrode_switch
+        self.cbboxes["signal select columns mode"] = mode_electrode_cbox
+        self.cbboxes["signal select columns metric"] = metric_electrode_cbox
+        self.vars["signal select columns number"] = n_electrode_sv
+        self.entries["signal select columns number"] = n_electrodes_entry
         
-        self.switches["sampling"] = sampling_switch
-        self.entries["sampling"] = sampling_entry
-        self.vars["sampling"] = sampling_sv
+        self.switches["signal sampling"] = sampling_switch
+        self.entries["signal sampling"] = sampling_entry
+        self.vars["signal sampling"] = sampling_sv
         
-        self.switches["fft"] = fft_switch
-        self.vars["fft sampling"] = sampling_fft_sv
-        self.entries["fft sampling"] = sampling_fft_entry
-        self.switches["merge"] = merge_switch
-        self.switches["smoothing"] = smooth_switch
-        self.vars["smoothing"] = smooth_sv
-        self.entries["smoothing"] = smooth_entry
+        self.switches["signal fft"] = fft_switch
+        self.vars["signal fft sf"] = sampling_fft_sv
+        self.entries["signal fft sf"] = sampling_fft_entry
+        self.switches["signal merge"] = merge_switch
+        self.switches["signal smoothing"] = smooth_switch
+        self.vars["signal smoothing"] = smooth_sv
+        self.entries["signal smoothing"] = smooth_entry
         
-        self.switches["filter"] = filter_switch
-        self.entries["filter order"] = order_filter_entry
-        self.vars["filter order"] = order_filter_sv
-        self.entries["filter sampling"] = sampling_filter_entry
-        self.vars["filter sampling"] = sampling_filter_sv
-        self.entries["first frequency"] = frequency1_filter_entry
-        self.entries["second frequency"] = frequency2_filter_entry
-        self.cbboxes["filter type"] = type_filter_cbox
-        self.cbboxes["harmonic type"] = type_harmonics_cbox
-        self.vars["harmonic frequency"] = freq_hamronics_sv
-        self.entries["harmonic frequency"] = frequency_harmonics_entry
-        self.vars["nth harmonic"] = nth_hamronics_sv
-        self.entries["nth harmonic"] = nth_harmonics_entry
+        self.switches["signal filter"] = filter_switch
+        self.entries["signal filter order"] = order_filter_entry
+        self.vars["signal filter order"] = order_filter_sv
+        self.entries["signal filter sf"] = sampling_filter_entry
+        self.vars["signal filter sf"] = sampling_filter_sv
+        self.entries["signal filter first frequency"] = frequency1_filter_entry
+        self.entries["signal filter second frequency"] = frequency2_filter_entry
+        self.cbboxes["signal filter type"] = type_filter_cbox
+        self.cbboxes["signal filter harmonic type"] = type_harmonics_cbox
+        self.vars["signal filter harmonic frequency"] = freq_hamronics_sv
+        self.entries["signal filter harmonic frequency"] = frequency_harmonics_entry
+        self.vars["signal filter nth harmonic"] = nth_hamronics_sv
+        self.entries["signal filter nth harmonic"] = nth_harmonics_entry
         
         # ------ CONFIGURE
         
-        raw_mea_entry.configure(validate='focus',
-                                validatecommand=(
-                                    self.register(partial(self.parent_view.is_positive_int_or_emtpy, raw_mea_entry)),
-                                    '%P'))
+        behead_entry.configure(validate='focus',
+                               validatecommand=(
+                                   self.register(partial(self.parent_view.is_positive_int_or_emtpy, behead_entry)),
+                                   '%P'))
         n_electrodes_entry.configure(validate='focus',
                                      validatecommand=(self.register(
                                          partial(self.parent_view.is_positive_int_or_emtpy, n_electrodes_entry)), '%P'))
@@ -487,7 +493,7 @@ class ProcessingView(ctk.CTkFrame):
     
     def generate_filename_content(self):
         filename_frame = self.frames["filename"]
-
+        
         filename_frame.place(relwidth=0.9, relheight=0.9, rely=0.05, relx=0.05)
         filename_frame.grid_columnconfigure(0, weight=1)
         
@@ -523,19 +529,18 @@ class ProcessingView(ctk.CTkFrame):
         save_entry.place_errentry(relx=0, rely=0.7, relwidth=0.4, relpady=0.05)
         save_exec_button.place(relx=0.4, rely=0.7, relwidth=0.1)
         
-        self.switches["random key"] = random_key_exec_switch
-        self.switches["timestamp"] = timestamp_exec_switch
-        self.switches["keyword"] = keyword_exec_switch
+        self.switches["filename random key"] = random_key_exec_switch
+        self.switches["filename timestamp"] = timestamp_exec_switch
+        self.switches["filename keyword"] = keyword_exec_switch
         self.switches["filename"] = filename_switch
         self.switches["make dataset"] = make_dataset_switch
-        self.entries["keyword"] = keyword_entry
+        self.entries["filename keyword"] = keyword_entry
         self.entries["filename"] = filename_entry
-        self.entries["save files"] = save_entry
-        self.vars["keyword"] = keyword_sv
-        self.vars["save files"] = save_exec_sv
+        self.entries["filename save under"] = save_entry
+        self.vars["filename keyword"] = keyword_sv
+        self.vars["filename save under"] = save_exec_sv
         
         # ----------- CONFIGURE
-        
         
         keyword_exec_switch.configure(
             command=partial(self.controller.modulate_entry_state_by_switch, keyword_exec_switch,
@@ -556,33 +561,26 @@ class ProcessingView(ctk.CTkFrame):
                                     self.register(partial(self.parent_view.has_forbidden_characters, keyword_entry)),
                                     '%P'))
         filename_entry.configure(validate='focus',
-                                validatecommand=(
-                                    self.register(partial(self.parent_view.has_forbidden_characters, filename_entry)),
-                                    '%P'))
-    
-        
-        
-        
-       
-        
-
+                                 validatecommand=(
+                                     self.register(partial(self.parent_view.has_forbidden_characters, filename_entry)),
+                                     '%P'))
     
     def show_filesorter_frame(self, *args):
-        self.select_processing_step("filesorter")
+        self.select_check_processing_step("filesorter")
         
         self.frames['signal'].place_forget()
         self.frames['filename'].place_forget()
         self.frames["filesorter"].place(relx=0.05, rely=0.05, relwidth=0.5, relheight=0.9)
     
     def show_signal_frame(self, *args):
-        self.select_processing_step('signal')
+        self.select_check_processing_step('signal')
         
         self.frames['filesorter'].place_forget()
         self.frames['filename'].place_forget()
         self.frames["signal"].place(relx=0.05, rely=0.05, relwidth=0.5, relheight=0.9)
     
     def show_filename_frame(self, *args):
-        self.select_processing_step('filename')
+        self.select_check_processing_step('filename')
         
         self.frames['filesorter'].place_forget()
         self.frames['signal'].place_forget()
@@ -637,7 +635,7 @@ class ProcessingView(ctk.CTkFrame):
         if self.controller:
             self.controller.load_config()
     
-    def select_processing_step(self, step):
+    def select_check_processing_step(self, step=None):
         for s in ["filesorter", 'signal', 'filename']:
             if self.step_check[s] == 2:
                 img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_grey.png")),
@@ -651,7 +649,9 @@ class ProcessingView(ctk.CTkFrame):
                 img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_red.png")),
                                    size=(120, 120))
                 self.image_buttons[s].configure(image=img)
-            if s == str(step):
-                img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_blue.png")),
-                                   size=(120, 120))
-                self.image_buttons[s].configure(image=img)
+            if step:
+                if s == str(step):
+                    img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_blue.png")),
+                                       size=(120, 120))
+                    self.image_buttons[s].configure(image=img)
+
