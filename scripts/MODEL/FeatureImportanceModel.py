@@ -43,7 +43,7 @@ class FeatureImportanceModel:
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
-            if version.parse(attr_dict["version"]) > version.parse(params.last_version_compatible):
+            if version.parse(attr_dict["version"]) >= version.parse(params.last_version_compatible):
                 self.__dict__.update(attr_dict)
                 messagebox.showinfo("Info", f"Analysis configuration correctly loaded.\nVersion {self.version}")
                 return True

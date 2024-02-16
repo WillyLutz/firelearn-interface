@@ -17,9 +17,6 @@ version = "0.2.0"
 last_version_compatible = "0.2.0"
 description = "Description of FL project here"
 
-PROJECT_PATH = os.getcwd()
-print(PROJECT_PATH)
-
 default_dataset_path = resource_path("path/of/your/dataset/here.csv")
 default_dataset_info = "Dataset information here"
 selected_target = "No target selected"

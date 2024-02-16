@@ -91,7 +91,9 @@ class ConfusionController:
             overall_matrix, mixed_labels_matrix, CORRESPONDENCE \
                 = fl.test_clf_by_confusion(self.model.clf, df, training_targets=training_classes,
                                            testing_targets=testing_classes, show=False,
-                                           iterations=self.view.vars["iterations"].get(), return_data=True) # todo : update fiiireflyyy
+                                           iterations=self.view.vars["iterations"].get(),
+                                           return_data=True,
+                                           mode='percent') # todo : update fiiireflyyy
             self.model.confusion_data["overall matrix"] = overall_matrix
             self.model.confusion_data["mixed labels matrix"] = mixed_labels_matrix
             self.model.confusion_data["correspondence"] = CORRESPONDENCE
