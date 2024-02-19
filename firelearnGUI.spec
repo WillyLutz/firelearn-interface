@@ -1,15 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-added_files = [
-    ("data", "data"),
-]
 
 a = Analysis(
     ['firelearnGUI.py'],
     pathex=[],
     binaries=[],
-    datas=added_files,
-    hiddenimports=['PIL._tkinter_finder', ],
+    datas=[('C:\\Users\\wlutz\\PycharmProjects\\firelearn-interface\\venv\\Lib\\site-packages\\customtkinter', '.'), ('C:\\Users\\wlutz\\PycharmProjects\\firelearn-interface\\data', 'data')],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

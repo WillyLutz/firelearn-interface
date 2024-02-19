@@ -33,7 +33,6 @@ class PlotView(ctk.CTkFrame):
         self.checkboxes = {}
         self.textboxes = {}
         self.canvas = {}
-        self.lines = {}
         self.figures = {}
         self.scrollable_frames = {}
         self.image_buttons = {}
@@ -176,6 +175,9 @@ class PlotView(ctk.CTkFrame):
         
         # ---- TRACE
         xdata_var.trace("w", partial(self.controller.trace_vars_to_model, 'xdata'))
+        
+        # --------- ENTRY VALIDATION
+        
     
     def generate_axes_content(self):
         axes_frame = self.frames["axes"]
@@ -475,6 +477,18 @@ class PlotView(ctk.CTkFrame):
         legend_anchor_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend anchor'))
         ncols_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend ncols'))
         draggable_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend draggable'))
+        
+        # ------ ENTRY VALIDATION
+        
+        dpi_entry.configure(validate='focus',
+                                validatecommand=(
+                                    self.register(partial(self.parent_view.parent_view.is_positive_int, dpi_entry)),
+                                    '%P'))
+        ncols_entry.configure(validate='focus',
+                            validatecommand=(
+                                self.register(partial(self.parent_view.parent_view.is_positive_int, ncols_entry)),
+                                '%P'))
+        
     
     def generate_figname_content(self):
         figname_frame = self.frames["figname"]

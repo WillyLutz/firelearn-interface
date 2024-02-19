@@ -54,7 +54,10 @@ class ProcessingController:
                 
                 if local_switch["filesorter single"]:
                     all_files.append(self.model.single_file)
-                
+
+                """
+                section for processing bar
+                """
                 n_files = int(len(all_files))
                 skiprow = 0
                 if local_switch["signal behead"]:
@@ -72,7 +75,9 @@ class ProcessingController:
                 self.processing_progress.start()
                 
                 processed_files_to_make_dataset = []
-                
+                """
+                end of section for processing bar
+                """
                 # preparation of filename
                 processing_basename = []
                 characters = string.ascii_letters + string.digits
@@ -84,19 +89,19 @@ class ProcessingController:
                                                    f"{local_cbox['signal select columns metric'].capitalize()}"
                                                    f"{local_entry['signal select columns number']}")
                     if local_switch["signal sampling"]:
-                        processing_basename.append(f"Ds{local_entry['sampling']}sample{local_entry['sampling']}")
+                        processing_basename.append(f"Ds{local_entry['signal sampling']}sample{local_entry['signal sampling']}")
                     if local_switch["signal filter"]:
                         processing_basename.append(
-                            f"O{local_entry['filter order']}{local_cbox['filter type']}"
-                            f"{local_entry['first frequency']}-{local_entry['second frequency']}"
-                            f"H{local_cbox['harmonic type']}{local_entry['harmonic frequency']}-"
-                            f"{local_entry['nth harmonic']}")
+                            f"O{local_entry['signal filter order']}{local_cbox["signal filter type"]}"
+                            f"{local_entry["signal filter first frequency"]}-{local_entry["signal filter second frequency"]}"
+                            f"H{local_cbox["signal filter harmonic type"]}{local_entry["signal filter harmonic frequency"]}-"
+                            f"{local_entry["signal filter nth harmonic"]}")
                     if local_switch["signal fft"]:
                         processing_basename.append("signal fft")
                     if local_switch["signal merge"]:
                         processing_basename.append("avg")
                     if local_switch["signal smoothing"]:
-                        processing_basename.append(f"Sm{local_entry['smoothing']}")
+                        processing_basename.append(f"Sm{local_entry['signal smoothing']}")
                 if local_switch["filename random key"]:
                     processing_basename.append(''.join(random.choice(characters) for _ in range(5)))
                 if local_switch["filename keyword"]:
@@ -259,19 +264,19 @@ class ProcessingController:
                                                    f"{local_cbox['signal select columns metric'].capitalize()}"
                                                    f"{local_entry['signal select columns number']}")
                     if local_switch["signal sampling"]:
-                        processing_basename.append(f"Ds{local_entry['sampling']}sample{local_entry['sampling']}")
+                        processing_basename.append(f"Ds{local_entry['signal sampling']}sample{local_entry['signal sampling']}")
                     if local_switch["signal filter"]:
                         processing_basename.append(
-                            f"O{local_entry['filter order']}{local_cbox['filter type']}"
-                            f"{local_entry['first frequency']}-{local_entry['second frequency']}"
-                            f"H{local_cbox['harmonic type']}{local_entry['harmonic frequency']}-"
-                            f"{local_entry['nth harmonic']}")
+                            f"O{local_entry['signal filter order']}{local_cbox["signal filter type"]}"
+                            f"{local_entry["signal filter first frequency"]}-{local_entry["signal filter second frequency"]}"
+                            f"H{local_cbox["signal filter harmonic type"]}{local_entry["signal filter harmonic frequency"]}-"
+                            f"{local_entry["signal filter nth harmonic"]}")
                     if local_switch["signal fft"]:
                         processing_basename.append("signal fft")
                     if local_switch["signal merge"]:
                         processing_basename.append("avg")
                     if local_switch["signal smoothing"]:
-                        processing_basename.append(f"Sm{local_entry['smoothing']}")
+                        processing_basename.append(f"Sm{local_entry["signal smoothing"]}")
                     if local_switch["filename random key"]:
                         processing_basename.append(''.join(random.choice(characters) for i in range(5)))
                     if local_switch["filename keyword"]:
@@ -543,12 +548,12 @@ class ProcessingController:
             if self.view.entries["signal filter second frequency"].get() and (
                     self.view.cbboxes["signal filter type"].get() not in ["Bandstop", "Bandpass"]):
                 signal_errors.append(f"The second frequency is not needed when using a "
-                              f"{self.view.cbboxes['filter type'].get()} filter.")
+                              f"{self.view.cbboxes["signal filter type"].get()} filter.")
             if self.view.cbboxes["signal filter type"].get() in ["Bandstop", "Bandpass"] and not gates.AND(
                     [self.view.entries["signal filter second frequency"].get(),
                      self.view.entries["signal filter first frequency"].get()]):
                 signal_errors.append(f"Both low cut and high cut frequencies are needed when"
-                              f" using a f{self.view.cbboxes['filter type'].get()} filter")
+                              f" using a f{self.view.cbboxes["signal filter type"].get()} filter")
         
        
         
