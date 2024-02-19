@@ -49,7 +49,7 @@ class ConfusionView(ctk.CTkFrame):
         load_frame = ctk.CTkFrame(master=self.master)
         load_frame.place(relx=0, rely=0, relwidth=0.31, relheight=0.1)
 
-        load_model_button = ctk.CTkButton(master=load_frame, text="Load classifier", )
+        load_model_button = ctk.CTkButton(master=load_frame, text="Load test classifier", )
         load_dataset_button = ctk.CTkButton(master=load_frame, text="Load dataset", )
         load_model_var = tk.StringVar()
         load_model_entry = ErrEntry(master=load_frame, textvariable=load_model_var, state='disabled')

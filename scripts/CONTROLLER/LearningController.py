@@ -29,22 +29,35 @@ class LearningController:
         for name, value in clf.get_params().items():
             rfc_params_string_var[name].set(value)
 
-    def load_dataset(self):
+    def load_train_dataset(self):
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
-        strvar = self.view.vars["load dataset"]
+        strvar = self.view.vars["load train dataset"]
         label_cbbox = self.view.cbboxes["target column"]
         if filename:
             strvar.set(filename)
-            self.model.dataset_path = filename
+            self.model.train_dataset_path = filename
             df = pd.read_csv(filename, index_col=False)
-            self.model.dataset = df
+            self.model.train_dataset = df
             label_cbbox.configure(state='normal')
             label_cbbox.configure(values=[str(c) for c in df.columns])
             self.view.vars["target column"].set(str(df.columns[0]))
             label_cbbox.configure(state='readonly')
 
             self.view.vars['target column'].trace('w', self.trace_target_column)
+            print(df, filename)
+            
+    def load_test_dataset(self):
+        filename = filedialog.askopenfilename(title="Open file",
+                                              filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
+        strvar = self.view.vars["load test dataset"]
+        if filename:
+            strvar.set(filename)
+            self.model.test_dataset_path = filename
+            df = pd.read_csv(filename, index_col=False)
+            self.model.test_dataset = df
+            print(df, filename)
+
 
     def add_subtract_target(self, mode='add'):
 
@@ -105,17 +118,26 @@ class LearningController:
 
             rfc_params = self.extract_rfc_params(self.view.rfc_params_stringvar)
 
-            df = pd.read_csv(self.model.dataset_path, index_col=False)
+            train_df = pd.read_csv(self.model.train_dataset_path, index_col=False)
+            test_df = pd.read_csv(self.model.test_dataset_path, index_col=False)
+
 
             self.progress.increment_progress(1)
             self.progress.update_task("Splitting")
             target_column = self.model.cbboxes["target column"]
 
-            df = df[df[target_column].isin(self.model.targets)]
-            df.reset_index(inplace=True, drop=True)
-            y = df[target_column]
-            y = self.label_encoding(y)
-            X = df.loc[:, df.columns != target_column]
+            train_df = train_df[train_df[target_column].isin(self.model.targets)]
+            train_df.reset_index(inplace=True, drop=True)
+            y_train = train_df[target_column]
+            y_train = self.label_encoding(y_train)
+            X_train = train_df.loc[:, train_df.columns != target_column]
+
+            test_df = test_df[test_df[target_column].isin(self.model.targets)]
+            test_df.reset_index(inplace=True, drop=True)
+            y_test = test_df[target_column]
+            y_test = self.label_encoding(y_test)
+            X_test = test_df.loc[:, test_df.columns != target_column]
+
 
             all_test_scores = []
             all_train_scores = []
@@ -134,8 +156,6 @@ class LearningController:
                 clf_tester = ClfTester(rfc)
                 if self.model.switches["load rfc"]:
                     clf_tester.trained = True
-
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
                 clf_tester.train(X_train, y_train)
                 clf_tester.test(X_test, y_test)
@@ -358,11 +378,11 @@ class LearningController:
             messagebox.showerror("Value error", "Value for Train / test iterations needs to be a positive integer"
                                                 " and superior to zero.")
             return False
-        if not self.model.dataset_path:
+        if not self.model.train_dataset_path:
             messagebox.showerror("Missing Value", "No dataset loaded.")
             return False
         else:
-            if not os.path.isfile(self.model.dataset_path) or not os.path.exists(self.model.dataset_path):
+            if not os.path.isfile(self.model.train_dataset_path) or not os.path.exists(self.model.train_dataset_path):
                 messagebox.showerror("Value error", "Invalid dataset path.")
                 return False
         if not self.model.targets:
@@ -455,9 +475,42 @@ class LearningController:
                 self.update_view_from_model()
 
     def trace_target_column(self, *args):
-        values = list(set(list(self.model.dataset[self.view.vars["target column"].get()])))
+        values = list(set(list(self.model.train_dataset[self.view.vars["target column"].get()])))
+        print(values)
 
-        if len(values) <= 50:
+        if len(values) <= 200:
             self.view.cbboxes['key target'].configure(values=values)
         else:
-            messagebox.showerror('Too much values', 'The selected column has more than 50 different values.')
+            messagebox.showerror('Too much values', 'The selected column has more than 200 different values.')
+
+    def split_dataset(self):
+        ratio = self.view.vars["split dataset ratio"].get()
+        path = self.view.vars["split dataset path"].get()
+
+        if path:
+            df = pd.read_csv(path)
+            train_sets = []
+            test_sets = []
+            labels = list(set(list(df["label"])))
+            for label in labels:
+                dfl = df[df["label"] == label]
+                dfl.reset_index(inplace=True, drop=True)
+                y = dfl["label"]
+                # y = self.label_encoding(y)
+                X = dfl.loc[:, df.columns != "label"]
+                X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=ratio)
+                X_train["label"] = y_train
+                X_test["label"] = y_test
+                train_sets.append(X_train)
+                test_sets.append(X_test)
+
+            train_df = pd.concat(train_sets, ignore_index=True)
+            train_df.reset_index(inplace=True, drop=True)
+            test_df = pd.concat(test_sets, ignore_index=True)
+            test_df.reset_index(inplace=True, drop=True)
+
+            base_path = path.split(".")
+            train_df.to_csv(base_path[0]+"_Xy_train." + base_path[1], index=False)
+            test_df.to_csv(base_path[0] + "_Xy_test." + base_path[1], index=False)
+
+            messagebox.showinfo("Splitting", "Splitting done")
