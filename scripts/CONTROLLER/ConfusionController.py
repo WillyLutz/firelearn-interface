@@ -47,7 +47,7 @@ class ConfusionController:
                     i += 1
         else:
             filename = filedialog.askopenfilename(title="Open file",
-                                                      filetypes=(("AI model", "*.rfc"),))
+                                                  filetypes=(("AI model", "*.rfc"),))
             if filename:
                 clf = pickle.load(open(filename, "rb"))
                 self.model.clf = clf
@@ -93,7 +93,7 @@ class ConfusionController:
                                            testing_targets=testing_classes, show=False,
                                            iterations=self.view.vars["iterations"].get(),
                                            return_data=True,
-                                           mode='percent') # todo : update fiiireflyyy
+                                           mode='percent')  # todo : update fiiireflyyy
             self.model.confusion_data["overall matrix"] = overall_matrix
             self.model.confusion_data["mixed labels matrix"] = mixed_labels_matrix
             self.model.confusion_data["correspondence"] = CORRESPONDENCE

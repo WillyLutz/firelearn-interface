@@ -1,6 +1,6 @@
 import tkinter as tk
 from functools import partial
-from tkinter import ttk
+from tkinter import ttk, filedialog
 
 import customtkinter as ctk
 from sklearn.ensemble import RandomForestClassifier
@@ -29,6 +29,7 @@ class LearningView(ctk.CTkFrame):
         self.checkboxes = {}
         self.rfc_params_stringvar = {}
         self.textboxes = {}
+        self.sliders = {}
 
         self.subtabs = ctk.CTkTabview(master=self.master, corner_radius=10)
         self.subtabs.place(relwidth=1.0, relheight=1.0)
@@ -76,10 +77,14 @@ class LearningView(ctk.CTkFrame):
 
         # ------------ MANAGE DATASET ------------------
         load_dataset_helper = Helper(master=manage_dataset_frame, event_key="load dataset")
-        load_dataset_button = ctk.CTkButton(master=manage_dataset_frame, text="Load dataset")
-        load_dataset_strvar = tk.StringVar()
-        load_dataset_entry = ErrEntry(master=manage_dataset_frame, state='disabled',
-                                      textvariable=load_dataset_strvar)
+        load_train_dataset_button = ctk.CTkButton(master=manage_dataset_frame, text="Load Train dataset")
+        load_train_dataset_strvar = tk.StringVar()
+        load_train_dataset_entry = ErrEntry(master=manage_dataset_frame, state='disabled',
+                                      textvariable=load_train_dataset_strvar)
+        load_test_dataset_button = ctk.CTkButton(master=manage_dataset_frame, text="Load test dataset")
+        load_test_dataset_strvar = tk.StringVar()
+        load_test_dataset_entry = ErrEntry(master=manage_dataset_frame, state='disabled',
+                                            textvariable=load_test_dataset_strvar)
 
         select_target_helper = Helper(master=manage_dataset_frame, event_key="select targets")
         label_column_label = ctk.CTkLabel(master=manage_dataset_frame, text="Select targets column")
@@ -136,6 +141,7 @@ class LearningView(ctk.CTkFrame):
         # ----------- LOADING FRAME -------------------
         save_config_button = ctk.CTkButton(master=loading_frame, text="Save config", fg_color="lightslategray")
         load_config_button = ctk.CTkButton(master=loading_frame, text="Load config", fg_color="lightslategray")
+        splitting_button = ctk.CTkButton(master=loading_frame, text="Split train-test", fg_color="tomato")
         learning_button = ctk.CTkButton(master=loading_frame, text="Learning", fg_color="green")
 
         # -------- MANAGE WIDGETS
@@ -151,8 +157,12 @@ class LearningView(ctk.CTkFrame):
         sub_paramsframe.grid(row=0, column=0, sticky=ctk.NSEW)
 
         load_dataset_helper.place(anchor=tk.NE, relx=1, rely=0)
-        load_dataset_button.place(relx=0, rely=0, relwidth=0.2)
-        load_dataset_entry.place_errentry(relx=0.25, rely=0, relwidth=0.65)
+        load_train_dataset_button.place(relx=0, rely=0, relwidth=0.3)
+        load_train_dataset_entry.place_errentry(relx=0.25, rely=0, relwidth=0.55)
+
+        load_test_dataset_button.place(relx=0, rely=0.05, relwidth=0.3)
+        load_test_dataset_entry.place_errentry(relx=0.25, rely=0.05, relwidth=0.55)
+
         select_target_helper.place(relx=0.25, rely=0.1)
         label_column_label.place(relx=0, rely=0.1)
         label_column_cbbox.place(relx=0, rely=0.15, relwidth=0.8)
@@ -187,13 +197,19 @@ class LearningView(ctk.CTkFrame):
 
         save_config_button.place(anchor=tk.CENTER, relx=0.2, rely=0.5, relwidth=0.18)
         load_config_button.place(anchor=tk.CENTER, relx=0.4, rely=0.5, relwidth=0.18)
+        splitting_button.place(anchor=tk.CENTER, relx=0.6, rely=0.5, relwidth=0.18, relheight=0.8)
         learning_button.place(anchor=tk.CENTER, relx=0.8, rely=0.5, relwidth=0.18, relheight=0.8)
 
         self.buttons["reload"] = reload_button
 
-        self.buttons["load dataset"] = load_dataset_button
-        self.entries["load dataset"] = load_dataset_entry
-        self.vars["load dataset"] = load_dataset_strvar
+        self.buttons["load train dataset"] = load_train_dataset_button
+        self.entries["load train dataset"] = load_train_dataset_entry
+        self.vars["load train dataset"] = load_train_dataset_strvar
+
+        self.buttons["load test dataset"] = load_test_dataset_button
+        self.entries["load test dataset"] = load_test_dataset_entry
+        self.vars["load test dataset"] = load_test_dataset_strvar
+
         self.cbboxes["target column"] = label_column_cbbox
         self.vars["target column"] = label_column_var
         self.cbboxes["key target"] = id_target_cbbox
@@ -222,23 +238,28 @@ class LearningView(ctk.CTkFrame):
 
         self.buttons["save config"] = save_config_button
         self.buttons["load config"] = load_config_button
+        self.buttons["split"] = splitting_button
         self.buttons["learning"] = learning_button
 
         # ------------ CONFIGURE COMMANDS ---------------
 
         reload_button.configure(command=self.reload_rfc_params)
-        load_dataset_button.configure(command=self.load_dataset)
+        load_train_dataset_button.configure(command=self.load_train_dataset)
+        load_test_dataset_button.configure(command=self.load_test_dataset)
+
         save_rfc_button.configure(command=partial(self.savepath_rfc, self.vars["save rfc"]))
         load_clf_button.configure(command=self.load_rfc)
         load_config_button.configure(command=self.load_model)
         save_config_button.configure(command=self.save_config)
+        splitting_button.configure(command=self.splitting_dataset)
         learning_button.configure(command=self.learning)
         export_button.configure(command=self.export)
         add_target_button.configure(command=self.add_target)
         subtract_target_button.configure(command=self.subtract_target)
 
-        load_dataset_entry.configure(validate='focus',
-                                     validatecommand=(self.register(partial(self.parent_view.is_valid_directory, load_dataset_entry)), '%P'))
+        load_train_dataset_entry.configure(validate='focus',
+                                     validatecommand=(self.register(partial(self.parent_view.is_valid_directory, load_train_dataset_entry)), '%P'))
+
         n_iter_entry.configure(validate='focus',
                                validatecommand=(self.register(partial(self.parent_view.is_positive_int, n_iter_entry)), '%P'))
         save_entry.configure(validate='focus',
@@ -297,6 +318,59 @@ class LearningView(ctk.CTkFrame):
         if self.controller:
             self.controller.reload_rfc_params(self.rfc_params_stringvar)
 
-    def load_dataset(self):
+    def load_train_dataset(self):
         if self.controller:
-            self.controller.load_dataset()
+            self.controller.load_train_dataset()
+
+    def load_test_dataset(self):
+        if self.controller:
+            self.controller.load_test_dataset()
+
+    def splitting_dataset(self):
+        width = 450
+        height = 150
+        general_toplevel = ctk.CTkToplevel(width=width, height=height)
+
+
+        general_toplevel.title("Splitting dataset (Learning)")
+        general_toplevel.resizable(False, False)
+        general_toplevel.attributes("-topmost", 1)
+
+        load_btn = ctk.CTkButton(master=general_toplevel, text="Load", command=self.load_splitting_dataset)
+        load_btn.place(relx=0, rely=0)
+        load_var = ctk.StringVar()
+        load_entry = ctk.CTkEntry(general_toplevel, textvariable=load_var)
+        load_entry.place(relx=0.3, rely=0, relwidth=0.6)
+
+        ratio_label = ctk.CTkLabel(master=general_toplevel, text="Train/Test ratio:")
+        ratio_var = tk.DoubleVar(value=0.7)
+        ratio_label_var = ctk.CTkLabel(master=general_toplevel, textvariable=ratio_var)
+        ratio_slider = ctk.CTkSlider(master=general_toplevel, from_=0, to=1, number_of_steps=20,
+                                       variable=ratio_var)
+        ratio_label.place(relx=0, rely=0.5)
+        ratio_label_var.place(relx=0.3, rely=0.5)
+        ratio_slider.place(relx=0, rely=0.8, relwidth=0.4)
+
+        split_btn=ctk.CTkButton(master=general_toplevel, text="Split", command=self.controller.split_dataset)
+        split_btn.place(anchor=tk.SE, relx=1, rely=1)
+
+        self.vars["split dataset path"] = load_var
+        self.vars["split dataset ratio"] = ratio_var
+        self.entries["split dataset path"] = load_entry
+        self.sliders["split dataset"] = ratio_slider
+
+        ratio_var.trace("w", partial(self.trace_round_var, "split dataset ratio"))
+
+
+
+
+    def load_splitting_dataset(self):
+        filename = filedialog.askopenfilename(title="Open file",
+                                              filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
+
+        if filename:
+            self.vars["split dataset path"].set(filename)
+
+    def trace_round_var(self, *args):
+        self.vars[args[0]].set(round(self.vars[args[0]].get(), 2))
+
