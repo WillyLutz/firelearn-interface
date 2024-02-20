@@ -93,7 +93,7 @@ class PcaController:
             df_apply = df[df[label_column].isin(labels_to_apply)]
             pcdf_applied = self.apply_pca(pca, df_apply, label_column=label_column)
             
-            ratio = [round(x, 2) for x in ratio]
+            ratio = [round(x*100, 2) for x in ratio]
             show_ratiox = ''
             show_ratioy = ''
             if self.view.vars["show ratio"].get():
