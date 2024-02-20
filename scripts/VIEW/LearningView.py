@@ -251,7 +251,7 @@ class LearningView(ctk.CTkFrame):
         load_clf_button.configure(command=self.load_rfc)
         load_config_button.configure(command=self.load_model)
         save_config_button.configure(command=self.save_config)
-        splitting_button.configure(command=self.splitting_dataset)
+        splitting_button.configure(command=self.splitting_dataset_toplevel)
         learning_button.configure(command=self.learning)
         export_button.configure(command=self.export)
         add_target_button.configure(command=self.add_target)
@@ -270,6 +270,8 @@ class LearningView(ctk.CTkFrame):
                                   validatecommand=(self.register(partial(self.parent_view.has_forbidden_characters, rfc_name_entry)), '%P'))
         rfc_status_entry.configure(validate='focus',
                                   validatecommand=(self.register(partial(self.parent_view.has_forbidden_characters, rfc_status_entry)), '%P'))
+        
+        self.splitting_dataset_toplevel()
     def add_target(self, *args):
         if self.controller:
             self.controller.add_subtract_target('add')
@@ -326,7 +328,7 @@ class LearningView(ctk.CTkFrame):
         if self.controller:
             self.controller.load_test_dataset()
 
-    def splitting_dataset(self):
+    def splitting_dataset_toplevel(self):
         width = 450
         height = 150
         general_toplevel = ctk.CTkToplevel(width=width, height=height)
@@ -334,7 +336,9 @@ class LearningView(ctk.CTkFrame):
 
         general_toplevel.title("Splitting dataset (Learning)")
         general_toplevel.resizable(False, False)
+        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
         general_toplevel.attributes("-topmost", 1)
+        general_toplevel.withdraw()
 
         load_btn = ctk.CTkButton(master=general_toplevel, text="Load", command=self.load_splitting_dataset)
         load_btn.place(relx=0, rely=0)
@@ -360,6 +364,9 @@ class LearningView(ctk.CTkFrame):
         self.sliders["split dataset"] = ratio_slider
 
         ratio_var.trace("w", partial(self.trace_round_var, "split dataset ratio"))
+        
+        self.buttons["split"].configure(
+            command=partial(self.parent_view.deiconify_toplevel, general_toplevel))
 
 
 

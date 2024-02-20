@@ -18,6 +18,7 @@ class ProgressBar(threading.Thread, ):
         progress_window = ctk.CTkToplevel(master=self.app)
         progress_window.title(self.name)
         progress_window.geometry("400x200")
+        progress_window.attributes("-topmost", 1)
         self.progress_bar = ctk.CTkProgressBar(progress_window, orientation='horizontal', mode='determinate')
         self.progress_bar.place(relx=0.05, rely=0.3, relwidth=0.9)
         self.update_progress_stringvar("Processing")
