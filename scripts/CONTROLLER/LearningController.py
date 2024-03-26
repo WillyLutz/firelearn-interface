@@ -45,7 +45,6 @@ class LearningController:
             label_cbbox.configure(state='readonly')
 
             self.view.vars['target column'].trace('w', self.trace_target_column)
-            print(df, filename)
             
     def load_test_dataset(self):
         filename = filedialog.askopenfilename(title="Open file",
@@ -56,7 +55,6 @@ class LearningController:
             self.model.test_dataset_path = filename
             df = pd.read_csv(filename, index_col=False)
             self.model.test_dataset = df
-            print(df, filename)
 
 
     def add_subtract_target(self, mode='add'):
@@ -476,7 +474,6 @@ class LearningController:
 
     def trace_target_column(self, *args):
         values = list(set(list(self.model.train_dataset[self.view.vars["target column"].get()])))
-        print(values)
 
         if len(values) <= 200:
             self.view.cbboxes['key target'].configure(values=values)
