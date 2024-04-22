@@ -164,7 +164,7 @@ class ProcessingController:
                                     'signal filter first frequency']:
                                     df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_entry['signal filter order']),
                                                                 btype='lowpass',
-                                                                cut=int(local_entry['signal filter second frequency']))
+                                                                cut=int(local_entry['signal filter first frequency']))
                                 elif local_cbox['signal filter type'] == 'Bandstop' and local_entry[
                                     'signal filter first frequency'] and \
                                         local_entry['signal filter second frequency']:
