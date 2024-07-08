@@ -110,8 +110,8 @@ class PlotController:
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("Tables", "*.txt *.csv"),))
         if filename:
-            fig, ax = self.view.figures["plot"]
-            ax.clear()
+            # fig, ax = self.view.figures["plot"]
+            # ax.clear()
             for n in range(self.model.n_ydata + 1):
                 self.remove_ydata()
             
@@ -251,7 +251,8 @@ class PlotController:
         # todo: if validation
         
         if self.check_params_validity():
-            fig, ax = self.view.figures["plot"]
+            # fig, ax = self.view.figures["plot"]
+            fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
             if self.model.n_ydata >= 0:
                 ax.clear()
                 # ----- PLOT
@@ -306,7 +307,7 @@ class PlotController:
                 if all([self.model.plot_axes["n x ticks"], self.model.plot_axes["round x ticks"],
                         self.model.plot_axes["n y ticks"], self.model.plot_axes["round y ticks"]]):
                     n_xticks = int(self.model.plot_axes["n x ticks"])
-                    xstep = (xmax - xmin) / (n_xticks - 1)
+                    xstep = (int(xmax) - int(xmin)) / (int(n_xticks) - 1)
                     xtick = xmin
                     xticks = []
                     for i in range(n_xticks - 1):
@@ -320,7 +321,7 @@ class PlotController:
                                    labelrotation=float(self.model.plot_axes["x ticks rotation"]))
                     
                     n_yticks = int(self.model.plot_axes["n y ticks"])
-                    ystep = (ymax - ymin) / (n_yticks - 1)
+                    ystep = (int(ymax) - int(ymin)) / (int(n_yticks) - 1)
                     ytick = ymin
                     yticks = []
                     for i in range(n_yticks - 1):
@@ -361,11 +362,12 @@ class PlotController:
                     ax.get_legend().remove()
                 
                 plt.tight_layout()
+                plt.show()
             
             else:
                 ax.clear()
-            self.view.figures["plot"] = (fig, ax)
-            self.view.canvas["plot"].draw()
+            # self.view.figures["plot"] = (fig, ax)
+            # self.view.canvas["plot"].draw()
     
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():

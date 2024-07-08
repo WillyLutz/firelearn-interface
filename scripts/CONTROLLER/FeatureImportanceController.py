@@ -44,7 +44,8 @@ class FeatureImportanceController:
 
     def draw_figure(self, ):
         if self.input_validation_feature_importance():
-            fig, ax = self.view.figures["feature importance"]
+            
+            fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
 
             y_data = np.mean([tree.feature_importances_ for tree in self.model.clf.estimators_], axis=0)
             x_data = [i for i in range(len(y_data))]
@@ -91,7 +92,6 @@ class FeatureImportanceController:
             ax.set_title(self.model.plot_general_settings["title"],
                          fontdict={"font": self.model.plot_general_settings["title font"],
                                    "fontsize": self.model.plot_general_settings["title size"], })
-            print(self.model.plot_general_settings["title font"])
             xmin = min(x_data)
             xmax = max(x_data)
             xstep = (xmax - xmin) / (n_xticks - 1)
@@ -123,8 +123,7 @@ class FeatureImportanceController:
                            labelrotation=float(self.model.plot_axes["y ticks rotation"]))
 
             plt.tight_layout()
-            self.view.figures["feature importance"] = (fig, ax)
-            self.view.canvas["feature importance"].draw()
+            plt.show()
 
     def input_validation_feature_importance(self):
         errors = []

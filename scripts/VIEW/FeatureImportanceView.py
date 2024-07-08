@@ -155,13 +155,9 @@ class FeatureImportanceView(ctk.CTkFrame):
         # --------------- PLOT
 
         plot_frame = ctk.CTkFrame(master=self.master)
-        plot_frame.place(relx=0.45, rely=0, relheight=1, relwidth=0.55)
+        plot_frame.place(relx=0.45, rely=0, relheight=1, relwidth=0.55)  # todo plot here
 
-        fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        canvas = FigureCanvasTkAgg(fig, master=plot_frame)
-        canvas.get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
-        self.figures["feature importance"] = (fig, ax)
-        self.canvas["feature importance"] = canvas
+        
 
         # --------------- CUSTOM PLOT
         custom_plot_frame = ctk.CTkFrame(master=self.master)
@@ -193,8 +189,6 @@ class FeatureImportanceView(ctk.CTkFrame):
         draw_button.configure(command=self.draw_figure)
         color_button.configure(command=partial(self.select_color, view=self, selection_button_name='color'))
         axes_button.configure(command=self.axes_toplevel)
-        save_figure_button.configure(command=partial(self.save_figure, self.figures["feature importance"][0]))
-        export_button.configure(command=partial(self.export_figure_data, self.figures["feature importance"][1]))
         save_config_button.configure(command=self.save_config)
         load_config_button.configure(command=self.load_config)
 

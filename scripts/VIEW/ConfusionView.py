@@ -101,8 +101,8 @@ class ConfusionView(ctk.CTkFrame):
         # --------------- PLOT_FRAME
         plot_frame = ctk.CTkFrame(master=self.master)
 
-        fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+        # fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
+        # canvas = FigureCanvasTkAgg(fig, master=plot_frame)
 
 
 
@@ -138,7 +138,7 @@ class ConfusionView(ctk.CTkFrame):
         draw_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.85, relheight=0.1)
         update_figure_button.place(anchor=tk.CENTER, relx=0.5, rely=0.95, relheight=0.05)
         plot_frame.place(relx=0.45, rely=0, relwidth=0.55, relheight=1)
-        canvas.get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
+        # canvas.get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
 
         self.vars["load dataset"] = load_dataset_var
         self.vars["load clf"] = load_model_var
@@ -151,8 +151,8 @@ class ConfusionView(ctk.CTkFrame):
         self.buttons["legend"] = legend_button
         self.buttons["axes"] = axes_button
         self.frames['plot frame'] = plot_frame
-        self.figures["confusion"] = (fig, ax)
-        self.canvas["confusion"] = canvas
+        # self.figures["confusion"] = (fig, ax)
+        # self.canvas["confusion"] = canvas
         self.buttons["save figure"] = save_figure_button
         
         # --------------- CONFIGURE
@@ -161,8 +161,8 @@ class ConfusionView(ctk.CTkFrame):
 
         save_config_button.configure(command=self.controller.save_config)
         load_config_button.configure(command=self.controller.load_config)
-        save_figure_button.configure(command=partial(self.controller.save_figure, self.figures["confusion"][0]))
-        export_data_button.configure(command=partial(self.controller.export_figure_data, self.figures["confusion"][1]))
+        # save_figure_button.configure(command=partial(self.controller.save_figure, self.figures["confusion"][0]))
+        # export_data_button.configure(command=partial(self.controller.export_figure_data, self.figures["confusion"][1]))
         draw_figure_button.configure(command=self.controller.draw_figure)
         update_figure_button.configure(command=self.controller.update_figure)
         load_model_entry.configure(validate='focus',

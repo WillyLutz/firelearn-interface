@@ -88,7 +88,7 @@ class ConfusionController:
             df = self.model.dataset
             df = df[df[self.view.vars["label column"].get()].isin(testing_classes)]
 
-            overall_matrix, mixed_labels_matrix, CORRESPONDENCE \
+            overall_matrix, mixed_labels_matrix, TRAIN_CORRESPONDENCE, TEST_CORRESPONDENCE \
                 = fl.test_clf_by_confusion(self.model.clf, df, training_targets=training_classes,
                                            testing_targets=testing_classes, show=False,
                                            iterations=self.view.vars["iterations"].get(),
@@ -96,7 +96,8 @@ class ConfusionController:
                                            mode='percent')  # todo : update fiiireflyyy
             self.model.confusion_data["overall matrix"] = overall_matrix
             self.model.confusion_data["mixed labels matrix"] = mixed_labels_matrix
-            self.model.confusion_data["correspondence"] = CORRESPONDENCE
+            self.model.confusion_data["train correspondence"] = TRAIN_CORRESPONDENCE
+            self.model.confusion_data["test correspondence"] = TEST_CORRESPONDENCE
 
             self.update_figure()
 
@@ -104,15 +105,17 @@ class ConfusionController:
         plt.close()
         overall_matrix = self.model.confusion_data["overall matrix"]
         mixed_labels_matrix = self.model.confusion_data["mixed labels matrix"]
-        CORRESPONDENCE = self.model.confusion_data["correspondence"]
+        TRAIN_CORRESPONDENCE = self.model.confusion_data["train correspondence"]
+        TEST_CORRESPONDENCE = self.model.confusion_data["test correspondence"]
 
         # plot
         fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        self.view.canvas["confusion"] = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
-        self.view.canvas["confusion"].get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
-        self.view.figures["confusion"] = (fig, ax)
+        # self.view.canvas["confusion"] = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
+        # self.view.canvas["confusion"].get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
+        # self.view.figures["confusion"] = (fig, ax)
 
-        sns.heatmap(ax=ax, data=overall_matrix, annot=mixed_labels_matrix, fmt='', cmap="Blues",
+        sns.heatmap(ax=ax, data=overall_matrix, annot=mixed_labels_matrix, annot_kws={"font": self.model.plot_axes["axes font"],
+                                                                 "size": self.model.plot_axes["y ticks size"]}, fmt='', cmap="Blues",
                     square=True, cbar_kws={'shrink': 0.5, 'location': 'right'})
         ax.xaxis.tick_top()
         ax.xaxis.set_label_position('top')
@@ -134,21 +137,23 @@ class ConfusionController:
             old_key = original_labels[label]
             new_key = renames_queries[label.replace('label', 'rename')]
 
-            self.rename_dict_key(CORRESPONDENCE, old_key, new_key)
+            self.rename_dict_key(TRAIN_CORRESPONDENCE, old_key, new_key)
+            self.rename_dict_key(TEST_CORRESPONDENCE, old_key, new_key)
+
             self.model.training_classes = [x.replace(old_key, new_key) for x in self.model.training_classes]
             self.model.testing_classes = [x.replace(old_key, new_key) for x in self.model.testing_classes]
 
             self.view.vars[label].set(new_key)
 
-        ax.set_xticks([CORRESPONDENCE[x] + 0.5 for x in self.model.testing_classes], self.model.testing_classes)
-        ax.set_yticks([CORRESPONDENCE[x] + 0.5 for x in self.model.training_classes], self.model.training_classes)
+        ax.set_xticks([TEST_CORRESPONDENCE[x] + 0.5 for x in self.model.testing_classes], self.model.testing_classes, fontsize=self.model.plot_axes["x ticks size"])
+        ax.set_yticks([TRAIN_CORRESPONDENCE[x] + 0.5 for x in self.model.training_classes], self.model.training_classes, fontsize = self.model.plot_axes["y ticks size"])
 
         plt.tight_layout()
+        plt.show()
+        # self.view.figures["confusion"] = (fig, ax)
+        # self.view.canvas["confusion"].draw()
 
-        self.view.figures["confusion"] = (fig, ax)
-        self.view.canvas["confusion"].draw()
-
-        self.view.buttons["save figure"].configure(command=partial(self.save_figure, self.view.figures["confusion"][0]))
+        # self.view.buttons["save figure"].configure(command=partial(self.save_figure, self.view.figures["confusion"][0]))
 
     def input_validation(self):
         errors = []
@@ -209,8 +214,7 @@ class ConfusionController:
 
     def load_dataset(self, loaded=False):
         if loaded:
-            fig, ax = self.view.figures["confusion"]
-            ax.clear()
+            # fig, ax = self.view.figures["confusion"]
 
             training_labels = {key: value for (key, value) in self.model.plot_data.items() if "training" in key}
             for key, widget in training_labels.items():
@@ -235,9 +239,8 @@ class ConfusionController:
             filename = filedialog.askopenfilename(title="Open file",
                                                   filetypes=(("Tables", "*.txt *.csv"),))
             if filename:
-                fig, ax = self.view.figures["confusion"]
-                ax.clear()
-
+                # fig, ax = self.view.figures["confusion"]
+                # ax.clear()
                 training_labels = {key: value for (key, value) in self.model.plot_data.items() if "training" in key}
                 for key, widget in training_labels.items():
                     widget.destroy()

@@ -74,8 +74,8 @@ class PcaView(ctk.CTkFrame):
 
         # --------------- PLOT
         plot_frame = ctk.CTkFrame(master=self.master)
-        fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+        # fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
+        # canvas = FigureCanvasTkAgg(fig, master=plot_frame)
 
         # ----- CUSTOM PLOT
         custom_plot_frame = ctk.CTkFrame(master=self.master)
@@ -96,7 +96,7 @@ class PcaView(ctk.CTkFrame):
         axes_button.place(anchor=tk.CENTER, relx=0.5, rely=0.2, relwidth=0.9, relheight=0.05)
         general_settings_button.place(anchor=tk.CENTER, relx=0.5, rely=0.1, relwidth=0.9, relheight=0.05)
         custom_plot_frame.place(relx=0.32, rely=0.0, relwidth=0.12, relheight=1)
-        canvas.get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
+        # canvas.get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
         plot_frame.place(relx=0.45, rely=0, relheight=1, relwidth=0.55)
         subtract_label_data_button.place(anchor=tk.NE, relx=0.9, rely=0)
         ellipsis_alpha_label.place(relx=0, rely=0.75)
@@ -112,8 +112,8 @@ class PcaView(ctk.CTkFrame):
         load_dataset_button.place(relx=0.0, rely=0)
         load_dataset_entry.place_errentry(relx=0, rely=0.5, relwidth=0.5)
 
-        self.figures["pca"] = (fig, ax)
-        self.canvas["pca"] = canvas
+        # self.figures["pca"] = (fig, ax)
+        # self.canvas["pca"] = canvas
         self.scrollable_frames["ydata"] = pca_frame
         self.vars["ellipsis alpha"] = ellipsis_alpha_var
         self.vars["ellipsis"] = ellipsis_var
@@ -134,7 +134,7 @@ class PcaView(ctk.CTkFrame):
         load_dataset_button.configure(command=self.load_plot_dataset)
         save_config_button.configure(command=self.save_config)
         load_config_button.configure(command=self.load_config)
-        save_figure_button.configure(command=partial(self.save_figure, self.figures["pca"][0]))
+        # save_figure_button.configure(command=partial(self.save_figure, self.figures["pca"][0]))
         draw_figure_button.configure(command=self.draw_figure)
 
         load_dataset_entry.configure(validate='focus',

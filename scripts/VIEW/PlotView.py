@@ -82,8 +82,8 @@ class PlotView(ctk.CTkFrame):
         
         # ----------- PLOT
         plot_frame = ctk.CTkFrame(master=self.master)
-        fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+        # fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
+        # canvas = FigureCanvasTkAgg(fig, master=plot_frame)
         draw_figure_button = ctk.CTkButton(master=self.master, text='Draw figure',)
         
         # ----------- SAVE WIDGETS
@@ -108,10 +108,10 @@ class PlotView(ctk.CTkFrame):
         
         # ------ MANAGE WIDGETS
         
-        canvas.get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
-        
-        self.figures["plot"] = (fig, ax)
-        self.canvas["plot"] = canvas
+        # canvas.get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
+        #
+        # self.figures["plot"] = (fig, ax)
+        # self.canvas["plot"] = canvas
         self.buttons["draw figure"] = draw_figure_button
         
         # ---------------- CONFIGURE
@@ -506,7 +506,7 @@ class PlotView(ctk.CTkFrame):
         
         save_config_button.configure(command=self.controller.save_config)
         load_config_button.configure(command=self.controller.load_config)
-        save_figure_button.configure(command=partial(self.controller.save_figure, self.figures["plot"][0]))
+        # save_figure_button.configure(command=partial(self.controller.save_figure, self.figures["plot"][0]))
     
     def show_frame(self, frame_name, *args):
         self.select_check_processing_step(frame_name)

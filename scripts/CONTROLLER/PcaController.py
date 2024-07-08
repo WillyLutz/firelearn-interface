@@ -67,7 +67,8 @@ class PcaController:
     
     def draw_figure(self, ):
         if self.check_params_validity():
-            fig, ax = self.view.figures["pca"]
+            # fig, ax = self.view.figures["pca"]
+            fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
             n_labels = self.model.n_labels
             
             ax.clear()
@@ -207,9 +208,10 @@ class PcaController:
                 ax.get_legend().remove()
         
         plt.tight_layout()
+        plt.show()
         
-        self.view.figures["pca"] = (fig, ax)
-        self.view.canvas["pca"].draw()
+        # self.view.figures["pca"] = (fig, ax)
+        # self.view.canvas["pca"].draw()
     
     def input_validation_plot(self):
         plt_entries = {key: value for (key, value) in self.view.entries.items() if "plt" in key}
