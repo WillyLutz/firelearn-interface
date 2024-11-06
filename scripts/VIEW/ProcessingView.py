@@ -65,7 +65,7 @@ class ProcessingView(ctk.CTkFrame):
         
         check_all_button = ctk.CTkButton(master=self.master, text="Check all steps",
                                          command=self.controller.check_params_validity,
-                                         fg_color="green")
+                                         fg_color="green", )
         save_model_button = ctk.CTkButton(master=self.master, text="Save config", fg_color="lightslategray",
                                           command=self.save_config)
         load_model_button = ctk.CTkButton(master=self.master, text="Load config", fg_color="lightslategray",
@@ -119,7 +119,7 @@ class ProcessingView(ctk.CTkFrame):
         
         sorting_sv = ctk.StringVar()
         sorting_entry = ErrEntry(master=filesorter_frame, state='disabled', textvariable=sorting_sv)
-        sorting_button = ctk.CTkButton(master=filesorter_frame, text="Open", state='normal')
+        sorting_button = ctk.CTkButton(master=filesorter_frame, text="Open", state='normal', corner_radius=0)
         
         sorting_helper = Helper(master=filesorter_frame, event_key="#sorting-multiple-files")
         

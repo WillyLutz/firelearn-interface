@@ -3,6 +3,8 @@ from functools import partial
 
 import customtkinter
 import customtkinter as ctk
+import tkinter as tk
+import tkinter.ttk as ttk
 from PIL import Image
 
 from scripts import params, params as p
@@ -14,7 +16,7 @@ from scripts.VIEW.ProcessingView import ProcessingView
 import pathlib
 from scripts.params import  resource_path
 
-class MainView(ctk.CTkFrame):
+class MainView(ttk.Frame):
     def __init__(self, app):
         super().__init__(master=app)
 
@@ -24,9 +26,34 @@ class MainView(ctk.CTkFrame):
         # self.app.configure(height=720, width=1080)
         self.app.minsize(height=900, width=1440)
 
-        self.master_frame = ctk.CTkFrame(master=self.app, )
-        self.master_frame.place(relwidth=1.0, relheight=1.0)
+        
 
+        # ------------ MENU ----------------------------
+        self.menu_bar = tk.Menu(self.app)
+        
+        self.menu_file = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_file.add_command(label="Open config...")
+        self.menu_file.add_command(label="Save config...")
+        self.menu_file.add_separator()
+        self.menu_file.add_command(label="Exit", command=self.quit)
+        
+        self.menu_help = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_help.add_command(label="Help")
+        
+        self.menu_about = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_about.add_command(label="Github...")
+        self.menu_about.add_command(label="About Us")
+        self.menu_about.add_separator()
+        
+        self.menu_bar.add_cascade(label="File", menu=self.menu_file)
+        self.menu_bar.add_cascade(label="Help", menu=self.menu_help)
+        self.menu_bar.add_cascade(label="About", menu=self.menu_about)
+        self.app.config(menu=self.menu_bar)
+
+        
+        # ------------- MASTER FRAME -------------------
+        self.master_frame = ctk.CTkFrame(master=self.app, )
+        self.master_frame.place(relwidth=1.0, relheight=1)
         # ------------- TABS MENU ----------------------
         self.tabs_view = ctk.CTkTabview(master=self.master_frame, border_color='red', corner_radius=10)
         self.tabs_view.place(relwidth=1.0, relheight=1.0)

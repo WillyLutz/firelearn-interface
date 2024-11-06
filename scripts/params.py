@@ -39,8 +39,7 @@ LEGEND_ANCHOR = 'best'
 
 DEFAULT_DPI = 100
 
-LEGEND_POS = ['best', 'upper left', 'upper right', 'lower left', 'lower right',
-              'upper center', 'lower center', 'center left', 'center right', 'center', 'custom']
+LEGEND_POS = ['best', 'upper left', 'upper right', 'lower left', 'lower right', 'upper center', 'lower center', 'center left', 'center right', 'center', 'custom']
 LEGEND_DRAGGABLE = False
 LEGEND_NCOLS = 1
 LEGEND_FONTSIZE = 10

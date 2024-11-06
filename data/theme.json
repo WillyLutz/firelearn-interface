@@ -143,12 +143,12 @@
       "weight": "normal"
     },
     "Windows": {
-      "family": "Roboto",
+      "family": "Lucida Console",
       "size": 13,
       "weight": "normal"
     },
     "Linux": {
-      "family": "Roboto",
+      "family": "Lucida Console",
       "size": 13,
       "weight": "normal"
     }
