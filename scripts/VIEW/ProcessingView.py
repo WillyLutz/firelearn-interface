@@ -636,18 +636,19 @@ class ProcessingView(ctk.CTkFrame):
             self.controller.load_config()
     
     def select_check_processing_step(self, step=None):
+        # todo : make images smaller when grey or red
         for s in ["filesorter", 'signal', 'filename']:
             if self.step_check[s] == 2:
                 img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_grey.png")),
-                                   size=(120, 120))
+                                   size=(60, 60))
                 self.image_buttons[s].configure(image=img)
             if self.step_check[s] == 1:
                 img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_green.png")),
-                                   size=(120, 120))
+                                   size=(60, 60))
                 self.image_buttons[s].configure(image=img)
             if self.step_check[s] == 0:
                 img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_red.png")),
-                                   size=(120, 120))
+                                   size=(60, 60))
                 self.image_buttons[s].configure(image=img)
             if step:
                 if s == str(step):

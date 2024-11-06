@@ -43,7 +43,7 @@ class Splash(ctk.CTkToplevel):
     def __init__(self, parent):
         ctk.CTkToplevel.__init__(self, parent)
         self.wm_attributes('-type', 'splash')
-        self.geometry("400x400")
+        self.geometry("500x316")
         self.resizable(False, False)
         
         loading_frame = ctk.CTkFrame(master=self)
@@ -54,7 +54,7 @@ class Splash(ctk.CTkToplevel):
         self.iconname('FireLearn')
         self.protocol('WM_DELETE_WINDOW', partial(onClosure, self))
         fl_logo = ctk.CTkImage(dark_image=Image.open(resource_path("data/firelearn_img/logo firelearn light text.png")),
-                                size=(400, 400))
+                                size=(500, 316))
         fl_label = ctk.CTkLabel(master=loading_frame, image=fl_logo, text="")
         fl_label.place(relx=0, rely=0, relwidth=1, relheight=1)
         

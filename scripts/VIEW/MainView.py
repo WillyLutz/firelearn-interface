@@ -1,4 +1,5 @@
 import json
+from doctest import master
 from functools import partial
 
 import customtkinter
@@ -41,8 +42,9 @@ class MainView(ttk.Frame):
         self.menu_help.add_command(label="Help")
         
         self.menu_about = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_about.add_command(label="Github...")
-        self.menu_about.add_command(label="About Us")
+        self.menu_about.add_command(label="Github...", command=partial(self.open_web,
+                                                      "https://github.com/WillyLutz/firelearn-interface"))
+        self.menu_about.add_command(label="About Us", command=self.about_us)
         self.menu_about.add_separator()
         
         self.menu_bar.add_cascade(label="File", menu=self.menu_file)
@@ -57,13 +59,11 @@ class MainView(ttk.Frame):
         # ------------- TABS MENU ----------------------
         self.tabs_view = ctk.CTkTabview(master=self.master_frame, border_color='red', corner_radius=10)
         self.tabs_view.place(relwidth=1.0, relheight=1.0)
-        self.tabs_view.add("Home")
         self.tabs_view.add("Processing")
         self.tabs_view.add("Learning")
         self.tabs_view.add("Analysis")
 
         # ------------- MANAGING PARENT TABS -----------
-        self.manage_home_tab()
 
         # ------------- SETTING CONTROLLER -------------
         self.controller = MainController(self)
@@ -81,8 +81,12 @@ class MainView(ttk.Frame):
     def open_web(self, url):
         if self.controller:
             self.controller.open_web(url)
-
-    def manage_home_tab(self):
+    def about_us(self):
+        top_level = ctk.CTkToplevel(master=self.app)
+        top_level.geometry("500x800")
+        
+        top_level.title(f'FireLearn GUI v{params.version} - About us')
+        
         message = "FireLearn GUI (Graphical User Interface) is an independent software using 'fiiireflyyy', " \
                   "a third party python library developed by the same author. \n\n" \
                   "It aims to provide machine learning and deep learning solutions in a user-friendly manner for biologists." \
@@ -94,35 +98,26 @@ class MainView(ttk.Frame):
                   "FireLearn GUI is destined to be improved (bug tracking, more AI models, more analysis...). "
         bug_title_message = "There is a bug ? do you have a suggestion ?"
         bug_message = " You can help with the development of the project " \
-                      "by reporting any issue or request using the 'issues' section of the github below, or by e-mail at " \
+                      "by reporting any issue or request using the 'issues' section of the github (About > Github), or by e-mail at " \
                       "'willy.lutz@irim.cnrs.fr' by specifying 'FireLearn GUI issue' (or suggestion) in the object." \
                       "\n\nFireLearn GUI has been developed by a third party and displays a basic MIT Licence."
         disclaimer_message = f"In development, for personal use only - LUTZ W. 2023\nv{params.version}"
-
-        disclaimer_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=disclaimer_message)
-        welcome_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=f"Welcome to FireLearn GUI",
+        
+        disclaimer_label = ctk.CTkLabel(top_level, text=disclaimer_message)
+        welcome_label = ctk.CTkLabel(top_level, text=f"Welcome to FireLearn GUI",
                                      font=('', 18, 'bold'))
-        welcome_message_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=message, font=('', 15), wraplength=500)
-        bug_title_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=bug_title_message, font=('', 18, 'bold'))
-        bug_label = ctk.CTkLabel(self.tabs_view.tab("Home"), text=bug_message, font=('', 15), wraplength=500)
-
-        welcome_label.place(relx=0.16, rely=0.15, )
-        welcome_message_label.place(relx=0.1, rely=0.2, )
-        bug_title_label.place(relx=0.1, rely=0.6)
+        welcome_message_label = ctk.CTkLabel(top_level, text=message, font=('', 15), wraplength=400)
+        bug_title_label = ctk.CTkLabel(top_level, text=bug_title_message, font=('', 18, 'bold'))
+        bug_label = ctk.CTkLabel(top_level, text=bug_message, font=('', 15), wraplength=400)
+        
+        welcome_label.place(relx=0.2, rely=0.05)
+        welcome_message_label.place(relx=0.1, rely=0.12, )
+        bug_title_label.place(relx=0.05, rely=0.6)
         bug_label.place(relx=0.1, rely=0.65)
         disclaimer_label.place(anchor=ctk.S, relwidth=1, rely=0.95, relx=0.5)
+        
+        
 
-        fl_logo = ctk.CTkImage(dark_image=Image.open(resource_path("data/firelearn_img/logo firelearn light text.png")), size=(700, 500))
-        fl_label = ctk.CTkLabel(master=self.tabs_view.tab("Home"), image=fl_logo, text="")
-        fl_label.place(relx=0.5, rely=0.2, relwidth=0.5)
-
-        github_image = customtkinter.CTkImage(dark_image=Image.open(resource_path("data/firelearn_img/github_logo.png")),
-                                              size=(60, 60))
-        github_button = ctk.CTkButton(master=self.tabs_view.tab("Home"), image=github_image, text="",
-                                      width=70, height=70, corner_radius=10,
-                                      command=partial(self.open_web,
-                                                      "https://github.com/WillyLutz/firelearn-interface"))
-        github_button.place(relx=0.1, rely=0.85)
 
     @staticmethod
     def update_slider_value(value, var):
