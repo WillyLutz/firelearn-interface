@@ -11,6 +11,7 @@ from PIL import Image
 
 from scripts.WIDGETS.ImageButton import ImageButton
 from scripts.WIDGETS.ErrEntry import ErrEntry
+from scripts.WIDGETS.Separator import  Separator
 from scripts.WIDGETS.Pipeline import Pipeline
 from scripts.params import resource_path
 from scripts.WIDGETS.DragDropListbox import DragDropListbox
@@ -25,6 +26,7 @@ class ProcessingView(ctk.CTkFrame):
         
         self.switches = {}
         self.entries = {}
+        self.ckboxes = {}
         self.cbboxes = {}
         self.vars = {}
         self.sliders = {}
@@ -73,17 +75,10 @@ class ProcessingView(ctk.CTkFrame):
         process_exec_button = ctk.CTkButton(master=self.master, fg_color="green", text="Process",
                                             command=self.processing)
         
-        processing_steps_frame = ctk.CTkFrame(master=self.content_frame, )
-        self.frames["processing steps"] = processing_steps_frame
-        processing_steps_frame.place(relx=0.6, rely=0.05, relwidth=0.35, relheight=0.9)
-        dragdrop = DragDropListbox(master=processing_steps_frame)
-        dragdrop.insert(1, "A")
-        dragdrop.insert(2, "B")
-        dragdrop.insert(3, "C")
-        dragdrop.insert(4, "D")
-        dragdrop.insert(5, "E")
+        processing_summary_frame = ctk.CTkFrame(master=self.content_frame, )
+        self.frames["processing summary"] = processing_summary_frame
+        processing_summary_frame.place(relx=0.6, rely=0.05, relwidth=0.35, relheight=0.9)
 
-        dragdrop.place(relx=0, rely=0)
 
         self.image_buttons["filesorter"] = filesorter_ibtn
         self.image_buttons["signal"] = signal_ibtn
@@ -101,140 +96,320 @@ class ProcessingView(ctk.CTkFrame):
         filename_ibtn.place(relx=0, rely=0.4)
         
         
-        
-        
+        self.generate_summary()
+
         self.generate_filesorter_content()
         self.generate_signal_content()
         self.generate_filename_content()
         self.show_filesorter_frame()
+        
+    def trace_parent_path(self, *args):
+        path = self.vars["filesorter multiple"].get()
+        if len(path) > 35:
+            path = "/.../..." + path[-35:]
+        self.vars["summary multiple"].set(path)
+        
+    def trace_single_file_path(self, *args):
+        path = self.vars["filesorter single"].get()
+        if len(path) > 35:
+            path = "/.../..." + path[-35:]
+        self.vars["summary single"].set(path)
+    def trace_multiple_files_checkbox(self, *args ):
+        self.vars["summary multiple files"].set('enabled' if self.ckboxes["filesorter multiple"].get() else 'disabled')
+    def trace_single_file_checkbox(self, *args ):
+        self.vars["summary single file"].set('enabled' if self.ckboxes["filesorter single"].get() else 'disabled')
+        
+    def generate_summary(self):
+        summary_scrollable_frame = ctk.CTkScrollableFrame(master=self.frames["processing summary"])
+        
+        summary_label = ctk.CTkLabel(master=summary_scrollable_frame, text="Processing summary", font=('', 20))
+        filesorter_label = ctk.CTkLabel(master=summary_scrollable_frame, text="File sorting", font=('', 15))
+        signal_processing_label = ctk.CTkLabel(master=summary_scrollable_frame, text="Signal processing", font=('', 15))
+        output_label = ctk.CTkLabel(master=summary_scrollable_frame, text="Output", font=('', 15))
+        
+        summary_scrollable_frame.grid_columnconfigure(0, weight=10)
+        summary_scrollable_frame.grid_columnconfigure(1, weight=10)
+        summary_scrollable_frame.grid_columnconfigure(2, weight=1)
+        
+        multiple_files_frame = ctk.CTkFrame(master=summary_scrollable_frame, fg_color='transparent')
+        multiple_files_label = ctk.CTkLabel(master=multiple_files_frame, text="Sorting multiple files: ")
+        multiple_files_label_state_var = ctk.StringVar(value='disabled')
+        multiple_files_label_state = ctk.CTkLabel(master=multiple_files_frame, textvariable=multiple_files_label_state_var)
+        
+        parent_path_frame = ctk.CTkFrame(master=summary_scrollable_frame, fg_color='transparent')
+        parent_path_label_title = ctk.CTkLabel(master=parent_path_frame, text="Parent path: ")
+        parent_path_label_var = ctk.StringVar(value='')
+        parent_path_label = ctk.CTkLabel(master=parent_path_frame, textvariable=parent_path_label_var)
+        
+        to_include_label = ctk.CTkLabel(master=summary_scrollable_frame, text="To include:")
+        to_exclude_label = ctk.CTkLabel(master=summary_scrollable_frame, text="To exclude:")
+        include_exclude_frame = ctk.CTkFrame(master=summary_scrollable_frame, fg_color="transparent")
+        include_textbox = ctk.CTkTextbox(master=include_exclude_frame, corner_radius=10, state='disabled')
+        exclude_textbox = ctk.CTkTextbox(master=include_exclude_frame, corner_radius=10, state='disabled')
+        
+        targets_label = ctk.CTkLabel(master=summary_scrollable_frame, text="Targets")
+        target_textbox = ctk.CTkTextbox(master=summary_scrollable_frame, corner_radius=10, state='disabled')
+        
+        single_file_frame = ctk.CTkFrame(master=summary_scrollable_frame, fg_color='transparent')
+        single_file_label = ctk.CTkLabel(master=single_file_frame, text="Sorting single files: ")
+        single_file_label_state_var = ctk.StringVar(value='disabled')
+        single_file_label_state = ctk.CTkLabel(master=single_file_frame,
+                                                  textvariable=single_file_label_state_var)
+        
+        file_path_frame = ctk.CTkFrame(master=summary_scrollable_frame, fg_color='transparent')
+        file_path_label_title = ctk.CTkLabel(master=file_path_frame, text="File path: ")
+        file_path_label_var = ctk.StringVar(value='')
+        file_path_label = ctk.CTkLabel(master=file_path_frame, textvariable=file_path_label_var)
+
+        # ------------  WIDGET MANAGEMENT
+        summary_scrollable_frame.place(relwidth=1, relheight=1)
+        # separator row 0
+        # separator row 1
+        # separator row 2
+        summary_label.grid(row=3, column=0, columnspan=2)
+        # separator row 4
+        filesorter_label.grid(row=5, column=0, columnspan=2)
+        # separator row 6
+        multiple_files_frame.grid(row=7, column=0, sticky='ew', columnspan=2)
+        multiple_files_label.pack(side="left")
+        multiple_files_label_state.pack(side='left')
+        # separator row 8
+        parent_path_frame.grid(row=9, column=0, sticky='ew', columnspan=2)
+        parent_path_label_title.pack(side='left')
+        parent_path_label.pack(side='left')
+        # separator row 10
+        to_include_label.grid(row=11, column=0)
+        to_exclude_label.grid(row=11, column=1)
+        include_exclude_frame.grid(row=12, column=0, columnspan=2, sticky='nsew')
+        include_textbox.pack(side='left', padx=5, pady=5)
+        exclude_textbox.pack(side='left', padx=5, pady=5)
+        # separator row 13
+        targets_label.grid(row=14, column=0)
+        target_textbox.grid(row=15, column=0, columnspan=2, sticky='ew')
+        # separator row 16
+        single_file_frame.grid(row=17, column=0, sticky='ew', columnspan=2)
+        single_file_label.pack(side="left")
+        single_file_label_state.pack(side='left')
+        # separator row 18
+        file_path_frame.grid(row=19, column=0, sticky='ew', columnspan=2)
+        file_path_label_title.pack(side='left')
+        file_path_label.pack(side='left')
+        # separator row 20
+        # separator row 21
+        # separator row 22
+        signal_processing_label.grid(row=23, column=0, columnspan=2)
+        # separator row 24
+        
+        
+        # ------------ SEPARATORS
+        for row in range(0, 25, 1):
+            if row in [0, 1, 2, 4, 6, 8, 10, 13, 16, 18, 20, 21, 22, 24]:
+                sep = Separator(master=summary_scrollable_frame, orient='h')
+                sep.grid(row=row, column=0, columnspan=2, sticky="ew")
+                summary_scrollable_frame.grid_rowconfigure(row, weight=1)
+            else:
+                summary_scrollable_frame.grid_rowconfigure(row, weight=10)
+        
+        
+        self.vars["summary multiple files"] = multiple_files_label_state_var
+        self.vars["summary multiple"] = parent_path_label_var
+        self.textboxes["summary inclusion"] = include_textbox
+        self.textboxes["summary exclusion"] = exclude_textbox
+        self.textboxes["summary targets"] = target_textbox
+        self.vars["summary single file"] = single_file_label_state_var
+        self.vars["summary single"] = file_path_label_var
+
+
+        
     
     def generate_filesorter_content(self):
         
         filesorter_frame = self.frames["filesorter"]
+        n_rows = 10
+        for i in range(n_rows):
+            filesorter_frame.grid_rowconfigure(i, weight=1)
+        filesorter_frame.grid_columnconfigure(0, weight=1)
+        filesorter_frame.grid_columnconfigure(1, weight=1)
+        filesorter_frame.grid_columnconfigure(2, weight=20)
+        filesorter_frame.grid_columnconfigure(3, weight=1)
         
         # ------- SORTING FILES -----------
-        sorting_files_switch = ctk.CTkSwitch(master=filesorter_frame, text="Sorting multiple files")
-        sorting_label = ctk.CTkLabel(master=filesorter_frame, text="Path to parent directory:",
+        sorting_files_ckbox_var = ctk.IntVar(value=0)
+        sorting_files_ckbox = ctk.CTkCheckBox(master=filesorter_frame, text="Sorting multiple files", variable=sorting_files_ckbox_var)
+        
+        sorting_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
+        sorting_label = ctk.CTkLabel(master=sorting_frame, text="Path to parent directory:",
                                      text_color=gp.enabled_label_color)
         
         sorting_sv = ctk.StringVar()
         sorting_entry = ErrEntry(master=filesorter_frame, state='disabled', textvariable=sorting_sv)
-        sorting_button = ctk.CTkButton(master=filesorter_frame, text="Open", state='normal', corner_radius=0)
+        sorting_button = ctk.CTkButton(master=sorting_frame, text="Open", state='normal', width=40)
         
         sorting_helper = Helper(master=filesorter_frame, event_key="#sorting-multiple-files")
         
-        to_include_label = ctk.CTkLabel(master=filesorter_frame, text="To include:",
+        to_include_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
+        to_include_label = ctk.CTkLabel(master=to_include_frame, text="To include:",
                                         text_color=gp.enabled_label_color)
         include_sv = ctk.StringVar()
         include_entry = ErrEntry(master=filesorter_frame, state='normal', textvariable=include_sv)
-        add_include_button = ctk.CTkButton(master=filesorter_frame, text="+", width=25, height=25, state='normal')
-        subtract_include_button = ctk.CTkButton(master=filesorter_frame, text="-", width=25, height=25,
+        add_include_button = ctk.CTkButton(master=to_include_frame, text="+", width=25, height=25, state='normal')
+        subtract_include_button = ctk.CTkButton(master=to_include_frame, text="-", width=25, height=25,
                                                 state='normal')
-        include_textbox = ctk.CTkTextbox(master=filesorter_frame, corner_radius=10, state='disabled')
         
-        to_exclude_label = ctk.CTkLabel(master=filesorter_frame, text="To exclude:",
+        
+        
+        to_exclude_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
+        to_exclude_label = ctk.CTkLabel(master=to_exclude_frame, text="To exclude:",
                                         text_color=gp.enabled_label_color)
         exclude_sv = ctk.StringVar()
         exclude_entry = ErrEntry(master=filesorter_frame, state='normal', textvariable=exclude_sv)
-        add_exclude_button = ctk.CTkButton(master=filesorter_frame, text="+", width=25, height=25, state='normal')
-        subtract_exclude_button = ctk.CTkButton(master=filesorter_frame, text="-", width=25, height=25,
+        add_exclude_button = ctk.CTkButton(master=to_exclude_frame, text="+", width=25, height=25, state='normal')
+        subtract_exclude_button = ctk.CTkButton(master=to_exclude_frame, text="-", width=25, height=25,
                                                 state='normal')
-        exclude_textbox = ctk.CTkTextbox(master=filesorter_frame, corner_radius=10, state='disabled')
         
-        key_target_label = ctk.CTkLabel(master=filesorter_frame, text="Target key:",
+        target_key_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
+        target_value_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
+        
+        key_target_label = ctk.CTkLabel(master=target_key_frame, text="Target key:",
                                         text_color=gp.enabled_label_color)
-        value_target_label = ctk.CTkLabel(master=filesorter_frame, text="Target value:",
+        value_target_label = ctk.CTkLabel(master=target_value_frame, text="Target value:",
                                           text_color=gp.enabled_label_color)
         id_target_sv = ctk.StringVar()
         id_target_entry = ErrEntry(master=filesorter_frame, state='normal', textvariable=id_target_sv)
         rename_target_sv = ctk.StringVar()
         rename_target_entry = ErrEntry(master=filesorter_frame, state='normal', textvariable=rename_target_sv)
-        add_target_button = ctk.CTkButton(master=filesorter_frame, text="+", width=25, height=25, state='normal')
-        subtract_target_button = ctk.CTkButton(master=filesorter_frame, text="-", width=25, height=25,
+        add_target_button = ctk.CTkButton(master=target_value_frame, text="+", width=25, height=25, state='normal')
+        subtract_target_button = ctk.CTkButton(master=target_value_frame, text="-", width=25, height=25,
                                                state='normal')
-        target_textbox = ctk.CTkTextbox(master=filesorter_frame, corner_radius=10, state='disabled')
         
         # -------- SINGLE FILE ------------
+        single_file_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
         single_file_helper = Helper(master=filesorter_frame, event_key="#single-file-analysis")
-        
-        single_file_switch = ctk.CTkSwitch(master=filesorter_frame, text="Single file analysis")
-        single_file_label = ctk.CTkLabel(master=filesorter_frame, text="Path to file:",
+        single_file_ckbox_var = ctk.IntVar(value=0)
+        single_file_ckbox = ctk.CTkCheckBox(master=filesorter_frame, text="Single file analysis", variable=single_file_ckbox_var)
+        single_file_label = ctk.CTkLabel(master=single_file_frame, text="Path to file:",
                                          text_color=gp.enabled_label_color)
         single_file_sv = ctk.StringVar()
         single_file_entry = ErrEntry(master=filesorter_frame, state='disabled', textvariable=single_file_sv)
-        single_file_button = ctk.CTkButton(master=filesorter_frame, text="Open", state='normal')
+        single_file_button = ctk.CTkButton(master=single_file_frame, text="Open", state='normal', width=40)
         
         # ------- MANAGE WIDGETS
-        sorting_helper.place(anchor=ctk.NE, relx=1, rely=0)
+        # sorting_helper.place(anchor=ctk.NE, relx=1, rely=0)
+        # todo : add helper
         
-        sorting_files_switch.place(relx=0, rely=0)
-        sorting_label.place(relx=0, rely=0.05)
-        sorting_entry.place_errentry(relx=0, rely=0.1, relwidth=0.6, relpadx=50)
-        sorting_button.place(relx=0.6, rely=0.1, relwidth=0.10)
+        sorting_files_ckbox.grid(row=0, column=0, sticky='w' )
         
-        to_include_label.place(relx=0.0, rely=0.16)
-        include_entry.place_errentry(relx=0.0, rely=0.2, relwidth=0.3)
-        add_include_button.place(relx=0.35, rely=0.2)
-        subtract_include_button.place(relx=0.4, rely=0.2)
-        include_textbox.place(relx=0.0, rely=0.25, relwidth=0.45, relheight=0.2)
+        # ---- row 1 separator ----
         
-        to_exclude_label.place(relx=0.5, rely=0.16)
-        exclude_entry.place_errentry(relx=0.5, rely=0.2, relwidth=0.3)
-        add_exclude_button.place(relx=0.85, rely=0.2)
-        subtract_exclude_button.place(relx=0.9, rely=0.2)
-        exclude_textbox.place(relx=0.5, rely=0.25, relwidth=0.45, relheight=0.2)
+        sorting_frame.grid(row=2, column=0, sticky='ew')
+        # sorting_entry.place_errentry(relx=0, rely=0.1, relwidth=0.6, relpadx=50)
+        sorting_entry.grid(row=2, column=2 , sticky='ew')
+        sorting_label.pack(side='left')
+        sorting_button.pack(side='right')
         
-        key_target_label.place(relx=0, rely=0.5)
-        value_target_label.place(relx=0.4, rely=0.5)
-        id_target_entry.place_errentry(relx=0, rely=0.54, relwidth=0.35)
-        rename_target_entry.place_errentry(relx=0.4, rely=0.54, relwidth=0.35)
-        add_target_button.place(relx=0.8, rely=0.54)
-        subtract_target_button.place(relx=0.85, rely=0.54)
-        target_textbox.place(relx=0, rely=0.6, relwidth=0.9, relheight=0.2)
+        # ---- row 3 separator ----
         
-        single_file_helper.place(anchor=ctk.NE, relx=1, rely=0.85)
-        single_file_switch.place(relx=0, rely=0.85)
-        single_file_label.place(relx=0, rely=0.90)
-        single_file_entry.place_errentry(relx=0, rely=0.95, relwidth=0.6, relpady=0.04)
-        single_file_button.place(relx=0.6, rely=0.95, relwidth=0.1)
+        to_include_frame.grid(row=4, column=0, sticky='ew' )
+        to_include_label.pack(side='left' )
+        # include_entry.place_errentry(relx=0.0, rely=0.2, relwidth=0.3)
+        add_include_button.pack(side='right' )
+        subtract_include_button.pack(side='right' )
+        include_entry.grid(row=4, column=2, sticky='ew')
         
-        self.switches["filesorter multiple"] = sorting_files_switch
+        # ---- row 5 separator ----
+        
+        to_exclude_frame.grid(row=6, column=0, sticky='ew' )
+        to_exclude_label.pack(side='left' )
+        # exclude_entry.place_errentry(relx=0.5, rely=0.2, relwidth=0.3)
+        add_exclude_button.pack(side='right' )
+        subtract_exclude_button.pack(side='right' )
+        exclude_entry.grid(row=6, column=2, sticky='ew' )
+        
+        # ---- row 7 separator ----
+        
+        target_key_frame.grid(row=8, column=0, sticky='ew' )
+        id_target_entry.grid(row=8, column=2, sticky='ew' )
+
+        # ---- row 9 separator ----
+        
+        target_value_frame.grid(row=10, column=0, sticky='ew' )
+        rename_target_entry.grid(row=10, column=2, sticky='ew')
+        
+        key_target_label.pack(side='left')
+        value_target_label.pack(side='left')
+        # id_target_entry.place_errentry(relx=0, rely=0.54, relwidth=0.35)
+        # rename_target_entry.place_errentry(relx=0.4, rely=0.54, relwidth=0.35)
+        add_target_button.pack(side='right')
+        subtract_target_button.pack(side='right')
+        
+        # ---- row 11 separator ----
+        
+        # single_file_helper.place(anchor=ctk.NE, relx=1, rely=0.85)
+        # todo : add helper
+        single_file_ckbox.grid(row=12, column=0, sticky='w' )
+        
+        # ---- row 13 separator ----
+        
+        single_file_frame.grid(row=14, column=0, sticky='ew' )
+        single_file_label.pack(side='left')
+        # single_file_entry.place_errentry(relx=0, rely=0.95, relwidth=0.6, relpady=0.04)
+        single_file_entry.grid(row=14, column=2, sticky='ew')
+        single_file_button.pack(side='right')
+        
+        self.ckboxes["filesorter multiple"] = sorting_files_ckbox
         self.vars["filesorter multiple"] = sorting_sv
         self.entries["filesorter multiple"] = sorting_entry
-        self.switches["filesorter single"] = single_file_switch
+        self.ckboxes["filesorter single"] = single_file_ckbox
         self.vars["filesorter single"] = single_file_sv
         self.entries["filesorter single"] = single_file_entry
         self.vars["filesorter key target"] = id_target_sv
         self.vars["filesorter value target"] = rename_target_sv
         self.entries["filesorter key target"] = id_target_entry
         self.entries["filesorter value target"] = rename_target_entry
-        self.textboxes["filesorter targets"] = target_textbox
         self.vars["filesorter exclusion"] = exclude_sv
         self.entries["filesorter exclusion"] = exclude_entry
-        self.textboxes["filesorter exclusion"] = exclude_textbox
         self.vars["filesorter inclusion"] = include_sv
         self.entries["filesorter inclusion"] = include_entry
-        self.textboxes["filesorter inclusion"] = include_textbox
         
+        
+        # ------------ SEPARATORS
+        for col in [1, ]:
+            sep = Separator(master=filesorter_frame, orient='v')
+            sep.grid(row=0, column=col, rowspan=20, sticky="ns")
+            
+        for row in range(0, 15, 1):
+            if row in [1, 3, 5, 7, 9, 11, 13]:
+                sep = Separator(master=filesorter_frame, orient='h')
+                sep.grid(row=row, column=0, columnspan=20, sticky="ew")
+                filesorter_frame.grid_rowconfigure(row, weight=1)
+            else:
+                filesorter_frame.grid_rowconfigure(row, weight=10)
+
         # ------------ CONFIGURE
         
         sorting_button.configure(command=partial(self.select_parent_directory, sorting_sv))
         add_include_button.configure(
-            command=partial(self.add_subtract_to_include, entry=include_entry, textbox=include_textbox, mode='add'))
+            command=partial(self.add_subtract_to_include, entry=include_entry, textbox=self.textboxes["summary inclusion"], mode='add'))
         subtract_include_button.configure(
-            command=partial(self.add_subtract_to_include, include_entry, include_textbox, mode='subtract'))
+            command=partial(self.add_subtract_to_include, include_entry, self.textboxes["summary inclusion"], mode='subtract'))
         add_exclude_button.configure(
-            command=partial(self.add_subtract_to_exclude, exclude_entry, exclude_textbox, mode='add'))
+            command=partial(self.add_subtract_to_exclude, exclude_entry, self.textboxes["summary exclusion"], mode='add'))
         subtract_exclude_button.configure(
-            command=partial(self.add_subtract_to_exclude, exclude_entry, exclude_textbox, mode='subtract'))
+            command=partial(self.add_subtract_to_exclude, exclude_entry, self.textboxes["summary exclusion"], mode='subtract'))
         add_target_button.configure(
-            command=partial(self.add_subtract_target, id_target_entry, rename_target_entry, target_textbox,
+            command=partial(self.add_subtract_target, id_target_entry, rename_target_entry, self.textboxes["summary targets"],
                             mode='add'))
         subtract_target_button.configure(
-            command=partial(self.add_subtract_target, id_target_entry, rename_target_entry, target_textbox,
+            command=partial(self.add_subtract_target, id_target_entry, rename_target_entry, self.textboxes["summary targets"],
                             mode='subtract'))
-        
         single_file_button.configure(command=partial(self.select_single_file, single_file_sv))
+        # ----------- TRACE -------------------
+        sorting_files_ckbox_var.trace("w", self.trace_multiple_files_checkbox)
+        single_file_ckbox_var.trace("w", self.trace_single_file_checkbox)
+        sorting_sv.trace("w", self.trace_parent_path)
+        single_file_sv.trace("w", self.trace_single_file_path)
+        
+       
         
         # ---- ENTRY VALIDATION
         sorting_entry.configure(validate='focus',
@@ -247,24 +422,24 @@ class ProcessingView(ctk.CTkFrame):
         
         # ------ ENTRY BINDING
         include_entry.bind('<Return>',
-                           lambda event: self.add_subtract_to_include(include_entry, include_textbox, 'add'))
+                           lambda event: self.add_subtract_to_include(include_entry, self.textboxes["summary inclusion"], 'add'))
         include_entry.bind('<Control-BackSpace>',
-                           lambda event: self.add_subtract_to_include(include_entry, include_textbox, 'subtract'))
+                           lambda event: self.add_subtract_to_include(include_entry, self.textboxes["summary inclusion"], 'subtract'))
         exclude_entry.bind('<Return>',
-                           lambda event: self.add_subtract_to_exclude(exclude_entry, exclude_textbox, mode='add'))
+                           lambda event: self.add_subtract_to_exclude(exclude_entry, self.textboxes["summary exclusion"], mode='add'))
         exclude_entry.bind('<Control-BackSpace>',
-                           lambda event: self.add_subtract_to_exclude(exclude_entry, exclude_textbox, mode='subtract'))
+                           lambda event: self.add_subtract_to_exclude(exclude_entry, self.textboxes["summary exclusion"], mode='subtract'))
         id_target_entry.bind('<Return>',
                              lambda event: self.add_subtract_target(id_target_entry, rename_target_entry,
-                                                                    target_textbox,
+                                                                    self.textboxes["summary targets"],
                                                                     'add'))
         id_target_entry.bind('<Control-BackSpace>',
                              lambda event: self.add_subtract_target(id_target_entry, rename_target_entry,
-                                                                    target_textbox,
+                                                                    self.textboxes["summary targets"],
                                                                     'subtract'))
         rename_target_entry.bind('<Return>',
                                  lambda event: self.add_subtract_target(id_target_entry, rename_target_entry,
-                                                                        target_textbox,
+                                                                        self.textboxes["summary targets"],
                                                                         'add'))
     
     def generate_signal_content(self):
@@ -660,5 +835,4 @@ class ProcessingView(ctk.CTkFrame):
                                        size=(120, 120))
                     self.image_buttons[s].configure(image=img)
                     self.image_buttons[s].set_image_size((120, 120))
-                    print('selected image size', self.image_buttons[s].get_image_size())
 

@@ -486,17 +486,17 @@ class ProcessingController:
         
         # -------- FILESORTER
         
-        if all([self.view.switches['filesorter single'].get(), self.view.switches['filesorter multiple'].get()]):
+        if all([self.view.ckboxes['filesorter single'].get(), self.view.ckboxes['filesorter multiple'].get()]):
             filesorter_errors.append("You can only chose one between Single file analysis or Multiple files analysis.")
         
-        if not any([self.view.switches['filesorter single'].get(), self.view.switches['filesorter multiple'].get()]):
+        if not any([self.view.ckboxes['filesorter single'].get(), self.view.ckboxes['filesorter multiple'].get()]):
             filesorter_errors.append("You have to select one between Single file analysis or Multiple files analysis.", )
         
-        if self.view.switches['filesorter multiple'].get():
+        if self.view.ckboxes['filesorter multiple'].get():
             if not self.view.entries['filesorter multiple'].get():
                 filesorter_errors.append("You have to select a parent directory to run multi-file processing.")
         
-        if self.view.switches['filesorter single'].get():
+        if self.view.ckboxes['filesorter single'].get():
             if not self.view.entries['filesorter single'].get():
                 filesorter_errors.append("You have to select a file to run single file processing.")
         
@@ -599,13 +599,11 @@ class ProcessingController:
             return True
     
     def validate_step(self, step):
-        print("validate", self.view.image_buttons[step].get_image_size())
         img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_green.png")), size=self.view.image_buttons[step].get_image_size())
         self.view.image_buttons[step].configure(image=img)
         self.view.step_check[step] = 1
     
     def invalidate_step(self, step):
-        print("invalidate", self.view.image_buttons[step].get_image_size())
 
         img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_red.png")), size=self.view.image_buttons[step].get_image_size())
         self.view.image_buttons[str(step)].configure(image=img)
