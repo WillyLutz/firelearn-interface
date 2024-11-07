@@ -599,12 +599,15 @@ class ProcessingController:
             return True
     
     def validate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_green.png")), size=(60, 60))
+        print("validate", self.view.image_buttons[step].get_image_size())
+        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_green.png")), size=self.view.image_buttons[step].get_image_size())
         self.view.image_buttons[step].configure(image=img)
         self.view.step_check[step] = 1
     
     def invalidate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_red.png")), size=(60, 60))
+        print("invalidate", self.view.image_buttons[step].get_image_size())
+
+        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_red.png")), size=self.view.image_buttons[step].get_image_size())
         self.view.image_buttons[str(step)].configure(image=img)
         self.view.step_check[step] = 0
     

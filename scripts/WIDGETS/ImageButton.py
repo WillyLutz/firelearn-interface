@@ -20,6 +20,12 @@ class ImageButton(ctk.CTkLabel):
     def set_command(self, command):
         self.command = command
         self.bind('<Button-1>', command=self.command)
+        
+    def get_image_size(self):
+        return self.img.cget("size")
+    
+    def set_image_size(self, size):
+        self.img.configure(size=size)
 
 
 

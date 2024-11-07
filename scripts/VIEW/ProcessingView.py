@@ -46,17 +46,17 @@ class ProcessingView(ctk.CTkFrame):
                                       img=ctk.CTkImage(
                                           dark_image=Image.open(
                                               resource_path("data/firelearn_img/filesorter_grey.png")),
-                                          size=(120, 120)),
+                                          size=(60, 60)),
                                       command=partial(self.show_filesorter_frame, ))
         signal_ibtn = ImageButton(master=self.master,
                                   img=ctk.CTkImage(
                                       dark_image=Image.open(resource_path("data/firelearn_img/signal_grey.png")),
-                                      size=(120, 120)),
+                                      size=(60, 60)),
                                   command=partial(self.show_signal_frame, ))
         filename_ibtn = ImageButton(master=self.master,
                                     img=ctk.CTkImage(
                                         dark_image=Image.open(resource_path("data/firelearn_img/filename_grey.png")),
-                                        size=(120, 120)),
+                                        size=(60, 60)),
                                     command=partial(self.show_filename_frame, ))
         
         filesorter_frame = ctk.CTkFrame(master=self.content_frame, )
@@ -642,17 +642,23 @@ class ProcessingView(ctk.CTkFrame):
                 img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_grey.png")),
                                    size=(60, 60))
                 self.image_buttons[s].configure(image=img)
+                self.image_buttons[s].set_image_size((60, 60))
             if self.step_check[s] == 1:
                 img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_green.png")),
                                    size=(60, 60))
                 self.image_buttons[s].configure(image=img)
+                self.image_buttons[s].set_image_size((60, 60))
             if self.step_check[s] == 0:
                 img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_red.png")),
                                    size=(60, 60))
                 self.image_buttons[s].configure(image=img)
+                self.image_buttons[s].set_image_size((60, 60))
+            
             if step:
                 if s == str(step):
                     img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{s}_blue.png")),
                                        size=(120, 120))
                     self.image_buttons[s].configure(image=img)
+                    self.image_buttons[s].set_image_size((120, 120))
+                    print('selected image size', self.image_buttons[s].get_image_size())
 
