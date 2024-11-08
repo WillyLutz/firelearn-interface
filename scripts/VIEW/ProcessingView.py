@@ -20,7 +20,7 @@ from scripts.WIDGETS.DragDropListbox import DragDropListbox
 
 class ProcessingView(ctk.CTkFrame):
     def __init__(self, app, master, parent_view):
-        super().__init__(master=app)
+        super().__init__(master=master, fg_color='blue')
         self.app = app
         self.master = master
         self.parent_view = parent_view
@@ -39,25 +39,41 @@ class ProcessingView(ctk.CTkFrame):
         
         self.frames = {}
         self.step_check = {"filename": 2, "signal": 2, "filesorter": 2, }
-        self.content_frame = ctk.CTkFrame(master=self.master)
-        self.content_frame.place(relx=0.15, rely=0, relwidth=0.85, relheight=0.9)
         
+        self.ibuttons_frame = ctk.CTkFrame(master=self.master, fg_color='transparent')
+        self.content_frame = ctk.CTkFrame(master=self.master, )
+        
+        self.master.grid_columnconfigure(0, weight=1)
+        self.master.grid_columnconfigure(1, weight=8)
+        self.master.grid_rowconfigure(0, weight=1)
+        
+        self.ibuttons_frame.grid_rowconfigure(0, weight=50)
+        self.ibuttons_frame.grid_rowconfigure(1, weight=50)
+        self.ibuttons_frame.grid_rowconfigure(2, weight=50)
+        self.ibuttons_frame.grid_rowconfigure(3, weight=1)
+        self.ibuttons_frame.grid_rowconfigure(4, weight=10)
+        self.ibuttons_frame.grid_rowconfigure(5, weight=10)
+        self.ibuttons_frame.grid_rowconfigure(6, weight=10)
+        self.ibuttons_frame.grid_rowconfigure(7, weight=10)
+
+        self.ibuttons_frame.grid(row=0, column=0, sticky='nsew')
+        self.content_frame.grid(row=0, column=1, sticky='nsew',)
         self.manage_processing_tab()
     
     def manage_processing_tab(self):
-        
-        filesorter_ibtn = ImageButton(master=self.master,
+
+        filesorter_ibtn = ImageButton(master=self.ibuttons_frame,
                                       img=ctk.CTkImage(
                                           dark_image=Image.open(
                                               resource_path("data/firelearn_img/filesorter_grey.png")),
                                           size=(60, 60)),
                                       command=partial(self.show_filesorter_frame, ))
-        signal_ibtn = ImageButton(master=self.master,
+        signal_ibtn = ImageButton(master=self.ibuttons_frame,
                                   img=ctk.CTkImage(
                                       dark_image=Image.open(resource_path("data/firelearn_img/signal_grey.png")),
                                       size=(60, 60)),
                                   command=partial(self.show_signal_frame, ))
-        filename_ibtn = ImageButton(master=self.master,
+        filename_ibtn = ImageButton(master=self.ibuttons_frame,
                                     img=ctk.CTkImage(
                                         dark_image=Image.open(resource_path("data/firelearn_img/filename_grey.png")),
                                         size=(60, 60)),
@@ -67,14 +83,14 @@ class ProcessingView(ctk.CTkFrame):
         signal_frame = ctk.CTkFrame(master=self.content_frame, )
         filename_frame = ctk.CTkFrame(master=self.content_frame, )
         
-        check_all_button = ctk.CTkButton(master=self.master, text="Check all steps",
+        check_all_button = ctk.CTkButton(master=self.ibuttons_frame, text="Check all steps",
                                          command=self.controller.check_params_validity,
                                          fg_color="green", )
-        save_model_button = ctk.CTkButton(master=self.master, text="Save config", fg_color="lightslategray",
+        save_model_button = ctk.CTkButton(master=self.ibuttons_frame, text="Save config", fg_color="lightslategray",
                                           command=self.save_config)
-        load_model_button = ctk.CTkButton(master=self.master, text="Load config", fg_color="lightslategray",
+        load_model_button = ctk.CTkButton(master=self.ibuttons_frame, text="Load config", fg_color="lightslategray",
                                           command=self.load_model)
-        process_exec_button = ctk.CTkButton(master=self.master, fg_color="green", text="Process",
+        process_exec_button = ctk.CTkButton(master=self.ibuttons_frame, fg_color="green", text="Process",
                                             command=self.processing)
         
         processing_summary_frame = ctk.CTkFrame(master=self.content_frame, )
@@ -89,13 +105,17 @@ class ProcessingView(ctk.CTkFrame):
         self.frames["signal"] = signal_frame
         self.frames["filename"] = filename_frame
         
-        check_all_button.place(anchor=tk.S, relx=0.25, rely=0.95)
-        save_model_button.place(anchor=tk.S, relx=0.35, rely=0.95, )
-        load_model_button.place(anchor=tk.S, relx=0.45, rely=0.95, )
-        process_exec_button.place(anchor=tk.S, relx=0.55, rely=0.95, relheight=0.05)
-        filesorter_ibtn.place(relx=0, rely=0)
-        signal_ibtn.place(relx=0, rely=0.2)
-        filename_ibtn.place(relx=0, rely=0.4)
+        sep = Separator(master=self.ibuttons_frame, orient='h')
+        sep.grid(row=3, column=0, sticky="ew")
+        
+        
+        filesorter_ibtn.grid(row=0, column=0)
+        signal_ibtn.grid(row=1, column=0)
+        filename_ibtn.grid(row=2, column=0)
+        save_model_button.grid(row=4, column=0)
+        load_model_button.grid(row=5, column=0)
+        check_all_button.grid(row=6, column=0)
+        process_exec_button.grid(row=7, column=0)
         
         
         self.generate_summary()
@@ -426,7 +446,6 @@ class ProcessingView(ctk.CTkFrame):
         # separator row 54
         save_under_label.grid(row=55, column=0, columnspan=3, sticky='w')
         
-        # todo : continue here
         # ------------ SEPARATORS
         for row in range(0, 55, 1):
             if row in [0, 1, 2, 4, 6, 8, 10, 13, 16, 18, 20, 21, 22, 24, 26, 28, 30,
@@ -471,8 +490,6 @@ class ProcessingView(ctk.CTkFrame):
         self.vars["summary make dataset"] = make_dataset_var
         self.vars["summary filename"] = filename_var
         self.vars["summary save under"] = save_under_var
-        
-
     
     def generate_filesorter_content(self):
         
@@ -794,15 +811,10 @@ class ProcessingView(ctk.CTkFrame):
         interpolation_entry = ErrEntry(master=signal_frame, state='normal', textvariable=interpolation_entry_var)
         
         # ------ MANAGING WIDGETS
-        
-        # raw_mea_helper.place(anchor=ctk.NE, relx=1, rely=0)
-        # todo : add helper
         behead_ckbox.grid(row=0, column=0, sticky='ew')
         behead_entry.grid(row=0, column=2, sticky='ew')
         # Separator row 1
         # Separator row 2
-        # select_elec_helper.place(anchor=ctk.NE, relx=1, rely=0.1)
-        # todo : add helper
         electrode_ckbox.grid(row=3, column=0, sticky='ew')
         n_electrodes_entry.grid(row=3, column=2, sticky='ew')
         # Separator row 4
@@ -815,12 +827,8 @@ class ProcessingView(ctk.CTkFrame):
         # Separator row 8
         # Separator row 9
 
-        # sampling_helper.place(anchor=ctk.NE, relx=1, rely=0.3)
-        # todo : add helper
         sampling_ckbox.grid(row=10, column=0, sticky='ew')
         sampling_entry.grid(row=10, column=2, sticky='ew')
-        # todo : add helper
-        # frequential_helper.place(anchor=ctk.NE, relx=1, rely=0.35)
         # Separator row 11
         fft_ckbox.grid(row=12, column=0, sticky='ew')
         sampling_fft_entry.grid(row=12, column=2, sticky='ew')
@@ -831,10 +839,7 @@ class ProcessingView(ctk.CTkFrame):
         interpolation_entry.grid(row=16, column=2, sticky='ew')
         # Separator row 17
         # Separator row 18
-
-        # filter_helper.place(anchor=ctk.NE, relx=1, rely=0.55)
-        # todo : add helper
-        
+       
         filter_ckbox.grid(row=19, column=0, sticky='ew')
         # Separator row 20
         order_filter_label.grid(row=21, column=0, )
