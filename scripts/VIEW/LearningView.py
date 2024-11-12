@@ -9,6 +9,7 @@ import scripts.VIEW.graphic_params as gp
 from scripts.CONTROLLER.LearningController import LearningController
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Helper import Helper
+from scripts.WIDGETS.Separator import Separator
 
 
 class LearningView(ctk.CTkFrame):
@@ -47,34 +48,44 @@ class LearningView(ctk.CTkFrame):
         classifier_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
 
         # ----------- PARAMETERS -----------------
-        clf_params_helper = Helper(master=params_frame, event_key="clf params")
+        clf_params_helper = Helper(master=params_frame, event_key="clf params",)
 
         params_label = ctk.CTkLabel(master=params_frame, text="Classifier parameters")
-        params_sframe = ctk.CTkScrollableFrame(master=params_frame, corner_radius=10)
+        params_scrollable_frame = ctk.CTkScrollableFrame(master=params_frame, corner_radius=10, )
         reload_button = ctk.CTkButton(master=params_frame, text="Reload default")
 
-        params_sframe.grid_columnconfigure(0, weight=1)
-        params_sframe.grid_columnconfigure(1, weight=2)
+        # params_scrollable_frame.grid_columnconfigure(0, weight=1)
+        # params_scrollable_frame.grid_columnconfigure(1, weight=2)
 
-        sub_paramsframe = ctk.CTkFrame(master=params_sframe, )
-        params_frame.place(relx=0, rely=0, relwidth=0.30, relheight=1)
-        manage_dataset_frame.place(relx=0.33, rely=0, relwidth=0.30, relheight=0.85)
+        # params_scrollable_frame = ctk.CTkFrame(master=params_scrollable_frame, )
 
         clf = RandomForestClassifier()
-
+        params_scrollable_frame.grid_columnconfigure(0, weight=20)
+        params_scrollable_frame.grid_columnconfigure(1, weight=1)
+        params_scrollable_frame.grid_columnconfigure(2, weight=20)
+        
         n_param = 0
         for name, value in clf.get_params().items():
-            param_label = ctk.CTkLabel(master=sub_paramsframe, text=name, justify='left')
-            param_label.grid(row=n_param, column=0, pady=10, padx=0)
+            param_label = ctk.CTkLabel(master=params_scrollable_frame, text=name, justify='left')
+            param_label.grid(row=n_param, column=0, pady=5, padx=0, sticky='w')
 
             param_stringvar = tk.StringVar()
             param_stringvar.set(value)
-            param_entry = ErrEntry(master=sub_paramsframe, state="normal", textvariable=param_stringvar, width=100)
-            param_entry.grid(row=n_param, column=1, pady=10, padx=10)
-            n_param += 1
+            param_entry = ErrEntry(master=params_scrollable_frame, state="normal", textvariable=param_stringvar, width=100)
+            param_entry.grid(row=n_param, column=2, pady=5, padx=5, sticky='w')
+            
+            sep = Separator(master=params_scrollable_frame, orient='h')
+            sep.grid(row=n_param + 1, column=0, columnspan=3, sticky='ew')
+            
+            params_scrollable_frame.grid_rowconfigure(n_param, weight=10)
+            params_scrollable_frame.grid_rowconfigure(n_param + 1, weight=10)
+            n_param += 2
+
             self.rfc_params_stringvar[name] = param_stringvar
             self.entries[f"params {param_stringvar.get()}"] = param_entry
-
+            
+        sep = Separator(master=params_scrollable_frame, orient='v')
+        sep.grid(row=0, column=1, rowspan=n_param, sticky='ns')
         # ------------ MANAGE DATASET ------------------
         load_dataset_helper = Helper(master=manage_dataset_frame, event_key="load dataset")
         load_train_dataset_button = ctk.CTkButton(master=manage_dataset_frame, text="Load Train dataset")
@@ -145,16 +156,17 @@ class LearningView(ctk.CTkFrame):
         learning_button = ctk.CTkButton(master=loading_frame, text="Learning", fg_color="green")
 
         # -------- MANAGE WIDGETS
-
+        params_frame.place(relx=0, rely=0, relwidth=0.30, relheight=1)
+        manage_dataset_frame.place(relx=0.33, rely=0, relwidth=0.30, relheight=0.85)
+        
         loading_frame.place(relx=0.33, rely=0.9, relwidth=0.63, relheight=0.1)
         classifier_frame.place(relx=0.66, rely=0, relwidth=0.3, relheight=0.85)
 
         clf_params_helper.place(anchor=tk.NE, relx=1, rely=0)
         params_label.place(relx=0, rely=0)
         reload_button.place(relx=0.5, rely=0)
-        params_sframe.place(relx=0.025, rely=0.1, relheight=0.85, relwidth=0.95)
-        sub_paramsframe.place(relx=0, rely=0, relheight=1, relwidth=1)
-        sub_paramsframe.grid(row=0, column=0, sticky=ctk.NSEW)
+        params_scrollable_frame.place(relx=0.025, rely=0.1, relheight=0.85, relwidth=0.95)
+        # params_scrollable_frame.grid(row=0, column=0, sticky='nsew')
 
         load_dataset_helper.place(anchor=tk.NE, relx=1, rely=0)
         load_train_dataset_button.place(relx=0, rely=0, relwidth=0.3)
