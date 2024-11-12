@@ -36,23 +36,23 @@ class ProcessingController:
     def processing(self, ):
         if self.check_params_validity():
             if all([value for key, value in self.view.step_check.items()]):
-                self.update_params(self.view.switches)
                 self.update_params(self.view.cbboxes)
                 self.update_params(self.view.entries)
+                self.update_params(self.view.ckboxes)
+                self.update_params(self.view.vars)
                 
-                local_entry = self.model.entries
-                local_switch = self.model.switches
+                local_vars = self.model.vars
                 local_cbox = self.model.cbboxes
                 
                 all_files = []
-                if local_switch['filesorter multiple']:
+                if local_vars['filesorter multiple']:
                     files = ff.get_all_files(self.model.parent_directory)
                     for file in files:
                         if all(i in file for i in self.model.to_include) and (
                                 not any(e in file for e in self.model.to_exclude)):
                             all_files.append(file)
                 
-                if local_switch['filesorter single']:
+                if local_vars['filesorter single']:
                     all_files.append(self.model.single_file)
 
                 """
@@ -60,12 +60,12 @@ class ProcessingController:
                 """
                 n_files = int(len(all_files))
                 skiprow = 0
-                if local_switch['signal behead']:
-                    skiprow = int(local_entry['signal behead'])
+                if local_vars['signal ckbox behead']:
+                    skiprow = int(local_vars['signal behead'])
                 
                 example_dataframe = pd.read_csv(all_files[0], index_col=False, skiprows=skiprow)
-                if local_switch['signal select columns']:
-                    n_columns = int(local_entry['signal select columns number'])
+                if local_vars['signal select columns ckbox']:
+                    n_columns = int(local_vars['signal select columns number'])
                 else:
                     n_columns = int(len([col for col in example_dataframe.columns if "time" not in col.lower()]))
                     # todo : allow to specify the excepted column
@@ -81,49 +81,49 @@ class ProcessingController:
                 # preparation of filename
                 processing_basename = []
                 characters = string.ascii_letters + string.digits
-                if local_switch['filename']:
-                    processing_basename.append(local_entry['filename'])
+                if local_vars['filename filename']:
+                    processing_basename.append(local_vars['filename filename'])
                 else:
-                    if local_switch['signal select columns']:
-                        processing_basename.append(f"Sel{local_cbox['signal select columns mode'].capitalize()}"
-                                                   f"{local_cbox['signal select columns metric'].capitalize()}"
-                                                   f"{local_entry['signal select columns number']}")
-                    if local_switch['signal sampling']:
-                        processing_basename.append(f"Ds{local_entry['signal sampling']}sample{local_entry['signal sampling']}")
-                    if local_switch['signal filter']:
+                    if local_vars['signal select columns ckbox']:
+                        processing_basename.append(f"Sel{local_vars['signal select columns mode'].capitalize()}"
+                                                   f"{local_vars['signal select columns metric'].capitalize()}"
+                                                   f"{local_vars['signal select columns number']}")
+                    if local_vars['signal sampling ckbox']:
+                        processing_basename.append(f"Ds{local_vars['signal sampling']}")
+                    if local_vars['signal filter']:
                         processing_basename.append(
-                            f"O{local_entry['signal filter order']}{local_cbox['signal filter type']}"
-                            f"{local_entry['signal filter first frequency']}-{local_entry['signal filter second frequency']}"
-                            f"H{local_cbox['signal filter harmonic type']}{local_entry['signal filter harmonic frequency']}-"
-                            f"{local_entry['signal filter nth harmonic']}")
-                    if local_switch['signal fft']:
+                            f"O{local_vars['signal filter order']}{local_vars['signal filter type']}"
+                            f"{local_vars['signal filter first cut']}-{local_vars['signal filter second cut']}"
+                            f"H{local_vars['signal harmonics type']}{local_vars['signal filter harmonic frequency']}-"
+                            f"{local_vars['signal filter nth harmonic']}")
+                    if local_vars['signal fft']:
                         processing_basename.append("signal fft")
-                    if local_switch['signal merge']:
+                    if local_vars['signal average']:
                         processing_basename.append("avg")
-                    if local_switch['signal smoothing']:
-                        processing_basename.append(f"Sm{local_entry['signal smoothing']}")
-                if local_switch['filename random key']:
+                    if local_vars['signal interpolation']:
+                        processing_basename.append(f"Sm{local_vars['signal interpolation']}")
+                if local_vars['filename random key']:
                     processing_basename.append(''.join(random.choice(characters) for _ in range(5)))
-                if local_switch['filename keyword']:
-                    processing_basename.append(local_entry['filename keyword'])
-                if local_switch['filename timestamp']:
+                if local_vars['filename keyword ckbox']:
+                    processing_basename.append(local_vars['filename keyword'])
+                if local_vars['filename timestamp']:
                     processing_basename.append(time.strftime("%Y-%m-%d-%H-%M"))
-                if not local_switch['filename random key'] and not local_switch['filename keyword'] and not \
-                local_switch['filename timestamp'] \
-                        and not local_switch['filename']:
+                if not local_vars['filename random key'] and not local_vars['filename keyword ckbox'] and not \
+                local_vars['filename timestamp'] \
+                        and not local_vars['filename filename']:
                     processing_basename.append("FL_processed")
                 
                 # generate harmonic frequencies
                 harmonics = []
-                if local_cbox['signal filter harmonic type'] != "None":
-                    harmonics = MainController.generate_harmonics(int(local_entry['signal filter harmonic frequency']),
-                                                                  int(local_entry['signal filter nth harmonic']),
-                                                                  local_cbox['signal filter harmonic type'])
+                if local_vars['signal harmonics type'] != "None":
+                    harmonics = MainController.generate_harmonics(int(local_vars['signal filter harmonic frequency']),
+                                                                  int(local_vars['signal filter nth harmonic']),
+                                                                  local_vars['signal harmonics type'])
                 # file processing
                 
                 for file in all_files:
                     samples = []
-                    if local_switch['signal behead']:
+                    if local_vars['signal ckbox behead']:
                         self.processing_progress.update_task("Beheading raw files")
                         df = pd.read_csv(file, index_col=False, skiprows=skiprow)
                         self.processing_progress.increment_progress(1)
@@ -131,17 +131,17 @@ class ProcessingController:
                         df = pd.read_csv(file, index_col=False)
                     
                     # signal select columns
-                    if local_switch['signal select columns']:
+                    if local_vars['signal select columns ckbox']:
                         self.processing_progress.update_task("Selecting columns")
-                        df = dpr.top_n_electrodes(df, int(local_entry['signal select columns number']),
+                        df = dpr.top_n_electrodes(df, int(local_vars['signal select columns number']),
                                                   "TimeStamp [µs]")
                         self.processing_progress.increment_progress(1)
                     
                     # down sampling recordings
                     
-                    if local_switch['signal sampling']:
+                    if local_vars['signal sampling ckbox']:
                         self.processing_progress.update_task("Down sampling file")
-                        samples = fp.equal_samples(df, int(local_entry['signal sampling']))
+                        samples = fp.equal_samples(df, int(local_vars['signal sampling']))
                         self.processing_progress.increment_progress(1)
                     else:
                         samples.append(df)
@@ -151,55 +151,55 @@ class ProcessingController:
                         df_s_fft = pd.DataFrame()
                         # filtering
                         
-                        if local_switch['signal filter']:
+                        if local_vars['signal filter']:
                             for ch in [col for col in df_s.columns if "time" not in col.lower()]:
                                 self.processing_progress.update_task("Filtering")
                                 df_s_ch = df_s[ch]
-                                if local_cbox['signal filter type'] == 'Highpass' and local_entry[
-                                    'signal filter first frequency']:
-                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_entry['signal filter order']),
+                                if local_vars['signal filter type'] == 'Highpass' and local_vars[
+                                    'signal filter first cut']:
+                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
                                                                 btype='highpass',
-                                                                cut=int(local_entry['signal filter first frequency']))
-                                elif local_cbox['signal filter type'] == 'Lowpass' and local_entry[
-                                    'signal filter first frequency']:
-                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_entry['signal filter order']),
+                                                                cut=int(local_vars['signal filter first cut']))
+                                elif local_vars['signal filter type'] == 'Lowpass' and local_vars[
+                                    'signal filter first cut']:
+                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
                                                                 btype='lowpass',
-                                                                cut=int(local_entry['signal filter first frequency']))
-                                elif local_cbox['signal filter type'] == 'Bandstop' and local_entry[
-                                    'signal filter first frequency'] and \
-                                        local_entry['signal filter second frequency']:
-                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_entry['signal filter order']),
+                                                                cut=int(local_vars['signal filter first cut']))
+                                elif local_vars['signal filter type'] == 'Bandstop' and local_vars[
+                                    'signal filter first cut'] and \
+                                        local_vars['signal filter second cut']:
+                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
                                                                 btype='bandstop',
                                                                 lowcut=int(
-                                                                    local_entry['signal filter first frequency']),
+                                                                    local_vars['signal filter first cut']),
                                                                 highcut=int(
-                                                                    local_entry['signal filter second frequency']))
-                                elif local_cbox['signal filter type'] == 'Bandpass' and local_entry[
-                                    'signal filter first frequency'] and \
-                                        local_entry['signal filter second frequency']:
-                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_entry['signal filter order']),
+                                                                    local_vars['signal filter second cut']))
+                                elif local_vars['signal filter type'] == 'Bandpass' and local_vars[
+                                    'signal filter first cut'] and \
+                                        local_vars['signal filter second cut']:
+                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
                                                                 btype='bandpass',
                                                                 lowcut=int(
-                                                                    local_entry['signal filter first frequency']),
+                                                                    local_vars['signal filter first cut']),
                                                                 highcut=int(
-                                                                    local_entry['signal filter second frequency']))
-                                if local_entry['signal filter harmonic frequency']:
+                                                                    local_vars['signal filter second cut']))
+                                if local_vars['signal harmonics ckbox']:
                                     for h in harmonics:
                                         df_s_ch = dpr.butter_filter(df_s_ch,
-                                                                    order=int(local_entry['signal filter order']),
+                                                                    order=int(local_vars['signal filter order']),
                                                                     btype='bandstop', lowcut=h - 2,
                                                                     highcut=h + 2)
                                 
                                 df_s[ch] = df_s_ch  # updating the dataframe for further processing
                                 self.processing_progress.increment_progress(1)
                         
-                        if local_switch['signal fft']:
+                        if local_vars['signal fft']:
                             for ch in [col for col in df_s.columns if "time" not in col.lower()]:
                                 self.processing_progress.update_task("Fast Fourier Transform")
                                 df_s_ch = df_s[ch]
                                 # fast fourier
                                 
-                                clean_fft, clean_freqs = dpr.fast_fourier(df_s_ch, int(local_entry['signal fft sf']))
+                                clean_fft, clean_freqs = dpr.fast_fourier(df_s_ch, int(local_vars['signal fft sf']))
                                 if "Frequency [Hz]" not in df_s_fft.columns:
                                     df_s_fft['Frequency [Hz]'] = clean_freqs
                                 df_s_fft[ch] = clean_fft
@@ -207,17 +207,17 @@ class ProcessingController:
                             df_s = df_s_fft
                         
                         # merge signal
-                        if local_switch['signal merge']:
+                        if local_vars['signal average']:
                             self.processing_progress.update_task("Averaging signal")
                             df_s = dpr.merge_all_columns_to_mean(df_s, "Frequency [Hz]").round(3)
                             self.processing_progress.increment_progress(1)
                         
-                        # smoothing signal
+                        # interpolation signal
                         df_s_processed = pd.DataFrame()
-                        if local_switch['signal smoothing']:
-                            self.processing_progress.update_task("Smoothing signal")
+                        if local_vars['signal interpolation ckbox']:
+                            self.processing_progress.update_task("interpolation signal")
                             for ch in df_s.columns:
-                                df_s_processed[ch] = fp.smoothing(df_s[ch], int(local_entry['signal smoothing']),
+                                df_s_processed[ch] = fp.smoothing(df_s[ch], int(local_vars['signal interpolation']),
                                                                   'mean')
                             self.processing_progress.increment_progress(1)
                         else:
@@ -231,14 +231,14 @@ class ProcessingController:
                         filename_constructor.append("_".join(processing_basename))
                         filename_constructor.append(".csv")
                         
-                        if local_switch['make dataset'] == 0:
+                        if local_vars['filename make dataset'] == 0:
                             df_s_processed.to_csv(
-                                os.path.join(local_entry['filename save under'], '_'.join(filename_constructor)),
+                                os.path.join(local_vars['filename save under'], '_'.join(filename_constructor)),
                                 index=False)
                         else:
                             processed_files_to_make_dataset.append((df_s_processed, file))
                         n_sample += 1
-                if local_switch['make dataset'] == 1:
+                if local_vars['filename make dataset'] == 1:
                     first_df = processed_files_to_make_dataset[0][0]
                     dataset = pd.DataFrame(columns=[str(x) for x in range(len(first_df.values))])
                     targets = pd.DataFrame(columns=['label', ])
@@ -260,36 +260,36 @@ class ProcessingController:
                     # preparation of filename
                     processing_basename = ['DATASET', ]
                     characters = string.ascii_letters + string.digits
-                    if local_switch['signal select columns']:
-                        processing_basename.append(f"Sel{local_cbox['signal select columns mode'].capitalize()}"
-                                                   f"{local_cbox['signal select columns metric'].capitalize()}"
-                                                   f"{local_entry['signal select columns number']}")
-                    if local_switch['signal sampling']:
-                        processing_basename.append(f"Ds{local_entry['signal sampling']}sample{local_entry['signal sampling']}")
-                    if local_switch['signal filter']:
+                    if local_vars['signal select columns ckbox']:
+                        processing_basename.append(f"Sel{local_vars['signal select columns mode'].capitalize()}"
+                                                   f"{local_vars['signal select columns metric'].capitalize()}"
+                                                   f"{local_vars['signal select columns number']}")
+                    if local_vars['signal sampling ckbox']:
+                        processing_basename.append(f"Ds{local_vars['signal sampling']}")
+                    if local_vars['signal filter']:
                         processing_basename.append(
-                            f"O{local_entry['signal filter order']}{local_cbox['signal filter type']}"
-                            f"{local_entry['signal filter first frequency']}-{local_entry['signal filter second frequency']}"
-                            f"H{local_cbox['signal filter harmonic type']}{local_entry['signal filter harmonic frequency']}-"
-                            f"{local_entry['signal filter nth harmonic']}")
-                    if local_switch['signal fft']:
+                            f"O{local_vars['signal filter order']}{local_cbox['signal filter type']}"
+                            f"{local_vars['signal filter first cut']}-{local_vars['signal filter second cut']}"
+                            f"H{local_vars['signal harmonics type']}{local_vars['signal filter harmonic frequency']}-"
+                            f"{local_vars['signal filter nth harmonic']}")
+                    if local_vars['signal fft']:
                         processing_basename.append("signal fft")
-                    if local_switch['signal merge']:
+                    if local_vars['signal average']:
                         processing_basename.append("avg")
-                    if local_switch['signal smoothing']:
-                        processing_basename.append(f"Sm{local_entry['signal smoothing']}")
-                    if local_switch['filename random key']:
+                    if local_vars['signal interpolation ckbox']:
+                        processing_basename.append(f"Sm{local_vars['signal interpolation']}")
+                    if local_vars['filename random key']:
                         processing_basename.append(''.join(random.choice(characters) for i in range(5)))
-                    if local_switch['filename keyword']:
-                        processing_basename.append(local_entry['filename keyword'])
-                    if local_switch['filename timestamp']:
+                    if local_vars['filename keyword ckbox']:
+                        processing_basename.append(local_vars['filename keyword'])
+                    if local_vars['filename timestamp']:
                         processing_basename.append(time.strftime("%Y-%m-%d-%H-%M"))
-                    if not local_switch['filename random key'] and not local_switch['filename keyword'] and not \
-                    local_switch['filename timestamp']:
+                    if not local_vars['filename random key'] and not local_vars['filename keyword ckbox'] and not \
+                    local_vars['filename timestamp']:
                         processing_basename.append("FL_processed")
                     
                     dataset.to_csv(
-                        os.path.join(local_entry['filename save under'], '_'.join(processing_basename) + '.csv'),
+                        os.path.join(local_vars['filename save under'], '_'.join(processing_basename) + '.csv'),
                         index=False)
     
     def select_save_directory(self, strvar):
@@ -382,6 +382,12 @@ class ProcessingController:
     def update_params(self, widgets: dict, ):
         local_dict = {}
         if len(widgets.items()) > 0:
+            if type(list(widgets.values())[0]) == ctk.StringVar or \
+                type(list(widgets.values())[0]) == ctk.IntVar or \
+                type(list(widgets.values())[0]) == ctk.DoubleVar:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
+                self.model.vars.update(local_dict)
             if type(list(widgets.values())[0]) == ctk.CTkSwitch:
                 for key, value in widgets.items():
                     local_dict[key] = value.get()
@@ -402,27 +408,29 @@ class ProcessingController:
                 self.model.textboxes.update(local_dict)
     
     def update_number_of_tasks(self, n_file, n_col, ):
-        local_switch = self.model.switches
+        local_vars = self.model.vars
         local_entry = self.model.entries
         
-        n_sample = int(local_entry['signal sampling'])
+        n_sample = int(local_vars['signal sampling'])
         
-        mea = int(local_switch['signal behead'])
-        electrodes = int(local_switch['signal select columns'])
-        sampling = int(local_switch['signal sampling'])
-        merge = int(local_switch['signal merge'])
-        smoothing = int(local_switch['signal smoothing'])
-        make_dataset = int(local_switch['make dataset'])
-        filtering = int(local_switch['signal filter'])
-        fft = int(local_switch['signal fft'])
+        mea = int(local_vars['signal ckbox behead'])
+        electrodes = int(local_vars['signal select columns ckbox'])
+        sampling = int(local_vars['signal sampling ckbox'])
+        
+        merge = int(local_vars['signal average'])
+        interpolation = int(local_vars['signal interpolation ckbox'])
+        make_dataset = int(local_vars['filename make dataset'])
+        filtering = int(local_vars['signal filter'])
+        fft = int(local_vars['signal fft'])
         
         file_level_tasks = mea + electrodes + sampling
-        sample_level_tasks = merge + smoothing
+        sample_level_tasks = merge + interpolation
         column_level_tasks = filtering * n_col + fft * n_col
         
         total_tasks = n_file * (file_level_tasks + n_sample * (sample_level_tasks + column_level_tasks))
         if make_dataset:
             total_tasks += n_file * n_sample
+        
         
         return total_tasks
     
@@ -446,6 +454,13 @@ class ProcessingController:
                 widget.configure(state='disabled')
         
         for key, widget in self.view.switches.items():
+            if widget.cget('state') == 'normal':
+                if self.model.switches[key]:
+                    widget.select()
+                else:
+                    widget.deselect()
+                    
+        for key, widget in self.view.ckboxes.items():
             if widget.cget('state') == 'normal':
                 if self.model.switches[key]:
                     widget.select()
@@ -510,28 +525,28 @@ class ProcessingController:
         
         # -------- PROCESSING
         
-        if self.view.switches['signal behead'].get():
-            if not self.view.entries['signal behead'].get():
+        if self.view.vars['signal ckbox behead'].get():
+            if not self.view.vars['signal behead'].get():
                 signal_errors.append("You have to indicate a number of rows to behead from the raw MEA files.")
         
-        if self.view.switches['signal select columns'].get():
-            if not self.view.entries['signal select columns number'].get():
-                signal_errors.append("You have to indicate a number of electrodes to select.")
-            if self.view.cbboxes['signal select columns mode'].get() == 'None':
-                signal_errors.append("You have to select a mode for electrode selection.")
+        if self.view.vars['signal select columns ckbox'].get():
+            if not self.view.vars['signal select columns number'].get():
+                signal_errors.append("You have to indicate a number of columns to select.")
+            if self.view.vars['signal select columns mode'].get() == 'None':
+                signal_errors.append("You have to select a mode for column selection.")
             
-            if self.view.cbboxes['signal select columns metric'].get() == 'None':
+            if self.view.vars['signal select columns metric'].get() == 'None':
                 signal_errors.append("You have to select a metric to use for the electrode selection.")
         
-        if self.view.switches['signal sampling'].get():
-            if not self.view.entries['signal sampling'].get():
+        if self.view.vars['signal sampling ckbox'].get():
+            if not self.view.vars['signal sampling'].get():
                 signal_errors.append("You have to indicate a number of samples.")
         
-        if self.view.entries['signal filter harmonic frequency'].get():
-            if self.view.entries['signal filter nth harmonic'].get():
-                harmonic = int(self.view.entries['signal filter harmonic frequency'].get())
-                nth = int(self.view.entries['signal filter nth harmonic'].get())
-                frequency = int(self.view.entries['signal filter sf'].get())
+        if self.view.vars['signal filter harmonic frequency'].get():
+            if self.view.vars['signal filter nth harmonic'].get():
+                harmonic = int(self.view.vars['signal filter harmonic frequency'].get())
+                nth = int(self.view.vars['signal filter nth harmonic'].get())
+                frequency = int(self.view.vars['signal filter sf'].get())
                 if harmonic * nth > frequency / 2:
                     signal_errors.append("The chosen nth harmonic is superior to half the sampling frequency."
                                   f" Please use maximum nth harmonic as nth<{int((frequency / 2) / harmonic)}")
@@ -539,41 +554,41 @@ class ProcessingController:
                 signal_errors.append("You have to fill both the harmonic frequency and the nth harmonics"
                               " using valid numbers.")
         
-        if self.view.switches['signal filter'].get():
+        if self.view.vars['signal filter'].get():
             if not gates.AND(
-                    [self.view.entries[x].get() for x in
-                     ['signal filter order', 'signal filter sf', 'signal filter first frequency', ]]):
+                    [self.view.vars[x].get() for x in
+                     ['signal filter order', 'signal filter sf', 'signal filter first cut', ]]):
                 signal_errors.append('You have to fill at least the filter order, sampling '
-                              'frequency, and first frequency to use the filtering function.')
+                              'frequency, and first cut to use the filtering function.')
             
-            if self.view.entries['signal filter second frequency'].get() and (
-                    self.view.cbboxes['signal filter type'].get() not in ['Bandstop", "Bandpass']):
+            if self.view.vars['signal filter second cut'].get() and (
+                    self.view.vars['signal filter type'].get() in ['Highpass", "Lowpass']):
                 signal_errors.append(f"The second frequency is not needed when using a "
-                              f"{self.view.cbboxes['signal filter type'].get()} filter.")
-            if self.view.cbboxes['signal filter type'].get() in ['Bandstop", "Bandpass'] and not gates.AND(
-                    [self.view.entries['signal filter second frequency'].get(),
-                     self.view.entries['signal filter first frequency'].get()]):
+                              f"{self.view.vars['signal filter type'].get()} filter.")
+            if self.view.vars['signal filter type'].get() in ['Bandstop", "Bandpass'] and not gates.AND(
+                    [self.view.vars['signal filter second cut'].get(),
+                     self.view.vars['signal filter first cut'].get()]):
                 signal_errors.append(f"Both low cut and high cut frequencies are needed when"
-                              f" using a f{self.view.cbboxes['signal filter type'].get()} filter")
+                              f" using a f{self.view.vars['signal filter type'].get()} filter")
         
        
         
-        if self.view.switches['signal fft'].get():
-            if not self.view.entries['signal fft sf'].get():
+        if self.view.vars['signal fft'].get():
+            if not self.view.vars['signal fft sf'].get():
                 signal_errors.append("Sampling frequency rate needed to perform Fast Fourier Transform.")
         
-        if self.view.switches['signal smoothing'].get():
-            if not self.view.entries['signal smoothing'].get():
-                signal_errors.append("Number of final values needed to perform smoothing.")
+        if self.view.vars['signal interpolation ckbox'].get():
+            if not self.view.vars['signal interpolation'].get():
+                signal_errors.append("Number of final values needed to perform interpolation.")
         
         # -------- FILENAME
-        if self.view.entries['filename save under'].get() == '':
+        if self.view.vars['filename save under'].get() == '':
             filename_errors.append('You have to select a directory where to save your file.')
-        elif os.path.isdir(self.view.entries['filename save under'].get()) is False:
-            filename_errors.append(f"The selected path {self.view.entries['filename save under'].get()} does not exist.")
+        elif os.path.isdir(self.view.vars['filename save under'].get()) is False:
+            filename_errors.append(f"The selected path {self.view.vars['filename save under'].get()} does not exist.")
         
-        if self.view.switches['filename keyword'].get():
-            if not self.view.entries['filename keyword'].get():
+        if self.view.vars['filename keyword ckbox'].get():
+            if not self.view.vars['filename keyword'].get():
                 filename_errors.append("Keyword needed.")
         
         for key, entry in self.view.entries.items():
@@ -581,11 +596,11 @@ class ProcessingController:
                 if entry.error_message.get() != '':
                     filename_errors.append(f"{key} : {entry.error_message.get()}")
                     
-        if self.view.switches['make dataset'].get():
+        if self.view.vars['filename make dataset'].get():
             if not gates.AND(
-                    [self.view.switches['signal merge'].get(), self.view.switches['filesorter multiple'].get()]):
+                    [self.view.vars['signal average'].get(), self.view.vars['filesorter multiple'].get()]):
                 filename_errors.append(
-                    "The 'make dataset' option is available only if 'Merge' and 'Multiple files analysis' are both True.")
+                    "The 'make dataset' option is available only if 'Average' and 'Multiple files analysis' are both enabled.")
         
         self.invalidate_step("filesorter") if filesorter_errors else self.validate_step("filesorter")
         self.invalidate_step("signal") if signal_errors else self.validate_step("signal")

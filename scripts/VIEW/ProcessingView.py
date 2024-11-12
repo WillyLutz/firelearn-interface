@@ -627,19 +627,19 @@ class ProcessingView(ctk.CTkFrame):
         single_file_button.pack(side='right')
         
         self.ckboxes["filesorter multiple"] = sorting_files_ckbox
-        self.vars["filesorter multiple"] = sorting_sv
         self.entries["filesorter multiple"] = sorting_entry
         self.ckboxes["filesorter single"] = single_file_ckbox
-        self.vars["filesorter single"] = single_file_sv
         self.entries["filesorter single"] = single_file_entry
-        self.vars["filesorter key target"] = id_target_sv
-        self.vars["filesorter value target"] = rename_target_sv
         self.entries["filesorter key target"] = id_target_entry
         self.entries["filesorter value target"] = rename_target_entry
-        self.vars["filesorter exclusion"] = exclude_sv
         self.entries["filesorter exclusion"] = exclude_entry
-        self.vars["filesorter inclusion"] = include_sv
         self.entries["filesorter inclusion"] = include_entry
+        self.vars["filesorter multiple"] = sorting_sv
+        self.vars["filesorter single"] = single_file_sv
+        self.vars["filesorter key target"] = id_target_sv
+        self.vars["filesorter value target"] = rename_target_sv
+        self.vars["filesorter exclusion"] = exclude_sv
+        self.vars["filesorter inclusion"] = include_sv
         
         
         # ------------ SEPARATORS
@@ -747,8 +747,8 @@ class ProcessingView(ctk.CTkFrame):
         sampling_entry = ErrEntry(master=signal_frame, state='normal', textvariable=sampling_sv)
         
         # ------- FILTERING ------------------------
-        filter_var = ctk.IntVar(value=0)
-        filter_ckbox = ctk.CTkCheckBox(master=signal_frame, text="Filtering", variable=filter_var)
+        filter_var_ckbox = ctk.IntVar(value=0)
+        filter_ckbox = ctk.CTkCheckBox(master=signal_frame, text="Filtering", variable=filter_var_ckbox)
         
         order_filter_label = ctk.CTkLabel(master=signal_frame, text="Order: ", text_color=gp.enabled_label_color)
         order_filter_sv = ctk.StringVar()
@@ -889,18 +889,18 @@ class ProcessingView(ctk.CTkFrame):
         # ------ STORE VARIABLES --------
         
         self.ckboxes["signal ckbox behead"] = behead_ckbox
+        self.entries["signal behead"] = behead_entry
         self.vars["signal ckbox behead"] = behead_ckbox_var
         self.vars["signal behead"] = behead_sv
-        self.entries["signal behead"] = behead_entry
         
         self.ckboxes["signal select columns"] = electrode_ckbox
         self.cbboxes["signal select columns mode"] = mode_electrode_cbox
         self.cbboxes["signal select columns metric"] = metric_electrode_cbox
+        self.entries["signal select columns number"] = n_electrodes_entry
         self.vars["signal select columns number"] = n_electrode_sv
         self.vars["signal select columns ckbox"] = electrode_ckbox_var
         self.vars["signal select columns mode"] = metric_electrode_var
         self.vars["signal select columns metric"] = mode_electrode_var
-        self.entries["signal select columns number"] = n_electrodes_entry
         
         self.ckboxes["signal sampling"] = sampling_ckbox
         self.entries["signal sampling"] = sampling_entry
@@ -919,7 +919,7 @@ class ProcessingView(ctk.CTkFrame):
         self.vars["signal average"] = average_ckbox_var
         
         
-        self.vars["signal filter"] = filter_var
+        self.vars["signal filter"] = filter_var_ckbox
         self.vars["signal filter type"] = filter_type_var
         self.vars["signal filter first cut"] = f1_filter_sv
         self.vars["signal filter second cut"] = f2_filter_sv
@@ -959,7 +959,7 @@ class ProcessingView(ctk.CTkFrame):
         interpolation_entry_var.trace("w", self.trace_interpolation)
         average_ckbox_var.trace("w", self.trace_average)
         
-        filter_var.trace("w", self.trace_filter)
+        filter_var_ckbox.trace("w", self.trace_filter)
         filter_type_var.trace("w", self.trace_filter)
         order_filter_sv.trace("w", self.trace_filter)
         f1_filter_sv.trace("w", self.trace_filter)
@@ -1092,6 +1092,7 @@ class ProcessingView(ctk.CTkFrame):
         self.entries["filename keyword"] = keyword_entry
         self.entries["filename"] = filename_entry
         self.entries["filename save under"] = save_entry
+        
         self.vars["filename keyword"] = keyword_sv
         self.vars["filename save under"] = save_exec_sv
         self.vars["filename random key"] = random_key_var
