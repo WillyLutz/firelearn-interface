@@ -394,9 +394,30 @@ class ConfusionView(ctk.CTkFrame):
         deselect_all_button = ctk.CTkButton(master=specific_params_scrollable_frame, text="Deselect all",
                                             command=self.controller.deselect_all_test_targets)
         
+        # separator row 18
+        annot_mode_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Annotation mode:")
+        annot_mode_var = ctk.StringVar(value=self.controller.model.plot_specific_settings["annot mode"])
+        annot_mode_cbbox = tk.ttk.Combobox(master=specific_params_scrollable_frame, textvariable=annot_mode_var,
+                                           values=["percent", "numeric"], state='readonly',)
+        # separator row 20
+        annot_size_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Annotation size:")
+        annot_size_var = ctk.IntVar(value=12)
+        annot_size_slider = ctk.CTkSlider(master=specific_params_scrollable_frame, variable=annot_size_var,
+                                          from_=8, to=32, number_of_steps=24,)
+        annot_size_label_value = ctk.CTkLabel(master=specific_params_scrollable_frame, textvariable=annot_size_var)
+        # separator row 22
+        annot_font_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Annotation font:")
+        annot_font_var = ctk.StringVar(value=p.DEFAULT_FONT)
+        annot_font_cbbox = tk.ttk.Combobox(master=specific_params_scrollable_frame, values=p.FONTS,
+                                           textvariable=annot_font_var, state='readonly')
+        #separator row 24
+        only_cup_var = ctk.IntVar(value=0)
+        only_cup_checkbox = ctk.CTkCheckBox(master=specific_params_scrollable_frame, variable=only_cup_var,
+                                            text="Annotate only CUP" )
+        #separator row 26
         # --------------- MANAGE SEPARATORS
-        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, ]
-        general_params_vertical_separator_ranges = [(5, 17), ]
+        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]
+        general_params_vertical_separator_ranges = [(5, 17), (18, 25)]
         for r in range(general_params_separators_indices[-1] + 2):
             if r in general_params_separators_indices:
                 sep = Separator(master=specific_params_scrollable_frame, orient='h')
@@ -424,6 +445,15 @@ class ConfusionView(ctk.CTkFrame):
         iteration_slider.grid(row=15, column=2, sticky='we')
         select_all_button.grid(row=17, column=0, sticky='w')
         deselect_all_button.grid(row=17, column=2, sticky='e')
+        annot_mode_label.grid(row=19, column=0, sticky='w')
+        annot_mode_cbbox.grid(row=19, column=2, sticky='we')
+        annot_size_label.grid(row=21, column=0, sticky='w')
+        annot_size_label_value.grid(row=21, column=0, sticky='e')
+        annot_size_slider.grid(row=21, column=2, sticky='we')
+        annot_font_label.grid(row=23, column=0, sticky='w')
+        annot_font_cbbox.grid(row=23, column=2, sticky='we')
+        only_cup_checkbox.grid(row=25, column=0, sticky='w')
+        
         
         # --------- STORE WIDGETS
         self.vars["load dataset"] = load_dataset_var
@@ -433,6 +463,11 @@ class ConfusionView(ctk.CTkFrame):
         self.scrollable_frames["training"] = training_frame
         self.scrollable_frames["testing"] = testing_frame
         self.vars['iterations'] = iteration_var
+        
+        self.vars["annot mode"] = annot_mode_var
+        self.vars["annot size"] = annot_size_var
+        self.vars["annot font"] = annot_font_var
+        self.vars["annot only cup"] = only_cup_var
         
         
         # self.figures["confusion"] = (fig, ax)
@@ -451,7 +486,9 @@ class ConfusionView(ctk.CTkFrame):
                                                                             load_dataset_entry)), '%P'))
         # --------------- TRACE
         for key, widget in {"load dataset": load_dataset_var, "load clf": load_model_var,
-                            "label column": label_column_var, "iterations": iteration_var}.items():
+                            "label column": label_column_var, "iterations": iteration_var,
+                            "annot font": annot_font_var, "annot size": annot_size_var,
+                            "annot mode": annot_mode_var, "annot only cup": only_cup_var}.items():
             widget.trace("w", partial(self.controller.trace_vars_to_model, key))
         label_column_var.trace("w", self.controller.trace_testing_labels)
     
@@ -488,7 +525,7 @@ class ConfusionView(ctk.CTkFrame):
                                            width=120, height=40)
         save_figure_button = ctk.CTkButton(master=execution_frame, text="Save figure", fg_color="green", width=120,
                                            height=40)
-        draw_figure_button = ctk.CTkButton(master=execution_frame, text='Draw figure', fg_color='green', width=120,
+        draw_figure_button = ctk.CTkButton(master=execution_frame, text='Compute confusion', fg_color='tomato', width=120,
                                            height=40)
         export_data_button = ctk.CTkButton(master=execution_frame, text="Export data", fg_color="green", width=120,
                                            height=40)

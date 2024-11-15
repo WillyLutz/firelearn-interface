@@ -2,6 +2,7 @@ import pickle
 from functools import partial
 
 import matplotlib.axes
+import numpy as np
 import seaborn as sns
 
 import pandas as pd
@@ -79,14 +80,16 @@ class ConfusionController:
             df = self.model.dataset
             df = df[df[self.view.vars["label column"].get()].isin(testing_classes)]
 
-            overall_matrix, mixed_labels_matrix, TRAIN_CORRESPONDENCE, TEST_CORRESPONDENCE \
+            overall_matrix_numeric, overall_matrix_percent, overall_matrix_cup, TRAIN_CORRESPONDENCE, TEST_CORRESPONDENCE \
                 = fl.test_clf_by_confusion(self.model.clf, df, training_targets=training_classes,
                                            testing_targets=testing_classes, show=False,
                                            iterations=self.view.vars["iterations"].get(),
                                            return_data=True,
-                                           mode='percent')  # todo : update fiiireflyyy
-            self.model.confusion_data["overall matrix"] = overall_matrix
-            self.model.confusion_data["mixed labels matrix"] = mixed_labels_matrix
+                                           mode=self.model.plot_specific_settings["annot mode"])  # todo : update fiiireflyyy
+            self.model.confusion_data["overall matrix numeric"] = overall_matrix_numeric
+            self.model.confusion_data["overall matrix percent"] = overall_matrix_percent
+
+            self.model.confusion_data["overall matrix cup"] = overall_matrix_cup
             self.model.confusion_data["train correspondence"] = TRAIN_CORRESPONDENCE
             self.model.confusion_data["test correspondence"] = TEST_CORRESPONDENCE
 
@@ -94,11 +97,27 @@ class ConfusionController:
 
     def update_figure(self):
         plt.close()
-        overall_matrix = self.model.confusion_data["overall matrix"]
-        mixed_labels_matrix = self.model.confusion_data["mixed labels matrix"]
+        overall_matrix = self.model.confusion_data["overall matrix percent"] \
+            if self.model.plot_specific_settings["annot mode"] == 'percent' \
+            else self.model.confusion_data["overall matrix numeric"]
+        overall_matrix_cup = self.model.confusion_data["overall matrix cup"]
         TRAIN_CORRESPONDENCE = self.model.confusion_data["train correspondence"]
         TEST_CORRESPONDENCE = self.model.confusion_data["test correspondence"]
-
+        
+        acc_array = overall_matrix.to_numpy().astype(float) if self.model.plot_specific_settings["annot mode"] == 'percent' else overall_matrix.to_numpy().astype(
+            int)
+        cup_array = overall_matrix_cup.to_numpy()
+        mixed_labels_matrix = np.empty((len(TRAIN_CORRESPONDENCE.keys()), len(TEST_CORRESPONDENCE.keys()))).tolist()
+        for r in range(len(acc_array)):
+            for c in range(len(acc_array[0])):
+                if self.model.plot_specific_settings["annot only cup"]:
+                    case = f"CUP={cup_array[r][c]}"
+                    mixed_labels_matrix[r][c] = case
+                else:
+                    case = f"{acc_array[r][c]}%\nCUP={cup_array[r][c]}" \
+                        if self.model.plot_specific_settings["annot mode"] == 'percent' \
+                        else f"{acc_array[r][c]}\nCUP={cup_array[r][c]}"
+                    mixed_labels_matrix[r][c] = case
         # plot
         # plt.clf()
          # plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
@@ -114,8 +133,8 @@ class ConfusionController:
         self.view.canvas["confusion"] = new_canvas
         self.view.figures["confusion"] = (fig, ax)
         
-        sns.heatmap(ax=ax, data=overall_matrix, annot=mixed_labels_matrix, annot_kws={"font": self.model.plot_axes["axes font"],
-                                                                 "size": self.model.plot_axes["y ticks size"]}, fmt='', cmap="Blues",
+        sns.heatmap(ax=ax, data=overall_matrix, annot=mixed_labels_matrix, annot_kws={"font": self.model.plot_specific_settings["annot font"],
+                                                                 "size": self.model.plot_specific_settings["annot size"]}, fmt='', cmap="Blues",
                     square=True, cbar_kws={'shrink': 0.5, 'location': 'right'})
         ax.xaxis.tick_top()
         ax.xaxis.set_label_position('top')
@@ -145,9 +164,16 @@ class ConfusionController:
 
             self.view.vars[label].set(new_key)
 
-        ax.set_xticks([TEST_CORRESPONDENCE[x] + 0.5 for x in self.model.testing_classes], self.model.testing_classes, fontsize=self.model.plot_axes["x ticks size"])
+        ax.set_xticks([TEST_CORRESPONDENCE[x] + 0.5 for x in self.model.testing_classes], self.model.testing_classes,
+                      fontsize=self.model.plot_axes["x ticks size"],)
+        ax.tick_params(axis='x', labelrotation=self.model.plot_axes["x ticks rotation"],
+                       labelsize=self.model.plot_axes["x ticks size"],
+                       labelfontfamily=self.model.plot_axes["axes font"])
+        ax.tick_params(axis='y', labelrotation=self.model.plot_axes["y ticks rotation"],
+                       labelsize=self.model.plot_axes["y ticks size"],
+                       labelfontfamily=self.model.plot_axes["axes font"])
+        
         ax.set_yticks([TRAIN_CORRESPONDENCE[x] + 0.5 for x in self.model.training_classes], self.model.training_classes, fontsize = self.model.plot_axes["y ticks size"])
-
         self.view.figures["confusion"] = (fig, ax)
         self.view.canvas["confusion"].draw()
 
@@ -302,6 +328,8 @@ class ConfusionController:
             self.model.plot_axes[key] = self.view.vars[key].get()
         elif key in self.model.plot_legend.keys():
             self.model.plot_legend[key] = self.view.vars[key].get()
+        elif key in self.model.plot_specific_settings.keys():
+            self.model.plot_specific_settings[key] = self.view.vars[key].get()
 
     def update_confusion_ticks(self, ):
         if self.model.dataset_path and self.model.clf:

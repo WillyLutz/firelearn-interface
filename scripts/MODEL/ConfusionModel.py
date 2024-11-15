@@ -42,6 +42,8 @@ class ConfusionModel:
         self.plot_general_settings = {'title': '', 'title font': p.DEFAULT_FONT,
                                       'title size': p.DEFAULT_FONTSIZE, 'dpi': p.DEFAULT_DPI}
 
+        self.plot_specific_settings = {"annot size": 12, "annot mode": 'percent', "annot font": p.DEFAULT_FONT,
+                                       "annot only cup": 0}
         self.plot_data = { }
 
     def load_model(self, path):
