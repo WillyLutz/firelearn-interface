@@ -1,6 +1,7 @@
 import pickle
 from functools import partial
 
+import matplotlib.axes
 import seaborn as sns
 
 import pandas as pd
@@ -13,7 +14,7 @@ from tkinter import filedialog, messagebox
 from scripts import params as p
 
 import fiiireflyyy.learn as fl
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,  NavigationToolbar2Tk
 
 from scripts.WIDGETS.ErrEntry import ErrEntry
 
@@ -33,18 +34,13 @@ class ConfusionController:
 
             for child in self.view.scrollable_frames["training"].winfo_children():
                 child.destroy()
-            i, j = 0, 0
             for t in range(len(training_classes)):
                 target_radio = ctk.CTkRadioButton(master=self.view.scrollable_frames["training"],
                                                   text=training_classes[t],
                                                   state='disabled', text_color_disabled='white'
                                                   )
                 target_radio.select()
-                target_radio.grid(row=i, column=j, padx=10, pady=10)
-                j += 1
-                if j > 2:
-                    j = 0
-                    i += 1
+                target_radio.grid(row=t, column=0, padx=10, pady=10, sticky='w')
         else:
             filename = filedialog.askopenfilename(title="Open file",
                                                   filetypes=(("AI model", "*.rfc"),))
@@ -58,27 +54,22 @@ class ConfusionController:
 
                 for child in self.view.scrollable_frames["training"].winfo_children():
                     child.destroy()
-                i, j = 0, 0
                 for t in range(len(training_classes)):
                     target_radio = ctk.CTkRadioButton(master=self.view.scrollable_frames["training"],
                                                       text=training_classes[t],
                                                       state='disabled', text_color_disabled='white'
                                                       )
                     target_radio.select()
-                    target_radio.grid(row=i, column=j, padx=10, pady=10)
-                    j += 1
-                    if j > 2:
-                        j = 0
-                        i += 1
+                    target_radio.grid(row=t, column=0, padx=10, pady=10, sticky='w')
 
-    def draw_figure(self, ):
+    def compute_confusion(self, ):
         if self.input_validation():
             plt.close()
             training_classes = tuple(list(set(list(self.model.clf.classes_))))
             all_testing_classes = {key: value for (key, value) in self.view.vars.items() if "test label " in key}
 
             checked_classes = {key: value for (key, value) in all_testing_classes.items() if value.get() == 1}
-            checked_classes_names = {self.view.checkboxes[key].cget('text'): value for (key, value) in
+            checked_classes_names = {self.view.ckboxes[key].cget('text'): value for (key, value) in
                                      checked_classes.items()}.keys()
             testing_classes = tuple(checked_classes_names)
 
@@ -109,11 +100,20 @@ class ConfusionController:
         TEST_CORRESPONDENCE = self.model.confusion_data["test correspondence"]
 
         # plot
-        fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        # self.view.canvas["confusion"] = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
-        # self.view.canvas["confusion"].get_tk_widget().place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
-        # self.view.figures["confusion"] = (fig, ax)
-
+        # plt.clf()
+         # plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
+        fig, ax = plt.subplots(figsize=(3, 3))
+        new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
+        new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+        self.view.canvas["confusion toolbar"].destroy()
+        toolbar = NavigationToolbar2Tk(new_canvas,
+                                       self.view.frames["plot frame"], pack_toolbar=False)
+        toolbar.update()
+        toolbar.grid(row=1, column=0, sticky='we')
+        self.view.canvas["confusion"].get_tk_widget().destroy()
+        self.view.canvas["confusion"] = new_canvas
+        self.view.figures["confusion"] = (fig, ax)
+        
         sns.heatmap(ax=ax, data=overall_matrix, annot=mixed_labels_matrix, annot_kws={"font": self.model.plot_axes["axes font"],
                                                                  "size": self.model.plot_axes["y ticks size"]}, fmt='', cmap="Blues",
                     square=True, cbar_kws={'shrink': 0.5, 'location': 'right'})
@@ -148,10 +148,8 @@ class ConfusionController:
         ax.set_xticks([TEST_CORRESPONDENCE[x] + 0.5 for x in self.model.testing_classes], self.model.testing_classes, fontsize=self.model.plot_axes["x ticks size"])
         ax.set_yticks([TRAIN_CORRESPONDENCE[x] + 0.5 for x in self.model.training_classes], self.model.training_classes, fontsize = self.model.plot_axes["y ticks size"])
 
-        plt.tight_layout()
-        plt.show()
-        # self.view.figures["confusion"] = (fig, ax)
-        # self.view.canvas["confusion"].draw()
+        self.view.figures["confusion"] = (fig, ax)
+        self.view.canvas["confusion"].draw()
 
         # self.view.buttons["save figure"].configure(command=partial(self.save_figure, self.view.figures["confusion"][0]))
 
@@ -220,7 +218,7 @@ class ConfusionController:
             for key, widget in training_labels.items():
                 widget.destroy()
                 del self.view.vars[key]
-                del self.view.checkboxes[key]
+                del self.view.ckboxes[key]
                 del self.model.plot_data[key]
 
             df = self.model.dataset
@@ -245,7 +243,7 @@ class ConfusionController:
                 for key, widget in training_labels.items():
                     widget.destroy()
                     del self.view.vars[key]
-                    del self.view.checkboxes[key]
+                    del self.view.ckboxes[key]
                     del self.model.plot_data[key]
 
                 df = pd.read_csv(filename)
@@ -262,13 +260,13 @@ class ConfusionController:
                 self.view.vars["label column"].set(label_col)
 
     def deselect_all_test_targets(self):
-        checkboxes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
-        for key, widget in checkboxes.items():
+        ckboxes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
+        for key, widget in ckboxes.items():
             widget.set(0)
 
     def select_all_test_targets(self):
-        checkboxes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
-        for key, widget in checkboxes.items():
+        ckboxes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
+        for key, widget in ckboxes.items():
             widget.set(1)
 
     def trace_testing_labels(self, *args):
@@ -286,21 +284,16 @@ class ConfusionController:
                 for key in targets.keys():
                     del self.view.vars[key]
 
-                i, j = 0, 0
                 for t in range(len(possible_targets)):
                     target_var = tk.IntVar(value=1)
                     target_checkbox = ctk.CTkCheckBox(master=self.view.scrollable_frames["testing"],
                                                       variable=target_var,
                                                       text=possible_targets[t])
-                    target_checkbox.grid(row=i, column=j, padx=10, pady=10)
+                    target_checkbox.grid(row=t, column=0, padx=10, pady=10, sticky='w')
                     self.view.vars[f"test label {t}"] = target_var
-                    self.view.checkboxes[f"test label {t}"] = target_checkbox
+                    self.view.ckboxes[f"test label {t}"] = target_checkbox
                     self.model.plot_data[f"test label {t}"] = target_var.get()
                     target_var.trace("w", partial(self.trace_vars_to_model, f"test label {t}"))
-                    j += 1
-                    if j > 2:
-                        j = 0
-                        i += 1
 
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():
@@ -333,7 +326,7 @@ class ConfusionController:
             all_testing_classes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
 
             checked_classes = {key: value for (key, value) in all_testing_classes.items() if value.get() == 1}
-            checked_classes_names = {self.view.checkboxes[key].cget('text'): value for (key, value) in
+            checked_classes_names = {self.view.ckboxes[key].cget('text'): value for (key, value) in
                                      checked_classes.items()}.keys()
             testing_classes = tuple(checked_classes_names)
 
