@@ -5,6 +5,8 @@ import random
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from matplotlib.backends._backend_tk import NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from scripts.MODEL.FeatureImportanceModel import FeatureImportanceModel
 import customtkinter as ctk
@@ -30,7 +32,7 @@ class FeatureImportanceController:
 
             self.view.vars["load clf"].set(filename)
             extension = os.path.basename(filename).split(".")[1]
-            self.view.vars["clf type"].set(f"Type: {p.MODEL_EXTENSIONS[extension]}")
+            self.view.vars["clf type"].set(f"{p.MODEL_EXTENSIONS[extension]}")
 
     def dummy_figure(self):
         fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
@@ -45,8 +47,18 @@ class FeatureImportanceController:
     def draw_figure(self, ):
         if self.input_validation_feature_importance():
             
-            fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-
+            fig, ax = plt.subplots(figsize=(3, 3))
+            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
+            new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+            self.view.canvas["features toolbar"].destroy()
+            toolbar = NavigationToolbar2Tk(new_canvas,
+                                           self.view.frames["plot frame"], pack_toolbar=False)
+            toolbar.update()
+            toolbar.grid(row=1, column=0, sticky='we')
+            self.view.canvas["features"].get_tk_widget().destroy()
+            self.view.canvas["features"] = new_canvas
+            self.view.figures["features"] = (fig, ax)
+            
             y_data = np.mean([tree.feature_importances_ for tree in self.model.clf.estimators_], axis=0)
             x_data = [i for i in range(len(y_data))]
 
@@ -122,8 +134,9 @@ class FeatureImportanceController:
                            labelsize=self.model.plot_axes["y ticks size"],
                            labelrotation=float(self.model.plot_axes["y ticks rotation"]))
 
-            plt.tight_layout()
-            plt.show()
+            # plt.tight_layout()
+            self.view.figures["features"] = (fig, ax)
+            self.view.canvas["features"].draw()
 
     def input_validation_feature_importance(self):
         errors = []

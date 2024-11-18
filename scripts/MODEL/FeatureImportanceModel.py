@@ -20,7 +20,7 @@ class FeatureImportanceModel:
         self.figures = {}
         self.targets = []
         #
-        self.plot_legend = {'legend anchor': p.LEGEND_ANCHOR,
+        self.plot_legend = {'legend anchor': p.LEGEND_ANCHOR, 'show legend': 0,
                             'legend alpha': p.LEGEND_ALPHA, 'legend x pos': 0.0, 'legend y pos': 0.0,
                             'legend draggable': p.LEGEND_DRAGGABLE, 'legend ncols': p.LEGEND_NCOLS,
                             'legend fontsize': p.LEGEND_FONTSIZE, }
@@ -39,6 +39,8 @@ class FeatureImportanceModel:
                                       'fill': 'None', 'linestyle': p.DEFAULT_LINESTYLE,
                                       'color': 'green', 'clf type': 'Classifier type:',
                                       'linewidth': p.DEFAULT_LINEWIDTH, 'load clf': '',}
+        
+        self.plot_specific_settings = {}
 
     def load_model(self, path):
         try:
