@@ -20,6 +20,7 @@ class ConfusionView(ctk.CTkFrame):
         self.parent_view = parent_view
         self.main_view = self.parent_view.parent_view
         self.controller = ConfusionController(self, )
+        self.app = app
 
         self.frames = {}
         self.entries = {}
@@ -413,7 +414,7 @@ class ConfusionView(ctk.CTkFrame):
         #separator row 24
         only_cup_var = ctk.IntVar(value=0)
         only_cup_checkbox = ctk.CTkCheckBox(master=specific_params_scrollable_frame, variable=only_cup_var,
-                                            text="Annotate only CUP" )
+                                            text="Only CUP" )
         #separator row 26
         # --------------- MANAGE SEPARATORS
         general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]
@@ -452,7 +453,7 @@ class ConfusionView(ctk.CTkFrame):
         annot_size_slider.grid(row=21, column=2, sticky='we')
         annot_font_label.grid(row=23, column=0, sticky='w')
         annot_font_cbbox.grid(row=23, column=2, sticky='we')
-        only_cup_checkbox.grid(row=25, column=0, sticky='w')
+        only_cup_checkbox.grid(row=25, column=0, sticky='w', columnspan=2)
         
         
         # --------- STORE WIDGETS
