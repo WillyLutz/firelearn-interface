@@ -20,6 +20,7 @@ class PlotModel:
         self.figures = {}
         self.targets = []
         self.n_ydata = -1
+        self.n_ydata_offset = 10
         self.plot_legend = {'show legend': p.SHOW_LEGEND, 'legend anchor': p.LEGEND_ANCHOR,
                             'legend alpha': p.LEGEND_ALPHA, 'legend x pos': 0.0, 'legend y pos': 0.0,
                             'legend draggable': p.LEGEND_DRAGGABLE, 'legend ncols': p.LEGEND_NCOLS,

@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from matplotlib import pyplot as plt
+from matplotlib.backends._backend_tk import NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from scripts.MODEL.PlotModel import PlotModel
 import customtkinter as ctk
@@ -11,6 +13,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from scripts import params as p
 from scripts.WIDGETS.ErrEntry import ErrEntry
+from scripts.WIDGETS.Separator import Separator
 from scripts.params import resource_path
 
 
@@ -63,12 +66,6 @@ class PlotController:
                 
         # ---- figname errors
         # nothing to check for the moment
-        
-        # ---- error signaling
-        self.invalidate_step("plotparams") if plot_params_errors else self.validate_step("plotparams")
-        self.invalidate_step("legend") if legend_errors else self.validate_step("legend")
-        self.invalidate_step("axes") if axes_errors else self.validate_step("axes")
-        self.invalidate_step("figname") if figname_errors else self.validate_step("figname")
         
         if plot_params_errors or axes_errors or figname_errors or legend_errors:
             errors = [error for errors in [plot_params_errors, axes_errors, figname_errors, legend_errors] for error in
@@ -142,17 +139,16 @@ class PlotController:
             self.model.n_ydata += 1
             n_ydata = self.model.n_ydata
             
-            ydata_subframe = ctk.CTkFrame(master=scrollable_frame, height=250)
-            ydata_subframe.grid(row=n_ydata, column=0, sticky=ctk.NSEW, pady=25)
+            ydata_subframe = ctk.CTkFrame(master=scrollable_frame, )
             self.view.ydata_subframes[str(n_ydata)] = ydata_subframe
+            
+            n_ydata_label = ctk.CTkLabel(master=ydata_subframe, text=f"Y-DATA : {self.model.n_ydata}")
             
             ydata_label = ctk.CTkLabel(master=ydata_subframe, text="Y-data column:")
             ydata_cbbox_var = tk.StringVar(value=columns[-1])
             ydata_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=columns, state='readonly',
                                           textvariable=ydata_cbbox_var)
             
-            ydata_label.place(relx=0, rely=0)
-            ydata_cbbox.place(relx=0, rely=0.15)
             self.view.cbboxes[f"ydata {n_ydata}"] = ydata_cbbox
             self.view.vars[f"ydata {n_ydata}"] = ydata_cbbox_var
             
@@ -160,8 +156,6 @@ class PlotController:
             ydata_legend_var = tk.StringVar()
             ydata_legend_entry = ctk.CTkEntry(master=ydata_subframe, textvariable=ydata_legend_var)
             
-            ydata_legend_label.place(relx=0.5, rely=0)
-            ydata_legend_entry.place(relx=0.5, rely=0.15, relwidth=0.4)
             self.view.entries[f"ydata legend {n_ydata}"] = ydata_legend_entry
             self.view.vars[f"ydata legend {n_ydata}"] = ydata_legend_var
             
@@ -170,8 +164,6 @@ class PlotController:
             linestyle_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=list(p.LINESTYLES.keys()), state='readonly',
                                               textvariable=linestyle_var)
             
-            linestyle_label.place(relx=0, rely=0.3)
-            linestyle_cbbox.place(relx=0, rely=0.5, relwidth=0.35)
             self.view.cbboxes[f"linestyle {n_ydata}"] = linestyle_cbbox
             self.view.vars[f"linestyle {n_ydata}"] = linestyle_var
             
@@ -179,8 +171,6 @@ class PlotController:
             linewidth_var = tk.StringVar(value=p.DEFAULT_LINEWIDTH)
             linewidth_entry = ErrEntry(master=ydata_subframe, textvariable=linewidth_var)
             
-            linewidth_label.place(relx=0.5, rely=0.3)
-            linewidth_entry.place_errentry(relx=0.5, rely=0.45, relwidth=0.2)
             self.view.entries[f"linewidth {n_ydata}"] = linewidth_entry
             self.view.vars[f"linewidth {n_ydata}"] = linewidth_var
             
@@ -189,8 +179,6 @@ class PlotController:
             color_button = ctk.CTkButton(master=ydata_subframe, textvariable=color_var,
                                          fg_color=color_var.get(), text_color='black')
             
-            color_label.place(relx=0, rely=0.65)
-            color_button.place(relx=0, rely=0.75)
             self.view.buttons[f"color {n_ydata}"] = color_button
             self.view.vars[f"color {n_ydata}"] = color_var
             
@@ -199,14 +187,49 @@ class PlotController:
             alpha_slider = ctk.CTkSlider(master=ydata_subframe, from_=0, to=1, number_of_steps=10, variable=alpha_var)
             alpha_value_label = ctk.CTkLabel(master=ydata_subframe, textvariable=alpha_var)
             
-            alpha_label.place(relx=0.5, rely=0.65)
-            alpha_slider.place(relx=0.5, rely=0.8, relwidth=0.4)
-            alpha_value_label.place(relx=0.7, rely=0.65)
             self.view.vars[f"alpha {n_ydata}"] = alpha_var
             self.view.sliders[f"alpha {n_ydata}"] = alpha_slider
             
             color_button.configure(command=partial(self.view.select_color, view=self.view,
                                                    selection_button_name=f'color {n_ydata}'))
+            
+            
+            ydata_subframe.grid_columnconfigure(0, weight=10)
+            ydata_subframe.grid_columnconfigure(1, weight=1)
+            ydata_subframe.grid_columnconfigure(2, weight=10)
+            
+            
+                
+            # --------------- MANAGE WIDGETS
+            
+            ydata_subframe.grid(row=n_ydata+self.model.n_ydata_offset, column=0, sticky=ctk.NSEW, pady=25, columnspan=3)
+            n_ydata_label.grid(row=2, column=0, columnspan=3, sticky='we')
+            
+            ydata_label.grid(row=5, column=0, sticky='w')
+            ydata_cbbox.grid(row=5, column=2, sticky='we')
+            ydata_legend_label.grid(row=7, column=0, sticky='w')
+            ydata_legend_entry.grid(row=7, column=2, sticky='we')
+            linestyle_label.grid(row=9, column=0, sticky='w')
+            linestyle_cbbox.grid(row=9, column=2, sticky='we')
+            linewidth_label.grid(row=11, column=0, sticky='w')
+            linewidth_entry.grid(row=11, column=2, sticky='we')
+            color_label.grid(row=13, column=0, sticky='w')
+            color_button.grid(row=13, column=2, sticky='we')
+            alpha_label.grid(row=15, column=0, sticky='w')
+            alpha_slider.grid(row=15, column=2, sticky='we')
+            alpha_value_label.grid(row=15, column=0, sticky='e')
+            
+            # --------------- MANAGE SEPARATORS
+            general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16]
+            general_params_vertical_separator_ranges = [(4, 17), ]
+            for r in range(general_params_separators_indices[-1] + 2):
+                if r in general_params_separators_indices:
+                    sep = Separator(master=ydata_subframe, orient='h')
+                    sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+            for couple in general_params_vertical_separator_ranges:
+                general_v_sep = Separator(master=ydata_subframe, orient='v')
+                general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
+
             
             # ----- ENTRY VALIDATION
             
@@ -223,6 +246,7 @@ class PlotController:
     def remove_ydata(self):
         n_ydata = self.model.n_ydata
         if n_ydata >= 0:
+            
             # destroying all widgets related
             for child in self.view.ydata_subframes[str(n_ydata)].winfo_children():
                 child.destroy()
@@ -246,13 +270,25 @@ class PlotController:
             del self.view.sliders[f"alpha {n_ydata}"]
             
             self.model.n_ydata -= 1
+            
+            
     
     def draw_figure(self):
         # todo: if validation
         
         if self.check_params_validity():
             # fig, ax = self.view.figures["plot"]
-            fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
+            fig, ax = plt.subplots(figsize=(3, 3))
+            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
+            new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+            self.view.canvas["plot toolbar"].destroy()
+            toolbar = NavigationToolbar2Tk(new_canvas,
+                                           self.view.frames["plot frame"], pack_toolbar=False)
+            toolbar.update()
+            toolbar.grid(row=1, column=0, sticky='we')
+            self.view.canvas["plot"].get_tk_widget().destroy()
+            self.view.canvas["plot"] = new_canvas
+            self.view.figures["plot"] = (fig, ax)
             if self.model.n_ydata >= 0:
                 ax.clear()
                 # ----- PLOT
@@ -361,13 +397,10 @@ class PlotController:
                 elif ax.get_legend():
                     ax.get_legend().remove()
                 
-                plt.tight_layout()
-                plt.show()
-            
             else:
                 ax.clear()
-            # self.view.figures["plot"] = (fig, ax)
-            # self.view.canvas["plot"].draw()
+            self.view.figures["plot"] = (fig, ax)
+            self.view.canvas["plot"].draw()
     
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():
