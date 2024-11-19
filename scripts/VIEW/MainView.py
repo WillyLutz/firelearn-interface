@@ -6,6 +6,7 @@ import customtkinter
 import customtkinter as ctk
 import tkinter as tk
 import tkinter.ttk as ttk
+from tkinter.colorchooser import askcolor
 from PIL import Image
 
 from scripts import params, params as p
@@ -124,29 +125,11 @@ class MainView(ttk.Frame):
         var.set(str(round(value, 2)))
 
     def select_color(self, view, selection_button_name):
-        color_window = ctk.CTkToplevel()
-        color_window.title("Color Selection")
-        max_col = 8
-        col = 0
-        row = 0
-        for c in p.COLORS:
-            color_button = ctk.CTkButton(master=color_window, text=c, text_color="black",
-                                         height=30, width=130, fg_color=c,
-                                         )
-            color_button.grid(row=row, column=col, padx=3, pady=3)
-            color_button.configure(command=partial(self.chose_color, view=view, color_button=color_button,
-                                                   selection_button_name=selection_button_name))
+        color = askcolor(color='green')
+        if color:
+            view.buttons[selection_button_name].configure(fg_color=color[1])
+            view.vars[selection_button_name].set(color[1])
 
-            if col >= max_col:
-                col = 0
-                row += 1
-            else:
-                col += 1
-
-    @staticmethod
-    def chose_color(view, color_button, selection_button_name):
-        view.buttons[selection_button_name].configure(fg_color=color_button.cget('fg_color'))
-        view.vars[selection_button_name].set(color_button.cget('text'))
 
     @staticmethod
     def deiconify_toplevel(toplevel: ctk.CTkToplevel):
