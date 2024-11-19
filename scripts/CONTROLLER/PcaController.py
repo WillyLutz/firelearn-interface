@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from fiiireflyyy.learn import confidence_ellipse
 from matplotlib import pyplot as plt
+from matplotlib.backends._backend_tk import NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
@@ -14,6 +16,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from scripts import params as p
 from scripts.WIDGETS.ErrEntry import ErrEntry
+from scripts.WIDGETS.Separator import Separator
 
 
 class PcaController:
@@ -68,7 +71,18 @@ class PcaController:
     def draw_figure(self, ):
         if self.check_params_validity():
             # fig, ax = self.view.figures["pca"]
-            fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
+            fig, ax = plt.subplots(figsize=(4, 4))
+            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["pca frame"])
+            new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+            self.view.canvas["pca toolbar"].destroy()
+            toolbar = NavigationToolbar2Tk(new_canvas,
+                                           self.view.frames["pca frame"], pack_toolbar=False)
+            toolbar.update()
+            toolbar.grid(row=1, column=0, sticky='we')
+            self.view.canvas["pca"].get_tk_widget().destroy()
+            self.view.canvas["pca"] = new_canvas
+            self.view.figures["pca"] = (fig, ax)
+            
             n_labels = self.model.n_labels
             
             ax.clear()
@@ -207,11 +221,11 @@ class PcaController:
             elif ax.get_legend():
                 ax.get_legend().remove()
         
-        plt.tight_layout()
-        plt.show()
-        
-        # self.view.figures["pca"] = (fig, ax)
-        # self.view.canvas["pca"].draw()
+            # plt.tight_layout()
+            # plt.show()
+            
+            self.view.figures["pca"] = (fig, ax)
+            self.view.canvas["pca"].draw()
     
     def input_validation_plot(self):
         plt_entries = {key: value for (key, value) in self.view.entries.items() if "plt" in key}
@@ -313,78 +327,92 @@ class PcaController:
     def add_label_data(self, scrollable_frame):
         if self.model.dataset_path:
             df = self.model.dataset
-            label_col = self.view.cbboxes["label column"].get()
+            label_col = self.view.vars["label column"].get()
             all_labels = sorted(set(list(df[label_col])))
             
             self.model.n_labels += 1
             n_labels = self.model.n_labels
-            label_data_subframe = ctk.CTkFrame(master=scrollable_frame, height=250)
-            label_data_subframe.grid(row=n_labels, column=0, sticky=ctk.NSEW, pady=25)
-            self.view.labels_subframes[str(n_labels)] = label_data_subframe
+            label_data_subframe = ctk.CTkFrame(master=scrollable_frame,)
             
+            # row separator 0
+            # row separator 1
+            n_labels_label = ctk.CTkLabel(master=label_data_subframe, text=f"DATA: {n_labels}")
+            # row separator 3
+            # row separator 4
+
             labels_label = ctk.CTkLabel(master=label_data_subframe, text="Label:")
             label_var = tk.StringVar(value=all_labels[0])
             labels_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=all_labels, state='readonly',
                                            textvariable=label_var)
-            labels_label.place(relx=0, rely=0)
-            labels_cbbox.place(relx=0, rely=0.12)
-            self.view.vars[f"label data {n_labels}"] = label_var
-            self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
-            
+            # row separator 6
+
             fit_var = tk.IntVar(value=1)
             apply_var = tk.IntVar(value=1)
             fit_ckbox = ctk.CTkCheckBox(master=label_data_subframe, text="Fit", variable=fit_var)
             apply_ckbox = ctk.CTkCheckBox(master=label_data_subframe, text="Apply", variable=apply_var)
-            fit_ckbox.place(relx=0.6, rely=0)
-            apply_ckbox.place(relx=0.75, rely=0)
-            self.view.checkboxes[f"fit {n_labels}"] = fit_ckbox
-            self.view.checkboxes[f"apply {n_labels}"] = apply_ckbox
-            self.view.vars[f"fit {n_labels}"] = fit_var
-            self.view.vars[f"apply {n_labels}"] = apply_var
-            
+            # row separator 8
+
             labels_legend_label = ctk.CTkLabel(master=label_data_subframe, text="Legend label:")
             labels_legend_var = tk.StringVar(value='')
             labels_legend_entry = ErrEntry(master=label_data_subframe, textvariable=labels_legend_var)
-            labels_legend_label.place(relx=0, rely=0.25)
-            labels_legend_entry.place_errentry(relx=0, rely=0.37, relwidth=0.4)
-            self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
-            
+            # row separator 10
+
             markerstyle_label = ctk.CTkLabel(master=label_data_subframe, text="Markers:")
             markerstyle_var = tk.StringVar(value='point')
             markerstyle_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=list(sorted(p.MARKERS.keys())),
                                                 state='readonly', textvariable=markerstyle_var)
-            markerstyle_label.place(relx=0, rely=0.5)
-            markerstyle_cbbox.place(relx=0, rely=0.62, relwidth=0.25)
-            self.view.cbboxes[f"marker style {n_labels}"] = markerstyle_cbbox
-            self.view.vars[f"marker style {n_labels}"] = markerstyle_var
-            
+            # row separator 12
+
             markersize_label = ctk.CTkLabel(master=label_data_subframe, text="Marker size:")
-            markersize_label.place(relx=0.3, rely=0.5)
             markersize_var = tk.StringVar(value='1')
             markersize_entry = ErrEntry(master=label_data_subframe, textvariable=markersize_var)
-            markersize_entry.place_errentry(relx=0.3, rely=0.62, relpady=0.12, relwidth=0.2)
-            self.view.vars[f"marker size {n_labels}"] = markersize_var
-            
+            # row separator 14
+
             color_label = ctk.CTkLabel(master=label_data_subframe, text="Color:")
             color_var = tk.StringVar(value='green')
             color_button = ctk.CTkButton(master=label_data_subframe, textvariable=color_var,
                                          fg_color=color_var.get(), text_color='black')
-            color_label.place(relx=0.6, rely=0.5)
-            color_button.place(relx=0.6, rely=0.62)
-            self.view.buttons[f"color {n_labels}"] = color_button
-            self.view.vars[f"color {n_labels}"] = color_var
-            
+            # row separator 16
+
             alpha_label = ctk.CTkLabel(master=label_data_subframe, text="Alpha:")
             alpha_var = tk.DoubleVar(value=p.DEFAULT_ALPHA)
             alpha_slider = ctk.CTkSlider(master=label_data_subframe, from_=0, to=1, number_of_steps=10,
                                          variable=alpha_var)
             alpha_value_label = ctk.CTkLabel(master=label_data_subframe, textvariable=alpha_var)
-            alpha_label.place(relx=0.5, rely=0.25)
-            alpha_slider.place(relx=0.5, rely=0.37, relwidth=0.4)
-            alpha_value_label.place(relx=0.7, rely=0.25)
-            self.view.vars[f"alpha {n_labels}"] = alpha_var
-            self.view.sliders[f"alpha {n_labels}"] = alpha_slider
+            # ----- MANAGE WIDGETS
+            label_data_subframe.grid(row=n_labels+self.model.n_labels_offset,
+                                     column=0, sticky='nsew', pady=25, columnspan=3)
+
+            n_labels_label.grid(row=2, column=0, columnspan=3, sticky="we")
             
+            labels_label.grid(row=5, column=0, sticky='w')
+            labels_cbbox.grid(row=5, column=2, sticky='we')
+            fit_ckbox.grid(row=7, column=0, sticky='we')
+            apply_ckbox.grid(row=7, column=2, sticky='we')
+            labels_legend_label.grid(row=9, column=0, sticky='w')
+            labels_legend_entry.grid(row=9, column=2, sticky='we')
+            markerstyle_label.grid(row=11, column=0, sticky='w')
+            markerstyle_cbbox.grid(row=11, column=2, sticky='we')
+            markersize_label.grid(row=13, column=0, sticky='w')
+            markersize_entry.grid(row=13, column=2, sticky='we')
+            color_label.grid(row=15, column=0, sticky='w')
+            color_button.grid(row=15, column=2, sticky='we')
+            alpha_label.grid(row=17, column=0, sticky='w')
+            alpha_slider.grid(row=17, column=2, sticky='we')
+            alpha_value_label.grid(row=17, column=0, sticky='e')
+            
+            # --------------- MANAGE SEPARATORS
+            general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18]
+            general_params_vertical_separator_ranges = [(4, 19), ]
+            for r in range(general_params_separators_indices[-1] + 2):
+                if r in general_params_separators_indices:
+                    sep = Separator(master=label_data_subframe, orient='h')
+                    sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+            for couple in general_params_vertical_separator_ranges:
+                general_v_sep = Separator(master=label_data_subframe, orient='v')
+                general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
+                
+            # ----- CONFIGURE WIDGETS
             color_button.configure(command=partial(self.view.select_color, view=self.view,
                                                    selection_button_name=f'color {n_labels}'))
             
@@ -392,6 +420,24 @@ class PcaController:
                                        validatecommand=(self.view.register(partial(self.view.main_view.is_positive_int,
                                                                                    markersize_entry)), '%P'))
             
+            
+            # ------- STORE WIDGETS
+            
+            self.view.labels_subframes[str(n_labels)] = label_data_subframe
+            self.view.vars[f"label data {n_labels}"] = label_var
+            self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
+            self.view.checkboxes[f"fit {n_labels}"] = fit_ckbox
+            self.view.checkboxes[f"apply {n_labels}"] = apply_ckbox
+            self.view.vars[f"fit {n_labels}"] = fit_var
+            self.view.vars[f"apply {n_labels}"] = apply_var
+            self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
+            self.view.cbboxes[f"marker style {n_labels}"] = markerstyle_cbbox
+            self.view.vars[f"marker style {n_labels}"] = markerstyle_var
+            self.view.vars[f"marker size {n_labels}"] = markersize_var
+            self.view.buttons[f"color {n_labels}"] = color_button
+            self.view.vars[f"color {n_labels}"] = color_var
+            self.view.vars[f"alpha {n_labels}"] = alpha_var
+            self.view.sliders[f"alpha {n_labels}"] = alpha_slider
             # ----- TRACE
             for key, widget in {f'color {n_labels}': color_var, f'fit {n_labels}': fit_var,
                                 f'apply {n_labels}': apply_var, f'alpha {n_labels}': alpha_var,

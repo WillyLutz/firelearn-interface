@@ -123,7 +123,7 @@ class PlotView(ctk.CTkFrame):
         n_xticks_var = tk.StringVar(value=self.controller.model.plot_axes['n x ticks'])
         n_xticks_entry = ErrEntry(master=general_params_scrollable_frame, textvariable=n_xticks_var)
         # row separator 34
-        xticks_round_label: CTkLabel = ctk.CTkLabel(master=general_params_scrollable_frame, text="Round:")
+        xticks_round_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Round:")
         xticks_round_var = ctk.StringVar(value=self.controller.model.plot_axes["round x ticks"])
         xticks_round_entry = ErrEntry(master=general_params_scrollable_frame, textvariable=xticks_round_var)
         
@@ -520,7 +520,7 @@ class PlotView(ctk.CTkFrame):
         # ---- TRACE
         xdata_var.trace("w", partial(self.controller.trace_vars_to_model, 'xdata'))
         
-        for key, widget in {}.items():
+        for key, widget in {"xdata": xdata_var}.items():
             widget.trace("w", partial(self.controller.trace_vars_to_model, key))
             
     def manage_plot_tab(self):

@@ -20,6 +20,7 @@ class PcaModel:
         self.targets = []
 
         self.n_labels = -1
+        self.n_labels_offset = 17
 
         self.plot_legend = {'show legend': p.SHOW_LEGEND, 'legend anchor': p.LEGEND_ANCHOR,
                             'legend alpha': p.LEGEND_ALPHA, 'legend x pos': 0.0, 'legend y pos': 0.0,

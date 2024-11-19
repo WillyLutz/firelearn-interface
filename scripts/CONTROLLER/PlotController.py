@@ -193,18 +193,14 @@ class PlotController:
             color_button.configure(command=partial(self.view.select_color, view=self.view,
                                                    selection_button_name=f'color {n_ydata}'))
             
-            
             ydata_subframe.grid_columnconfigure(0, weight=10)
             ydata_subframe.grid_columnconfigure(1, weight=1)
             ydata_subframe.grid_columnconfigure(2, weight=10)
             
-            
-                
             # --------------- MANAGE WIDGETS
             
-            ydata_subframe.grid(row=n_ydata+self.model.n_ydata_offset, column=0, sticky=ctk.NSEW, pady=25, columnspan=3)
+            ydata_subframe.grid(row=n_ydata+self.model.n_ydata_offset, column=0, sticky='nsew', pady=25, columnspan=3)
             n_ydata_label.grid(row=2, column=0, columnspan=3, sticky='we')
-            
             ydata_label.grid(row=5, column=0, sticky='w')
             ydata_cbbox.grid(row=5, column=2, sticky='we')
             ydata_legend_label.grid(row=7, column=0, sticky='w')
@@ -230,7 +226,6 @@ class PlotController:
                 general_v_sep = Separator(master=ydata_subframe, orient='v')
                 general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
 
-            
             # ----- ENTRY VALIDATION
             
             linewidth_entry.configure(validate='focus',
@@ -238,7 +233,6 @@ class PlotController:
                                     self.view.register(partial(self.view.parent_view.parent_view.is_positive_int, linewidth_entry)),
                                     '%P'))
 
-        
         else:
             messagebox.showerror("Missing Values", "No dataset loaded")
             return False
