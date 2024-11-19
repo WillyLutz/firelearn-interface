@@ -34,20 +34,11 @@ class FeatureImportanceController:
             extension = os.path.basename(filename).split(".")[1]
             self.view.vars["clf type"].set(f"{p.MODEL_EXTENSIONS[extension]}")
 
-    def dummy_figure(self):
-        fig, ax = plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        t = np.arange(0, 3, .01)
-        ax.plot(t, random.randint(1, 4) *
-                np.sin(random.randint(1, 4) * np.pi * t))
-        ax.set_xlabel("time [s]")
-        ax.set_ylabel("f(t)")
-
-        return fig, ax
 
     def draw_figure(self, ):
         if self.input_validation_feature_importance():
-            
-            fig, ax = plt.subplots(figsize=(3, 3))
+            plt.close()
+            fig, ax = plt.subplots(figsize=(4, 4))
             new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
             new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
             self.view.canvas["features toolbar"].destroy()

@@ -278,7 +278,7 @@ class PlotController:
         
         if self.check_params_validity():
             # fig, ax = self.view.figures["plot"]
-            fig, ax = plt.subplots(figsize=(3, 3))
+            fig, ax = plt.subplots(figsize=(4, 4))
             new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
             new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
             self.view.canvas["plot toolbar"].destroy()

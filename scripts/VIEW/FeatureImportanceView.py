@@ -16,10 +16,10 @@ class FeatureImportanceView(ctk.CTkFrame):
     def __init__(self, app, master, parent_view):
         super().__init__(master=app)
         self.master = master
-        self.app = app
         self.parent_view = parent_view
         self.main_view = self.parent_view.parent_view
         self.controller = FeatureImportanceController(self, )
+        self.app = app
 
         self.toplevels = {}
         self.entries = {}
@@ -394,9 +394,9 @@ class FeatureImportanceView(ctk.CTkFrame):
         plot_frame.grid_columnconfigure(0, weight=20)
         
         # the figure that will contain the plot
-        fig, ax = plt.subplots(figsize=(3, 3))
+        fig, ax = plt.subplots(figsize=(4, 4))
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
-        canvas.draw()
+        # canvas.draw()
         
         canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
         
@@ -607,35 +607,6 @@ class FeatureImportanceView(ctk.CTkFrame):
 
     def update_slider_value(self, value, var):
         self.parent_view.update_slider_value(value, var)
-
-    def dummy_figure(self):
-        if self.controller:
-            return self.controller.dummy_figure()
-
-    def draw_figure(self, ):
-        if self.controller:
-            self.controller.draw_figure()
-
-    def load_clf(self):
-        if self.controller:
-            self.controller.load_clf()
-
-    def load_config(self):
-        if self.controller:
-            self.controller.load_config()
-
-    def save_config(self):
-        if self.controller:
-            self.controller.save_config()
-
-    def export_figure_data(self, ax):
-        if self.controller:
-            self.controller.export_figure_data(ax)
-
-    def save_figure(self, fig):
-        if self.controller:
-            self.controller.save_figure(fig)
-
 
     def trace_vars_to_model(self, key, *args):
         if self.controller:

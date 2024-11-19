@@ -351,10 +351,8 @@ class ConfusionView(ctk.CTkFrame):
         
         
     def manage_specific_params_frame(self, specific_params_scrollable_frame):
-        
         # row separator 0
         # row separator 1
-        
         specific_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="SPECIFIC PARAMETERS", font=('', 20))
         
         # row separator 3
@@ -500,9 +498,9 @@ class ConfusionView(ctk.CTkFrame):
         plot_frame.grid_columnconfigure(0, weight=20)
         
         # the figure that will contain the plot
-        fig, ax = plt.subplots(figsize=(3, 3))
+        fig, ax = plt.subplots(figsize=(4, 4))
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
-        canvas.draw()
+        # canvas.draw()
         
         canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
         

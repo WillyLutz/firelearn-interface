@@ -340,10 +340,8 @@ class ConfusionController:
                         if self.model.plot_specific_settings["annot mode"] == 'percent' \
                         else f"{acc_array[r][c]}\nCUP={cup_array[r][c]}"
                     mixed_labels_matrix[r][c] = case
-        # plot
-        # plt.clf()
-         # plt.subplots(figsize=(p.DEFAULT_FIGUREWIDTH, p.DEFAULT_FIGUREHEIGHT))
-        fig, ax = plt.subplots(figsize=(3, 3))
+                    
+        fig, ax = plt.subplots(figsize=(4, 4))
         new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
         new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
         self.view.canvas["confusion toolbar"].destroy()
@@ -398,8 +396,6 @@ class ConfusionController:
         ax.set_yticks([TRAIN_CORRESPONDENCE[x] + 0.5 for x in self.model.training_classes], self.model.training_classes, fontsize = self.model.plot_axes["y ticks size"])
         self.view.figures["confusion"] = (fig, ax)
         self.view.canvas["confusion"].draw()
-
-        # self.view.buttons["save figure"].configure(command=partial(self.save_figure, self.view.figures["confusion"][0]))
 
     def input_validation(self):
         errors = []

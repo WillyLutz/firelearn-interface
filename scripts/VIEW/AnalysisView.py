@@ -19,8 +19,8 @@ class AnalysisView(ctk.CTkFrame):
         self.analysis_subtabs.place(relwidth=1.0, relheight=1.0)
         self.analysis_subtabs.add("Plot")
         self.analysis_subtabs.add("Feature importance")
-        self.analysis_subtabs.add("Confusion")
         self.analysis_subtabs.add("PCA")
+        self.analysis_subtabs.add("Confusion")
         self.analysis_subtabs.add("Spike detection")
 
         self.plot_view = PlotView(app=self.app, master=self.analysis_subtabs.tab("Plot"),
