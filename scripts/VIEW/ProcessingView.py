@@ -91,7 +91,9 @@ class ProcessingView(ctk.CTkFrame):
         load_model_button = ctk.CTkButton(master=self.ibuttons_frame, text="Load config", fg_color="lightslategray",
                                           command=self.load_model)
         process_exec_button = ctk.CTkButton(master=self.ibuttons_frame, fg_color="green", text="Process",
-                                            command=self.processing)
+                                            command=self.processing, height=60)
+        export_summary_button = ctk.CTkButton(master=self.ibuttons_frame, fg_color="lightslategray", text='Export summary',
+                                              command=self.controller.export_summary)
         
         processing_summary_frame = ctk.CTkFrame(master=self.content_frame, )
         self.frames["processing summary"] = processing_summary_frame
@@ -116,6 +118,7 @@ class ProcessingView(ctk.CTkFrame):
         load_model_button.grid(row=5, column=0)
         check_all_button.grid(row=6, column=0)
         process_exec_button.grid(row=7, column=0)
+        export_summary_button.grid(row=8, column=0)
         
         
         self.generate_summary()
@@ -136,8 +139,10 @@ class ProcessingView(ctk.CTkFrame):
         if len(path) > 35:
             path = "/.../..." + path[-35:]
         self.vars["summary single"].set(path)
+        
     def trace_multiple_files_checkbox(self, *args ):
         self.vars["summary multiple files"].set('enabled' if self.ckboxes["filesorter multiple"].get() else 'disabled')
+        
     def trace_single_file_checkbox(self, *args ):
         self.vars["summary single file"].set('enabled' if self.ckboxes["filesorter single"].get() else 'disabled')
         
@@ -218,7 +223,6 @@ class ProcessingView(ctk.CTkFrame):
         
         nth_text = self.vars["signal filter nth harmonic"].get()
         self.vars["summary harmonics nth"].set("Up to Nth: " + nth_text)
-        
         
     def trace_filename(self, *args):
         random_key = self.vars["filename random key"].get()
@@ -634,8 +638,10 @@ class ProcessingView(ctk.CTkFrame):
         self.entries["filesorter value target"] = rename_target_entry
         self.entries["filesorter exclusion"] = exclude_entry
         self.entries["filesorter inclusion"] = include_entry
+        self.vars["filesorter multiple ckbox"] = sorting_files_ckbox_var
         self.vars["filesorter multiple"] = sorting_sv
         self.vars["filesorter single"] = single_file_sv
+        self.vars["filesorter single ckbox"] = single_file_ckbox_var
         self.vars["filesorter key target"] = id_target_sv
         self.vars["filesorter value target"] = rename_target_sv
         self.vars["filesorter exclusion"] = exclude_sv

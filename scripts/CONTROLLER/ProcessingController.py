@@ -4,7 +4,9 @@ import string
 import time
 from tkinter import filedialog, messagebox
 
+import numpy as np
 import pandas as pd
+from markdown.extensions.extra import extensions
 
 from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.MODEL.ProcessingModel import ProcessingModel
@@ -634,3 +636,82 @@ class ProcessingController:
             else:
                 self.validate_step(step)
         self.view.vars['errors'].set(text)
+
+    def export_summary(self):
+        
+        def symbol_frame(symbol, text, width=40):
+            text_length = len(text)
+            whitespaces = (width - text_length - 2) / 2
+            before_text = int(np.floor(whitespaces))
+            after_text = int(np.ceil(whitespaces))
+            frame = f"{symbol * width}\n" \
+                    f"{symbol}{' ' * before_text}{text}{' ' * after_text}{symbol}\n" \
+                    f"{symbol * width}"
+            return frame
+        
+        text = f"{symbol_frame('*', text='FIRELEARN PROCESSING SUMMARY', width=60)}\n\n"
+        
+        text += f"{symbol_frame('.', text='File sorting')}\n\n"
+        
+        to_include_txt = [x for x in self.model.to_include]
+        to_exclude_txt = [x for x in self.model.to_exclude]
+        targets_txt = [f"{k} - {v}"  for k, v in self.model.targets.items()]
+        text += (f"Sorting multiple files : {'disabled' if not self.view.vars['filesorter multiple ckbox'].get() else 'enabled'}\n"
+                 f"Parent path: {self.view.vars['filesorter multiple'].get()}\n\n"
+                 f""
+                 f"To include:\n"
+                 f"{to_include_txt}\n"
+                 f""
+                 f"To exclude:\n"
+                 f"{to_exclude_txt}\n"
+                 f""
+                 f"Targets:\n"
+                 f"{targets_txt}\n"
+                 f""
+                 f"Sorting single file: {'disabled' if not self.view.vars['filesorter single ckbox'].get() else 'enabled'}\n"
+                 f"File path: {self.view.vars['filesorter single'].get()}\n\n")
+        
+        text += f"{symbol_frame('.', text='Signal processing')}\n\n"
+        
+        select_column = ('number: '+self.view.vars['signal select columns number'].get()+
+                         ' - mode: '+self.view.vars['signal select columns mode'].get()+
+                         ' - metric: '+ self.view.vars['signal select columns metric'].get())
+        text += (f"Beheading top-file metadata : {'disabled' if not self.view.vars['signal ckbox behead'].get() else self.view.vars['signal behead'].get() }\n"
+                 f"Select columns: "
+                 f"{'disabled' if not self.view.vars['signal select columns ckbox'].get() else select_column}\n"
+                 f"Divide file into: {'disabled' if not self.view.vars['signal sampling ckbox'].get() else self.view.vars['signal sampling'].get() }\n"
+                 f"Fast Fourier Transform sampling frequency (Hz): {'disabled' if not self.view.vars['signal fft'].get() else self.view.vars['signal fft sf'].get() }\n"
+                 f"Average of signal column-wise: {'disabled' if not self.view.vars['signal average'].get() else 'enabled' }\n"
+                 f"Linear interpolation of signal into n value: {'disabled' if not self.view.vars['signal interpolation ckbox'].get() else self.view.vars['signal interpolation'].get() }\n"
+                 f"\n"
+                 f"Filtering: {'disabled' if not self.view.vars['signal filter'].get() else 'enabled' }\n"
+                 f"Order: {self.view.vars['signal filter order'].get()}\n"
+                 f"Sampling frequency (Hz): {self.view.vars['signal filter sf'].get()}\n"
+                 f"Filter type: {self.view.vars['signal filter type'].get()}\n"
+                 f"First frequency cut (Hz): {self.view.vars['signal filter first cut'].get()}\n"
+                 f"Second frequency cut (Hz): {self.view.vars['signal filter second cut'].get()}\n"
+                 f"\n"
+                 f"Filtering harmonics: {'disabled' if not self.view.vars['signal harmonics ckbox'].get() else 'enabled' }\n"
+                 f"Type: {self.view.vars['signal harmonics type'].get()}\n"
+                 f"Frequency (Hz): {self.view.vars['signal filter harmonic frequency'].get()}\n"
+                 f"Up to Nth: {self.view.vars['signal filter nth harmonic'].get()}\n\n"
+                 )
+        
+        text += f"{symbol_frame('.', text='Output management')}\n\n"
+        
+        text += (f"Random key: {'disabled' if not self.view.vars['filename random key'].get() else 'enabled'}\n"
+                 f"{'Timestamp: disabled' if not self.view.vars['filename timestamp'].get() else 'enabled'}\n"
+                 f"{'Keyword: disabled' if not self.view.vars['filename keyword ckbox'].get() else self.view.vars['filename keyword'].get() }\n"
+                 f"{'Make files as dataset: disabled' if not self.view.vars['filename make dataset'].get() else 'enabled'}\n"
+                 f"{'Specified filename: disabled' if not self.view.vars['filename filename ckbox'].get() else self.view.vars['filename filename'].get() }\n"
+                 f" {'Save processed file(s) under: disabled' if not self.view.vars['filename save under'].get() else self.view.vars['filename save under'].get() }\n")
+        
+        # todo : FIXME
+        path = filedialog.asksaveasfilename(defaultextension='.txt',
+                                        filetypes=[('Text document', '*.txt'), ],
+                                            confirmoverwrite=True)
+        if path:
+            with open(str(path), 'w', encoding='utf-8',) as file:
+                file.write(text)
+
+            
