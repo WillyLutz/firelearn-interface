@@ -41,24 +41,21 @@ class LearningView(ctk.CTkFrame):
     def set_controller(self, controller):
         self.controller = controller
 
-    def manage_tab(self):
-        params_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
-        manage_dataset_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
-        loading_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
-        classifier_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
+    def manage_params_frame(self, params_frame):
+        # params_frame.grid_rowconfigure(2, weight=1)
+        params_frame.grid_rowconfigure(5, weight=20)
+        params_frame.grid_columnconfigure(0, weight=10)
+        params_frame.grid_columnconfigure(1, weight=1)
+        params_frame.grid_columnconfigure(2, weight=10)
 
-        # ----------- PARAMETERS -----------------
-        clf_params_helper = Helper(master=params_frame, event_key="clf params",)
-
-        params_label = ctk.CTkLabel(master=params_frame, text="Classifier parameters")
-        params_scrollable_frame = ctk.CTkScrollableFrame(master=params_frame, corner_radius=10, )
+        
+        # row separator 0
+        # row separator 1
+        params_label = ctk.CTkLabel(master=params_frame, text="CLASSIFIER PARAMETERS", font=('', 20))
         reload_button = ctk.CTkButton(master=params_frame, text="Reload default")
-
-        # params_scrollable_frame.grid_columnconfigure(0, weight=1)
-        # params_scrollable_frame.grid_columnconfigure(1, weight=2)
-
-        # params_scrollable_frame = ctk.CTkFrame(master=params_scrollable_frame, )
-
+        # row separator 3
+        # row separator 4
+        params_scrollable_frame = ctk.CTkScrollableFrame(master=params_frame, corner_radius=10, fg_color='transparent' )
         clf = RandomForestClassifier()
         params_scrollable_frame.grid_columnconfigure(0, weight=20)
         params_scrollable_frame.grid_columnconfigure(1, weight=1)
@@ -68,7 +65,7 @@ class LearningView(ctk.CTkFrame):
         for name, value in clf.get_params().items():
             param_label = ctk.CTkLabel(master=params_scrollable_frame, text=name, justify='left')
             param_label.grid(row=n_param, column=0, pady=5, padx=0, sticky='w')
-
+            
             param_stringvar = tk.StringVar()
             param_stringvar.set(value)
             param_entry = ErrEntry(master=params_scrollable_frame, state="normal", textvariable=param_stringvar, width=100)
@@ -80,148 +77,147 @@ class LearningView(ctk.CTkFrame):
             params_scrollable_frame.grid_rowconfigure(n_param, weight=10)
             params_scrollable_frame.grid_rowconfigure(n_param + 1, weight=10)
             n_param += 2
-
+            
             self.rfc_params_stringvar[name] = param_stringvar
             self.entries[f"params {param_stringvar.get()}"] = param_entry
-            
-        sep = Separator(master=params_scrollable_frame, orient='v')
-        sep.grid(row=0, column=1, rowspan=n_param, sticky='ns')
-        # ------------ MANAGE DATASET ------------------
-        load_dataset_helper = Helper(master=manage_dataset_frame, event_key="load dataset")
-        load_train_dataset_button = ctk.CTkButton(master=manage_dataset_frame, text="Load Train dataset")
-        load_train_dataset_strvar = tk.StringVar()
-        load_train_dataset_entry = ErrEntry(master=manage_dataset_frame, state='disabled',
-                                      textvariable=load_train_dataset_strvar)
-        load_test_dataset_button = ctk.CTkButton(master=manage_dataset_frame, text="Load test dataset")
-        load_test_dataset_strvar = tk.StringVar()
-        load_test_dataset_entry = ErrEntry(master=manage_dataset_frame, state='disabled',
-                                            textvariable=load_test_dataset_strvar)
+        
+        sep1 = Separator(master=params_scrollable_frame, orient='v')
+        sep1.grid(row=0, column=1, rowspan=n_param, sticky='ns')
+        
+        reload_button.configure(command=self.reload_rfc_params)
 
-        select_target_helper = Helper(master=manage_dataset_frame, event_key="select targets")
-        label_column_label = ctk.CTkLabel(master=manage_dataset_frame, text="Select targets column")
+        self.buttons["reload"] = reload_button
+        
+        params_label.grid(row=2, column=0, columnspan=3, sticky='w')
+        reload_button.grid(row=2, column=2, sticky='e')
+        params_scrollable_frame.grid(row=5, column=0, columnspan=3, sticky='nsew')
+        
+        # --------------- MANAGE SEPARATORS
+        general_params_separators_indices = [0, 1, 3, 4, ]
+        general_params_vertical_separator_ranges = []
+        for r in range(general_params_separators_indices[-1] + 2):
+            if r in general_params_separators_indices:
+                sep = Separator(master=params_frame, orient='h')
+                sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+        for couple in general_params_vertical_separator_ranges:
+            general_v_sep = Separator(master=params_frame, orient='v')
+            general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
+
+        
+    def manage_dataset_frame(self, dataset_frame):
+        dataset_frame.grid_columnconfigure(0, weight=20)
+        dataset_frame.grid_columnconfigure(1, weight=1)
+        dataset_frame.grid_columnconfigure(2, weight=20)
+        # row separator 0
+        # row separator 1
+        split_label = ctk.CTkLabel(master=dataset_frame, text="SPLIT DATASET", font=('', 20))
+        # row separator 3,
+        # row separator 4
+        load_btn = ctk.CTkButton(master=dataset_frame, text="Load dataset", command=self.load_splitting_dataset)
+        load_var = ctk.StringVar()
+        load_entry = ctk.CTkEntry(dataset_frame, textvariable=load_var)
+        # row separator 6
+        ratio_label = ctk.CTkLabel(master=dataset_frame, text="Train/Test ratio:")
+        ratio_var = tk.DoubleVar(value=0.7)
+        ratio_label_var = ctk.CTkLabel(master=dataset_frame, textvariable=ratio_var)
+        ratio_slider = ctk.CTkSlider(master=dataset_frame, from_=0, to=1, number_of_steps=20,
+                                     variable=ratio_var)
+        # row separator 8
+        split_btn = ctk.CTkButton(master=dataset_frame, text="Split", command=self.controller.split_dataset,
+                                  fg_color='tomato')
+        # row separator 10
+        # row separator 11
+        train_test_label = ctk.CTkLabel(master=dataset_frame, text='TRAIN - TEST', font=('', 20))
+        # row separator 13
+        # row separator 14
+        
+        load_train_dataset_button = ctk.CTkButton(master=dataset_frame, text="Load Train dataset")
+        load_train_dataset_strvar = tk.StringVar()
+        load_train_dataset_entry = ErrEntry(master=dataset_frame, state='disabled',
+                                      textvariable=load_train_dataset_strvar)
+        # row separator 16
+        load_test_dataset_button = ctk.CTkButton(master=dataset_frame, text="Load test dataset")
+        load_test_dataset_strvar = tk.StringVar()
+        load_test_dataset_entry = ErrEntry(master=dataset_frame, state='disabled',
+                                            textvariable=load_test_dataset_strvar)
+        # row separator 18
+        label_column_label = ctk.CTkLabel(master=dataset_frame, text="Select targets column")
         label_column_var = tk.StringVar(value='None')
-        label_column_cbbox = tk.ttk.Combobox(master=manage_dataset_frame, state='disabled', values=["None", ],
+        label_column_cbbox = tk.ttk.Combobox(master=dataset_frame, state='disabled', values=["None", ],
                                              textvariable=label_column_var)
-        training_targets_helper = Helper(master=manage_dataset_frame, event_key="training targets")
-        key_target_label = ctk.CTkLabel(master=manage_dataset_frame, text="Training targets:",
+        # row separator 20
+        training_target_frame = ctk.CTkFrame(master=dataset_frame, fg_color='transparent')
+        key_target_label = ctk.CTkLabel(master=training_target_frame, text="Training targets:",
                                         text_color=gp.enabled_label_color)
 
         id_target_sv = ctk.StringVar()
-        id_target_cbbox = tk.ttk.Combobox(master=manage_dataset_frame, state='readonly', textvariable=id_target_sv,)
-        add_target_button = ctk.CTkButton(master=manage_dataset_frame, text="+", width=25, height=25, state='normal')
-        subtract_target_button = ctk.CTkButton(master=manage_dataset_frame, text="-", width=25, height=25,
+        id_target_cbbox = tk.ttk.Combobox(master=dataset_frame, state='readonly', textvariable=id_target_sv,)
+        add_target_button = ctk.CTkButton(master=training_target_frame, text="+", width=25, height=25, state='normal')
+        subtract_target_button = ctk.CTkButton(master=training_target_frame, text="-", width=25, height=25,
                                                state='normal')
-        training_textbox = ctk.CTkTextbox(master=manage_dataset_frame, corner_radius=10, state='disabled')
-        n_iter_label = ctk.CTkLabel(master=manage_dataset_frame, text="Train / test iterations:")
-        n_iter_sv = tk.StringVar()
-        n_iter_sv.set("1")
-        n_iter_entry = ErrEntry(master=manage_dataset_frame, textvariable=n_iter_sv, state='normal')
-        get_advanced_metrics_helper = Helper(master=manage_dataset_frame, event_key="get advanced metrics")
-        get_metrics_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Get advanced \nclassification metrics")
-        load_classifier_helper = Helper(master=manage_dataset_frame, event_key="load clf")
-        load_rfc_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Load pre-trained\nclassifier",
-                                        command=self.load_classifier)
-        load_clf_button = ctk.CTkButton(master=manage_dataset_frame, text="Load classifier", state='disabled')
-        save_clf_helper = Helper(master=manage_dataset_frame, event_key="save clf")
-        save_rfc_switch = ctk.CTkSwitch(master=manage_dataset_frame, text="Save classifier after training",
-                                        command=self.save_classifier)
-        save_files_label = ctk.CTkLabel(master=manage_dataset_frame, text="Save Classifier under:",
-                                        text_color=gp.enabled_label_color)
-        save_rfc_strvar = ctk.StringVar()
-        save_entry = ErrEntry(master=manage_dataset_frame, textvariable=save_rfc_strvar)
-        save_rfc_button = ctk.CTkButton(master=manage_dataset_frame, text="Save classifier as", state='disabled')
-
-        # ----------- DISPLAY CLASSIFIER -----------------
-
-        rfc_path_sv = tk.StringVar()
-        rfc_path_label = ctk.CTkLabel(master=classifier_frame, text="Classifier path:")
-        rfc_path_entry = ErrEntry(master=classifier_frame, textvariable=rfc_path_sv, state='disabled')
-
-        rfc_name_sv = tk.StringVar()
-        rfc_name_label = ctk.CTkLabel(master=classifier_frame, text="Classifier name:")
-        rfc_name_entry = ErrEntry(master=classifier_frame, textvariable=rfc_name_sv, state='disabled')
-
-        rfc_status_sv = tk.StringVar()
-        rfc_status_label = ctk.CTkLabel(master=classifier_frame, text="Pre-Trained:")
-        rfc_status_entry = ErrEntry(master=classifier_frame, textvariable=rfc_status_sv, state='disabled')
-
-        advanced_metrics_helper = Helper(master=classifier_frame, event_key="advanced metrics")
-        metrics_textbox = ctk.CTkTextbox(master=classifier_frame, state='disabled')
-        export_button = ctk.CTkButton(master=classifier_frame, text="Export results", fg_color="green")
-
-        # ----------- LOADING FRAME -------------------
-        save_config_button = ctk.CTkButton(master=loading_frame, text="Save config", fg_color="lightslategray")
-        load_config_button = ctk.CTkButton(master=loading_frame, text="Load config", fg_color="lightslategray")
-        splitting_button = ctk.CTkButton(master=loading_frame, text="Split train-test", fg_color="tomato")
-        learning_button = ctk.CTkButton(master=loading_frame, text="Learning", fg_color="green")
-
-        # -------- MANAGE WIDGETS
-        params_frame.place(relx=0, rely=0, relwidth=0.30, relheight=1)
-        manage_dataset_frame.place(relx=0.33, rely=0, relwidth=0.30, relheight=0.85)
+        # row separator 22
+        training_textbox = ctk.CTkTextbox(master=dataset_frame, corner_radius=10, state='disabled', height=100)
         
-        loading_frame.place(relx=0.33, rely=0.9, relwidth=0.63, relheight=0.1)
-        classifier_frame.place(relx=0.66, rely=0, relwidth=0.3, relheight=0.85)
+        # row separator 24
+        n_iter_label = ctk.CTkLabel(master=dataset_frame, text="Train / test iterations:")
+        n_iter_sv = tk.StringVar(value="1")
+        n_iter_entry = ErrEntry(master=dataset_frame, textvariable=n_iter_sv, state='normal')
+        # row separator 26
+        save_rfc_strvar = ctk.StringVar()
+        save_entry = ErrEntry(master=dataset_frame, textvariable=save_rfc_strvar)
+        save_rfc_button = ctk.CTkButton(master=dataset_frame, text="Save classifier as", )
+        # row separator 28
+        # --------------- MANAGE SEPARATORS
+        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 11, 13, 14, 16 , 18, 20, 22, 24, 26, 28]
+        general_params_vertical_separator_ranges = [(5, 8), (15, 23), (25, 28)]
+        for r in range(general_params_separators_indices[-1] + 2):
+            if r in general_params_separators_indices:
+                sep = Separator(master=dataset_frame, orient='h')
+                sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+        for couple in general_params_vertical_separator_ranges:
+            general_v_sep = Separator(master=dataset_frame, orient='v')
+            general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
+            
+        # ----------------- MANAGE WIDGETS
+        split_label.grid(row=2, column=0, columnspan=3, sticky='we')
+        load_btn.grid(row=5, column=0, sticky='w')
+        load_entry.grid(row=5, column=2, sticky='we')
+        ratio_label.grid(row=7, column=0, sticky='w')
+        ratio_label_var.grid(row=7, column=0, sticky='e')
+        ratio_slider.grid(row=7, column=2, sticky='we')
+        split_btn.grid(row=9, column=0, columnspan=3, sticky='we')
+        
+        train_test_label.grid(row=12, column=0, columnspan=3, sticky='we')
+        
+        load_train_dataset_button.grid(row=15, column=0, sticky='w')
+        load_train_dataset_entry.grid(row=15, column=2, sticky='we')
+        load_test_dataset_button.grid(row=17, column=0, sticky='w')
+        load_test_dataset_entry.grid(row=17, column=2, sticky='we')
+        label_column_label.grid(row=19, column=0, sticky='w')
+        label_column_cbbox.grid(row=19, column=2, sticky='we')
+        training_target_frame.grid(row=21, column=0, sticky='nsew')
+        training_target_frame.grid_columnconfigure(0, weight=8)
+        id_target_cbbox.grid(row=21, column=2, sticky='we')
+        key_target_label.grid(row=0, column=0, sticky='w')
+        add_target_button.grid(row=0, column=1, sticky='w')
+        subtract_target_button.grid(row=0, column=2, sticky='w')
+        training_textbox.grid(row=23, column=0, columnspan=3, sticky='nsew')
+        n_iter_label.grid(row=25, column=0, sticky='w')
+        n_iter_entry.grid(row=25, column=2, sticky='we')
+        save_rfc_button.grid(row=27, column=0, sticky='w')
+        save_entry.grid(row=27, column=2, sticky='we')
 
-        clf_params_helper.place(anchor=tk.NE, relx=1, rely=0)
-        params_label.place(relx=0, rely=0)
-        reload_button.place(relx=0.5, rely=0)
-        params_scrollable_frame.place(relx=0.025, rely=0.1, relheight=0.85, relwidth=0.95)
-        # params_scrollable_frame.grid(row=0, column=0, sticky='nsew')
-
-        load_dataset_helper.place(anchor=tk.NE, relx=1, rely=0)
-        load_train_dataset_button.place(relx=0, rely=0, relwidth=0.3)
-        load_train_dataset_entry.place_errentry(relx=0.25, rely=0, relwidth=0.55)
-
-        load_test_dataset_button.place(relx=0, rely=0.05, relwidth=0.3)
-        load_test_dataset_entry.place_errentry(relx=0.25, rely=0.05, relwidth=0.55)
-
-        select_target_helper.place(relx=0.25, rely=0.1)
-        label_column_label.place(relx=0, rely=0.1)
-        label_column_cbbox.place(relx=0, rely=0.15, relwidth=0.8)
-        training_targets_helper.place(relx=0.28, rely=0.22)
-        key_target_label.place(relx=0.05, rely=0.22)
-        id_target_cbbox.place(relx=0.05, rely=0.28, relwidth=0.4)
-        add_target_button.place(relx=0.5, rely=0.28)
-        subtract_target_button.place(relx=0.6, rely=0.28)
-        training_textbox.place(relx=0.05, rely=0.35, relwidth=0.4, relheight=0.43)
-        n_iter_label.place(relx=0.5, rely=0.4)
-        n_iter_entry.place_errentry(relx=0.5, rely=0.45, relwidth=0.1)
-        get_advanced_metrics_helper.place(relx=0.9, rely=0.55)
-        get_metrics_switch.place(relx=0.5, rely=0.55)
-        load_classifier_helper.place(relx=0.9, rely=0.65)
-        load_rfc_switch.place(relx=0.5, rely=0.65)
-        load_clf_button.place(relx=0.5, rely=0.73, relwidth=0.3)
-        save_clf_helper.place(relx=0.5, rely=0.83)
-        save_rfc_switch.place(relx=0, rely=0.83)
-        save_rfc_button.place(relx=0.66, rely=0.92, )
-        save_files_label.place(relx=0, rely=0.87)
-        save_entry.place_errentry(relx=0, rely=0.92, relwidth=0.65)
-
-        rfc_path_label.place(relx=0, rely=0)
-        rfc_path_entry.place_errentry(relx=0.25, rely=0, relwidth=0.7)
-        rfc_name_label.place(relx=0, rely=0.1)
-        rfc_name_entry.place_errentry(relx=0.25, rely=0.1, relwidth=0.3)
-        rfc_status_label.place(relx=0, rely=0.2)
-        rfc_status_entry.place_errentry(relx=0.25, rely=0.2, relwidth=0.3)
-        advanced_metrics_helper.place(anchor=tk.SE, relx=1, rely=0.3)
-        metrics_textbox.place(relx=0.05, rely=0.3, relwidth=0.9, relheight=0.6)
-        export_button.place(anchor=tk.SE, relx=1, rely=1)
-
-        save_config_button.place(anchor=tk.CENTER, relx=0.2, rely=0.5, relwidth=0.18)
-        load_config_button.place(anchor=tk.CENTER, relx=0.4, rely=0.5, relwidth=0.18)
-        splitting_button.place(anchor=tk.CENTER, relx=0.6, rely=0.5, relwidth=0.18, relheight=0.8)
-        learning_button.place(anchor=tk.CENTER, relx=0.8, rely=0.5, relwidth=0.18, relheight=0.8)
-
-        self.buttons["reload"] = reload_button
-
+    
+        # ------------ STORE WIDGETS
+        
         self.buttons["load train dataset"] = load_train_dataset_button
         self.entries["load train dataset"] = load_train_dataset_entry
         self.vars["load train dataset"] = load_train_dataset_strvar
-
+        
         self.buttons["load test dataset"] = load_test_dataset_button
         self.entries["load test dataset"] = load_test_dataset_entry
         self.vars["load test dataset"] = load_test_dataset_strvar
-
+        
         self.cbboxes["target column"] = label_column_cbbox
         self.vars["target column"] = label_column_var
         self.cbboxes["key target"] = id_target_cbbox
@@ -231,59 +227,133 @@ class LearningView(ctk.CTkFrame):
         self.textboxes["targets"] = training_textbox
         self.vars["n iter"] = n_iter_sv
         self.entries["n iter"] = n_iter_entry
-        self.switches["get metrics"] = get_metrics_switch
-        self.switches["load rfc"] = load_rfc_switch
-        self.buttons["load rfc"] = load_clf_button
-        self.switches["save rfc"] = save_rfc_switch
         self.entries["save rfc"] = save_entry
         self.vars["save rfc"] = save_rfc_strvar
         self.buttons["save rfc"] = save_rfc_button
+        
+        self.vars["split dataset path"] = load_var
+        self.vars["split dataset ratio"] = ratio_var
+        self.entries["split dataset path"] = load_entry
+        self.sliders["split dataset"] = ratio_slider
+        
+        ratio_var.trace("w", partial(self.trace_round_var, "split dataset ratio"))
+        
+        load_train_dataset_button.configure(command=self.load_train_dataset)
+        load_test_dataset_button.configure(command=self.load_test_dataset)
+        
+        save_rfc_button.configure(command=partial(self.savepath_rfc, self.vars["save rfc"]))
+        add_target_button.configure(command=self.add_target)
+        subtract_target_button.configure(command=self.subtract_target)
+        load_train_dataset_entry.configure(validate='focus',
+                                           validatecommand=(self.register(
+                                               partial(self.parent_view.is_valid_directory, load_train_dataset_entry)),
+                                                            '%P'))
+        
+        n_iter_entry.configure(validate='focus',
+                               validatecommand=(
+                               self.register(partial(self.parent_view.is_positive_int, n_iter_entry)), '%P'))
+        save_entry.configure(validate='focus',
+                             validatecommand=(
+                             self.register(partial(self.parent_view.is_valid_directory, save_entry)), '%P'))
+        
+    def manage_display_frame(self, display_frame):
+        
+        display_frame.grid_columnconfigure(0, weight=20)
+        display_frame.grid_columnconfigure(1, weight=1)
+        display_frame.grid_columnconfigure(2, weight=20)
+        display_frame.grid_rowconfigure(5, weight=20)
+        
+        # ----------- DISPLAY CLASSIFIER -----------------
+        # row separator 0
+        # row separator 1
+        metrics_label = ctk.CTkLabel(master=display_frame, text="METRICS", font=('', 20))
+        # row separator 3
+        # row separator 4
+      
+        metrics_textbox = ctk.CTkTextbox(master=display_frame, state='disabled')
+        export_button = ctk.CTkButton(master=display_frame, text="Export results", fg_color="green")
+    
 
-        self.vars["rfc path"] = rfc_path_sv
-        self.entries["rfc path"] = rfc_path_entry
-        self.vars["rfc name"] = rfc_name_sv
-        self.entries["rfc name"] = rfc_name_entry
-        self.vars["rfc status"] = rfc_status_sv
-        self.entries["rfc status"] = rfc_status_entry
+        # --------------- MANAGE SEPARATORS
+        general_params_separators_indices = [0, 1, 3, 4, 6]
+        general_params_vertical_separator_ranges = []
+        for r in range(general_params_separators_indices[-1] + 2):
+            if r in general_params_separators_indices:
+                sep = Separator(master=display_frame, orient='h')
+                sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+        for couple in general_params_vertical_separator_ranges:
+            general_v_sep = Separator(master=display_frame, orient='v')
+            general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
+    
+        metrics_label.grid(row=2, column=0, columnspan=3, sticky='we')
+        metrics_textbox.grid(row=5, column=0, columnspan=3, sticky='nswe')
+        export_button.grid(row=7, column=0, sticky='w')
+        
         self.textboxes["metrics"] = metrics_textbox
         self.buttons["export"] = export_button
-
+        export_button.configure(command=self.export)
+        
+    def manage_execution_frame(self, execution_frame):
+        execution_frame.grid_columnconfigure(0, weight=1)
+        
+        # ----------- LOADING FRAME -------------------
+        execution_label = ctk.CTkLabel(master=execution_frame, text="EXECUTION", font=('', 20))
+        save_config_button = ctk.CTkButton(master=execution_frame, text="Save config", fg_color="lightslategray")
+        load_config_button = ctk.CTkButton(master=execution_frame, text="Load config", fg_color="lightslategray")
+        splitting_button = ctk.CTkButton(master=execution_frame, text="Split train-test", fg_color="tomato")
+        learning_button = ctk.CTkButton(master=execution_frame, text="Learning", fg_color="green")
+        
+        for i in [0, 1, 3, 4, 6, 8, 10, 12]:
+            sep = Separator(master=execution_frame, orient='h')
+            sep.grid(row=i, column=0, sticky='we')
+        # -------- MANAGE WIDGETS
+        execution_label.grid(row=2, column=0, sticky="we")
+        save_config_button.grid(row=5, column=0, sticky='we')
+        load_config_button.grid(row=7, column=0, sticky='we')
+        splitting_button.grid(row=9, column=0, sticky='we')
+        learning_button.grid(row=11, column=0, sticky='we')
+        
         self.buttons["save config"] = save_config_button
         self.buttons["load config"] = load_config_button
         self.buttons["split"] = splitting_button
         self.buttons["learning"] = learning_button
-
+        
         # ------------ CONFIGURE COMMANDS ---------------
-
-        reload_button.configure(command=self.reload_rfc_params)
-        load_train_dataset_button.configure(command=self.load_train_dataset)
-        load_test_dataset_button.configure(command=self.load_test_dataset)
-
-        save_rfc_button.configure(command=partial(self.savepath_rfc, self.vars["save rfc"]))
-        load_clf_button.configure(command=self.load_rfc)
+        
         load_config_button.configure(command=self.load_model)
         save_config_button.configure(command=self.save_config)
-        splitting_button.configure(command=self.splitting_dataset_toplevel)
         learning_button.configure(command=self.learning)
-        export_button.configure(command=self.export)
-        add_target_button.configure(command=self.add_target)
-        subtract_target_button.configure(command=self.subtract_target)
-
-        load_train_dataset_entry.configure(validate='focus',
-                                     validatecommand=(self.register(partial(self.parent_view.is_valid_directory, load_train_dataset_entry)), '%P'))
-
-        n_iter_entry.configure(validate='focus',
-                               validatecommand=(self.register(partial(self.parent_view.is_positive_int, n_iter_entry)), '%P'))
-        save_entry.configure(validate='focus',
-                             validatecommand=(self.register(partial(self.parent_view.is_valid_directory, save_entry)), '%P'))
-        rfc_path_entry.configure(validate='focus',
-                                 validatecommand=(self.register(partial(self.parent_view.is_valid_directory, rfc_path_entry)), '%P'))
-        rfc_name_entry.configure(validate='focus',
-                                  validatecommand=(self.register(partial(self.parent_view.has_forbidden_characters, rfc_name_entry)), '%P'))
-        rfc_status_entry.configure(validate='focus',
-                                  validatecommand=(self.register(partial(self.parent_view.has_forbidden_characters, rfc_status_entry)), '%P'))
         
-        self.splitting_dataset_toplevel()
+        
+    def manage_tab(self):
+        self.subtabs.tab("RFC").grid_columnconfigure(0, weight=1)
+        self.subtabs.tab("RFC").grid_columnconfigure(1, weight=1)
+        self.subtabs.tab("RFC").grid_columnconfigure(2, weight=1)
+        self.subtabs.tab("RFC").grid_rowconfigure(0, weight=6)
+        self.subtabs.tab("RFC").grid_rowconfigure(1, weight=1)
+        
+        params_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
+        dataset_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
+        execution_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
+        display_frame = ctk.CTkFrame(master=self.subtabs.tab("RFC"))
+
+        self.manage_params_frame(params_frame)
+        self.manage_dataset_frame(dataset_frame)
+        self.manage_display_frame(display_frame)
+        self.manage_execution_frame(execution_frame)
+        
+        params_frame.grid(row=0, column=0, rowspan=2, sticky='nsew', padx=10)
+        dataset_frame.grid(row=0, column=1, rowspan=2, sticky='nsew', padx=10)
+        display_frame.grid(row=0, column=2, sticky='nsew', padx=2, pady=10)
+        execution_frame.grid(row=1, column=2, sticky='nsew', padx=2, pady=10)
+
+        
+
+       
+
+       
+        
+        
     def add_target(self, *args):
         if self.controller:
             self.controller.add_subtract_target('add')
@@ -339,48 +409,6 @@ class LearningView(ctk.CTkFrame):
     def load_test_dataset(self):
         if self.controller:
             self.controller.load_test_dataset()
-
-    def splitting_dataset_toplevel(self):
-        width = 450
-        height = 150
-        general_toplevel = ctk.CTkToplevel(width=width, height=height)
-
-
-        general_toplevel.title("Splitting dataset (Learning)")
-        general_toplevel.resizable(False, False)
-        general_toplevel.protocol('WM_DELETE_WINDOW', general_toplevel.withdraw)
-        general_toplevel.attributes("-topmost", 1)
-        general_toplevel.withdraw()
-
-        load_btn = ctk.CTkButton(master=general_toplevel, text="Load", command=self.load_splitting_dataset)
-        load_btn.place(relx=0, rely=0)
-        load_var = ctk.StringVar()
-        load_entry = ctk.CTkEntry(general_toplevel, textvariable=load_var)
-        load_entry.place(relx=0.3, rely=0, relwidth=0.6)
-
-        ratio_label = ctk.CTkLabel(master=general_toplevel, text="Train/Test ratio:")
-        ratio_var = tk.DoubleVar(value=0.7)
-        ratio_label_var = ctk.CTkLabel(master=general_toplevel, textvariable=ratio_var)
-        ratio_slider = ctk.CTkSlider(master=general_toplevel, from_=0, to=1, number_of_steps=20,
-                                       variable=ratio_var)
-        ratio_label.place(relx=0, rely=0.5)
-        ratio_label_var.place(relx=0.3, rely=0.5)
-        ratio_slider.place(relx=0, rely=0.8, relwidth=0.4)
-
-        split_btn=ctk.CTkButton(master=general_toplevel, text="Split", command=self.controller.split_dataset)
-        split_btn.place(anchor=tk.SE, relx=1, rely=1)
-
-        self.vars["split dataset path"] = load_var
-        self.vars["split dataset ratio"] = ratio_var
-        self.entries["split dataset path"] = load_entry
-        self.sliders["split dataset"] = ratio_slider
-
-        ratio_var.trace("w", partial(self.trace_round_var, "split dataset ratio"))
-        
-        self.buttons["split"].configure(
-            command=partial(self.parent_view.deiconify_toplevel, general_toplevel))
-
-
 
 
     def load_splitting_dataset(self):

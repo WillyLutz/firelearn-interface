@@ -143,17 +143,12 @@ class LearningController:
             all_test_metrics = []
             self.progress.increment_progress(1)
 
-            if self.model.switches["load rfc"]:
-                rfc = self.model.rfc
-            else:
-                rfc = RandomForestClassifier()
-                rfc.set_params(**rfc_params)
+            rfc = RandomForestClassifier()
+            rfc.set_params(**rfc_params)
 
             for iteration in range(int(self.view.entries["n iter"].get())):
                 self.progress.update_task(f"Training iteration {iteration + 1}")
                 clf_tester = ClfTester(rfc)
-                if self.model.switches["load rfc"]:
-                    clf_tester.trained = True
 
                 clf_tester.train(X_train, y_train)
                 clf_tester.test(X_test, y_test)
@@ -206,59 +201,23 @@ class LearningController:
         metrics_elements.append("")
 
         pm = u"\u00B1"
-        if self.model.rfc:  # ALREADY TRAINED
-            metrics_elements.append(f"Number of training iterations: None (pre-trained classifier)")
-        else:
-            metrics_elements.append(f"Number of training iterations: {int(entries['n iter'].get())}", )
+        metrics_elements.append(f"Number of training iterations: {int(entries['n iter'].get())}", )
         metrics_elements.append(f"Number of testing iterations: {int(entries['n iter'].get())}", )
 
-        if self.model.rfc:  # ALREADY TRAINED
-            metrics_elements.append(f"Training accuracy: None (pre-trained classifier)")
-        else:
-            metrics_elements.append(
+        metrics_elements.append(
                 f"Training accuracy: {str(np.mean(all_train_scores).round(3))} {pm} {str(np.std(all_train_scores).round(3))}", )
         metrics_elements.append(
             f"Testing accuracy: {str(np.mean(all_test_scores).round(3))} {pm} {str(np.std(all_test_scores).round(3))}")
 
-        if self.model.switches["get metrics"]:
 
-            metrics_elements.append("")
-            metrics_elements.append("TRAINING------------------------")
-            if not self.model.rfc:  # not pre-trained:
-                for t in self.model.targets:
-                    t_metrics = {t: [[], []]}  # {class1 : [[true probas],[false probas]] }
-
-                    for train_metrics in all_train_metrics:
-                        for target, target_metric in train_metrics.items():
-                            if t == target:
-                                t_metrics[t][0] = t_metrics[t][0] + target_metric[0]
-                                t_metrics[t][1] = t_metrics[t][1] + target_metric[1]
-
-                    true_preds = t_metrics[t][0]
-                    false_preds = t_metrics[t][1]
-                    if not true_preds:
-                        true_preds.append(0)
-                    if not false_preds:
-                        false_preds.append(0)
-                    metrics_elements.append("---")
-                    metrics_elements.append(f"Target: {t}")
-                    metrics_elements.append(f"Number of true predictions: {len(true_preds)}")
-                    metrics_elements.append(f"Number of false predictions: {len(false_preds)}")
-                    metrics_elements.append(
-                        f"CUP for true predictions: {np.mean(true_preds).round(3)} {pm} {np.std(true_preds).round(3)}")
-                    metrics_elements.append(
-                        f"CUP for false predictions: {np.mean(false_preds).round(3)} {pm} {np.std(false_preds).round(3)}")
-                    metrics_elements.append(f"")
-            else:
-                metrics_elements.append("No data available - Classifier were pre-trained.")
-
-            metrics_elements.append("")
-            metrics_elements.append("TESTING------------------------")
+        metrics_elements.append("")
+        metrics_elements.append("TRAINING------------------------")
+        if not self.model.rfc:  # not pre-trained:
             for t in self.model.targets:
                 t_metrics = {t: [[], []]}  # {class1 : [[true probas],[false probas]] }
 
-                for test_metrics in all_test_metrics:
-                    for target, target_metric in test_metrics.items():
+                for train_metrics in all_train_metrics:
+                    for target, target_metric in train_metrics.items():
                         if t == target:
                             t_metrics[t][0] = t_metrics[t][0] + target_metric[0]
                             t_metrics[t][1] = t_metrics[t][1] + target_metric[1]
@@ -278,9 +237,33 @@ class LearningController:
                 metrics_elements.append(
                     f"CUP for false predictions: {np.mean(false_preds).round(3)} {pm} {np.std(false_preds).round(3)}")
                 metrics_elements.append(f"")
-        else:
-            metrics_elements.append("-------------")
-            metrics_elements.append("No additional metrics computed.")
+
+        metrics_elements.append("")
+        metrics_elements.append("TESTING------------------------")
+        for t in self.model.targets:
+            t_metrics = {t: [[], []]}  # {class1 : [[true probas],[false probas]] }
+
+            for test_metrics in all_test_metrics:
+                for target, target_metric in test_metrics.items():
+                    if t == target:
+                        t_metrics[t][0] = t_metrics[t][0] + target_metric[0]
+                        t_metrics[t][1] = t_metrics[t][1] + target_metric[1]
+
+            true_preds = t_metrics[t][0]
+            false_preds = t_metrics[t][1]
+            if not true_preds:
+                true_preds.append(0)
+            if not false_preds:
+                false_preds.append(0)
+            metrics_elements.append("---")
+            metrics_elements.append(f"Target: {t}")
+            metrics_elements.append(f"Number of true predictions: {len(true_preds)}")
+            metrics_elements.append(f"Number of false predictions: {len(false_preds)}")
+            metrics_elements.append(
+                f"CUP for true predictions: {np.mean(true_preds).round(3)} {pm} {np.std(true_preds).round(3)}")
+            metrics_elements.append(
+                f"CUP for false predictions: {np.mean(false_preds).round(3)} {pm} {np.std(false_preds).round(3)}")
+            metrics_elements.append(f"")
 
         return metrics_elements
 
@@ -312,8 +295,6 @@ class LearningController:
         classification_metrics.loc[len(classification_metrics)] = ["training", training_iter, training_acc,
                                                                    training_std]
         classification_metrics.loc[len(classification_metrics)] = ["testing", testing_iter, testing_acc, testing_std]
-
-        classification_metrics.to_csv(filename.split(".csv")[0] + " general metrics.csv", index=False)
 
         training_metrics = text.split("TRAINING")[1].split("TESTING")[0]
         training_targets = training_metrics.split("Target:")
@@ -347,7 +328,7 @@ class LearningController:
             advanced_metrics.loc[len(advanced_metrics)] = [phase, target, n_true, cup_true, cup_true_std,
                                                            n_false, cup_false, cup_false_std]
 
-        advanced_metrics.to_csv(filename.split(".csv")[0] + " advanced metrics.csv", index=False)
+        advanced_metrics.to_csv(filename.split(".csv")[0], index=False)
 
     @staticmethod
     def label_encoding(y):
@@ -362,13 +343,9 @@ class LearningController:
         return y
 
     def check_params_validity(self, ):
-        if self.view.switches["load rfc"].get() and not self.model.rfc:
-            messagebox.showerror("X Doubt", "Invalid Loaded classifier")
+        if not os.path.exists(os.path.dirname(self.view.entries["save rfc"].get())):
+            messagebox.showerror("Value error", "Path to save the classifier does not exist.")
             return False
-        if self.view.switches["save rfc"].get():
-            if not os.path.exists(os.path.dirname(self.view.entries["save rfc"].get())):
-                messagebox.showerror("Value error", "Path to save the classifier does not exist.")
-                return False
 
 
         if not ival.widget_value_is_positive_int_or_empty(self.view.entries["n iter"]) or \
@@ -389,23 +366,24 @@ class LearningController:
         return True
 
     def update_params(self, widgets: dict, ):
-        local_dict = {}
-        for key, value in widgets.items():
-            if type(value) == ctk.CTkTextbox:
-                local_dict[key] = value.get('1.0', tk.END)
-            else:
-                local_dict[key] = value.get()
-        if type(list(widgets.values())[0]) == ctk.CTkSwitch:
-            self.model.switches.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkEntry:
-            self.model.entries.update(local_dict)
-        if type(list(widgets.values())[0]) == tk.ttk.Combobox:
-            self.model.cbboxes.update(local_dict)
-        if type(list(widgets.values())[0]) == ctk.CTkTextbox:
+        if len(widgets) > 0:
             local_dict = {}
             for key, value in widgets.items():
-                local_dict[key] = value.get('1.0', tk.END)
-            self.model.textboxes.update(local_dict)
+                if type(value) == ctk.CTkTextbox:
+                    local_dict[key] = value.get('1.0', tk.END)
+                else:
+                    local_dict[key] = value.get()
+            if type(list(widgets.values())[0]) == ctk.CTkSwitch:
+                self.model.switches.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkEntry:
+                self.model.entries.update(local_dict)
+            if type(list(widgets.values())[0]) == tk.ttk.Combobox:
+                self.model.cbboxes.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkTextbox:
+                local_dict = {}
+                for key, value in widgets.items():
+                    local_dict[key] = value.get('1.0', tk.END)
+                self.model.textboxes.update(local_dict)
 
     def save_model(self, ):
         if self.check_params_validity():
