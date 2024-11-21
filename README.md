@@ -1,4 +1,4 @@
-# FireLearn GUI : Walkthrough tutorial
+# FireLearn GUI v0.2.0: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 # Processing
 
