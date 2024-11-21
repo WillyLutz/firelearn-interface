@@ -4,6 +4,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from scripts import main
 if __name__ == '__main__':
     main.main()
+    # exit()
 
 # to generate the distribution for linux, with the venv activated
 # >>> pyinstaller firelearnGUI.spec
