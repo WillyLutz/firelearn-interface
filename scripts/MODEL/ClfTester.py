@@ -13,7 +13,6 @@ class ClfTester:
         self.train_metrics = {}
         self.test_acc = 0
         self.test_metrics = {}
-
         self.trained = False
 
     def save(self, path):

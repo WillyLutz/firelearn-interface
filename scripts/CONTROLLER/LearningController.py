@@ -6,8 +6,9 @@ from tkinter import ttk, filedialog, messagebox
 import customtkinter as ctk
 import numpy as np
 import pandas as pd
+from keras.src.metrics import accuracy
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 
 from scripts.CONTROLLER import input_validation as ival
 from scripts.CONTROLLER.ProgressBar import ProgressBar
@@ -115,7 +116,8 @@ class LearningController:
             self.progress.update_task("Loading datatset")
 
             rfc_params = self.extract_rfc_params(self.view.rfc_params_stringvar)
-
+            
+            full_df = pd.read_csv(self.model.full_dataset_path, index_col=False)
             train_df = pd.read_csv(self.model.train_dataset_path, index_col=False)
             test_df = pd.read_csv(self.model.test_dataset_path, index_col=False)
 
@@ -123,6 +125,12 @@ class LearningController:
             self.progress.increment_progress(1)
             self.progress.update_task("Splitting")
             target_column = self.model.cbboxes["target column"]
+            
+            full_df = full_df[full_df[target_column].isin(self.model.targets)]
+            full_df.reset_index(inplace=True, drop=True)
+            y_full = full_df[target_column]
+            y_full = self.label_encoding(y_full)
+            X_full = full_df.loc[:, full_df.columns != target_column]
 
             train_df = train_df[train_df[target_column].isin(self.model.targets)]
             train_df.reset_index(inplace=True, drop=True)
@@ -145,7 +153,7 @@ class LearningController:
 
             rfc = RandomForestClassifier()
             rfc.set_params(**rfc_params)
-
+            all_cv_scores = []
             for iteration in range(int(self.view.entries["n iter"].get())):
                 self.progress.update_task(f"Training iteration {iteration + 1}")
                 clf_tester = ClfTester(rfc)
@@ -160,11 +168,15 @@ class LearningController:
                 all_test_metrics.append(clf_tester.test_metrics)
 
                 self.progress.increment_progress(1)
-
+                # kfold
+                if self.model.enable_kfold:
+                    cv_scores = cross_val_score(clf_tester.clf, X_full, y_full, cv=self.model.kfold)
+                    all_cv_scores.append(cv_scores)
+                
                 self.progress.update_task(f"Testing iteration {iteration + 1}")
                 self.progress.increment_progress(1)
 
-            # accuracies computation
+            
 
             # MainController.update_textbox(self.model.textboxes)
 
@@ -172,11 +184,11 @@ class LearningController:
             metrics_elements = self.learning_display_computed_metrics(metrics_elements, self.view.entries,
                                                                       all_train_metrics,
                                                                       all_test_metrics, all_train_scores,
-                                                                      all_test_scores)
+                                                                      all_test_scores, all_cv_scores)
 
             self.update_metrics_textbox(metrics_elements)
-            if self.view.switches["save rfc"].get():
-                MainController.save_object(rfc, self.view.entries["save rfc"].get()+".rfc")
+            if self.view.vars["save rfc"].get():
+                MainController.save_object(rfc, self.view.vars["save rfc"].get()+".rfc")
 
     @staticmethod
     def extract_rfc_params(rfc_params_string_var):
@@ -194,7 +206,7 @@ class LearningController:
 
     def learning_display_computed_metrics(self, metrics_elements, entries, all_train_metrics,
                                           all_test_metrics,
-                                          all_train_scores, all_test_scores, ):
+                                          all_train_scores, all_test_scores, all_cv_scores):
 
         metrics_elements.append("CLASSIFICATION METRICS")
         metrics_elements.append("---------------------------------------------------------------")
@@ -204,12 +216,20 @@ class LearningController:
         metrics_elements.append(f"Number of training iterations: {int(entries['n iter'].get())}", )
         metrics_elements.append(f"Number of testing iterations: {int(entries['n iter'].get())}", )
 
+        mean_accuracy = np.mean(all_train_scores).round(3)
         metrics_elements.append(
-                f"Training accuracy: {str(np.mean(all_train_scores).round(3))} {pm} {str(np.std(all_train_scores).round(3))}", )
+                f"Training accuracy: {str(mean_accuracy)} {pm} {str(np.std(all_train_scores).round(3))}", )
         metrics_elements.append(
             f"Testing accuracy: {str(np.mean(all_test_scores).round(3))} {pm} {str(np.std(all_test_scores).round(3))}")
 
-
+        if self.model.enable_kfold:
+            mean_kfold = round(np.array(all_cv_scores).mean(), 3)
+            std_kfold = round(np.array(all_cv_scores).std(), 3)
+            kfold_acc_diff = round(mean_accuracy - mean_kfold, 3)
+            kfold_acc_relative_diff = round(kfold_acc_diff / mean_accuracy * 100, 2)
+            metrics_elements.append(f"{len(all_cv_scores[0])}-fold Cross Validation: {str(mean_kfold)} {pm} {str(std_kfold)}")
+            metrics_elements.append(f"KFold-Accuracy difference = {mean_accuracy}-{mean_kfold} = {kfold_acc_diff}\n")
+            metrics_elements.append(f"KFold-Accuracy relative difference: {kfold_acc_relative_diff} %\n")
         metrics_elements.append("")
         metrics_elements.append("TRAINING------------------------")
         if not self.model.rfc:  # not pre-trained:
@@ -489,3 +509,10 @@ class LearningController:
             test_df.to_csv(base_path[0] + "_Xy_test." + base_path[1], index=False)
 
             messagebox.showinfo("Splitting", "Splitting done")
+
+    def trace_kfold(self, *args):
+        self.model.kfold = self.view.vars["kfold"].get()
+        self.model.enable_kfold = True if self.view.vars["kfold ckbox"].get() else False
+        
+    def trace_dataset(self, *args):
+        self.model.full_dataset_path = self.view.vars["split dataset path"].get()

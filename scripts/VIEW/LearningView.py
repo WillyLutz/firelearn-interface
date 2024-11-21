@@ -163,13 +163,18 @@ class LearningView(ctk.CTkFrame):
         n_iter_sv = tk.StringVar(value="1")
         n_iter_entry = ErrEntry(master=dataset_frame, textvariable=n_iter_sv, state='normal')
         # row separator 26
+        kfold_ckbox_var = ctk.IntVar(value=1)
+        kfold_ckbox = ctk.CTkCheckBox(master=dataset_frame, variable=kfold_ckbox_var, text="K-fold Cross Validation")
+        kfold_entry_var = ctk.StringVar(value='5')
+        kfold_entry = ctk.CTkEntry(master=dataset_frame, textvariable=kfold_entry_var)
+        # row separator 28
         save_rfc_strvar = ctk.StringVar()
         save_entry = ErrEntry(master=dataset_frame, textvariable=save_rfc_strvar)
         save_rfc_button = ctk.CTkButton(master=dataset_frame, text="Save classifier as", )
-        # row separator 28
+        # row separator 30
         # --------------- MANAGE SEPARATORS
-        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 11, 13, 14, 16 , 18, 20, 22, 24, 26, 28]
-        general_params_vertical_separator_ranges = [(5, 8), (15, 23), (25, 28)]
+        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 11, 13, 14, 16 , 18, 20, 22, 24, 26, 28, 30]
+        general_params_vertical_separator_ranges = [(5, 8), (15, 23), (25, 30)]
         for r in range(general_params_separators_indices[-1] + 2):
             if r in general_params_separators_indices:
                 sep = Separator(master=dataset_frame, orient='h')
@@ -204,8 +209,10 @@ class LearningView(ctk.CTkFrame):
         training_textbox.grid(row=23, column=0, columnspan=3, sticky='nsew')
         n_iter_label.grid(row=25, column=0, sticky='w')
         n_iter_entry.grid(row=25, column=2, sticky='we')
-        save_rfc_button.grid(row=27, column=0, sticky='w')
-        save_entry.grid(row=27, column=2, sticky='we')
+        kfold_ckbox.grid(row=27, column=0, sticky='w')
+        kfold_entry.grid(row=27, column=2, sticky='we')
+        save_rfc_button.grid(row=29, column=0, sticky='w')
+        save_entry.grid(row=29, column=2, sticky='we')
 
     
         # ------------ STORE WIDGETS
@@ -236,7 +243,13 @@ class LearningView(ctk.CTkFrame):
         self.entries["split dataset path"] = load_entry
         self.sliders["split dataset"] = ratio_slider
         
+        self.vars["kfold ckbox"] = kfold_ckbox_var
+        self.vars["kfold"] = kfold_entry_var
+        
         ratio_var.trace("w", partial(self.trace_round_var, "split dataset ratio"))
+        kfold_ckbox_var.trace("w", self.trace_kfold)
+        kfold_entry_var.trace("w", self.trace_kfold)
+        load_var.trace("w", self.trace_dataset)
         
         load_train_dataset_button.configure(command=self.load_train_dataset)
         load_test_dataset_button.configure(command=self.load_test_dataset)
@@ -300,7 +313,6 @@ class LearningView(ctk.CTkFrame):
         execution_label = ctk.CTkLabel(master=execution_frame, text="EXECUTION", font=('', 20))
         save_config_button = ctk.CTkButton(master=execution_frame, text="Save config", fg_color="lightslategray")
         load_config_button = ctk.CTkButton(master=execution_frame, text="Load config", fg_color="lightslategray")
-        splitting_button = ctk.CTkButton(master=execution_frame, text="Split train-test", fg_color="tomato")
         learning_button = ctk.CTkButton(master=execution_frame, text="Learning", fg_color="green")
         
         for i in [0, 1, 3, 4, 6, 8, 10, 12]:
@@ -310,12 +322,10 @@ class LearningView(ctk.CTkFrame):
         execution_label.grid(row=2, column=0, sticky="we")
         save_config_button.grid(row=5, column=0, sticky='we')
         load_config_button.grid(row=7, column=0, sticky='we')
-        splitting_button.grid(row=9, column=0, sticky='we')
         learning_button.grid(row=11, column=0, sticky='we')
         
         self.buttons["save config"] = save_config_button
         self.buttons["load config"] = load_config_button
-        self.buttons["split"] = splitting_button
         self.buttons["learning"] = learning_button
         
         # ------------ CONFIGURE COMMANDS ---------------
@@ -347,12 +357,6 @@ class LearningView(ctk.CTkFrame):
         display_frame.grid(row=0, column=2, sticky='nsew', padx=2, pady=10)
         execution_frame.grid(row=1, column=2, sticky='nsew', padx=2, pady=10)
 
-        
-
-       
-
-       
-        
         
     def add_target(self, *args):
         if self.controller:
@@ -417,7 +421,12 @@ class LearningView(ctk.CTkFrame):
 
         if filename:
             self.vars["split dataset path"].set(filename)
-
+    def trace_kfold(self, *args):
+        self.controller.trace_kfold(*args)
+        
+    def trace_dataset(self, *args):
+        self.controller.trace_dataset(*args)
+        
     def trace_round_var(self, *args):
         self.vars[args[0]].set(round(self.vars[args[0]].get(), 2))
 
