@@ -71,6 +71,7 @@ termcolor==2.3.0
 threadpoolctl==3.2.0
 tifffile==2023.9.26
 tkinterweb==3.23.5
+toml==0.10.2
 typing_extensions==4.8.0
 tzdata==2023.3
 update==0.0.1
