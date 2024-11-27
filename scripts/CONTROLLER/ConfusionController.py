@@ -393,6 +393,9 @@ class ConfusionController:
                        labelsize=self.model.plot_axes["y ticks size"],
                        labelfontfamily=self.model.plot_axes["axes font"])
         
+        ax.set_title(self.model.plot_general_settings["title"],
+                     fontdict={"font": self.model.plot_general_settings["title font"],
+                               "fontsize": self.model.plot_general_settings["title size"]}, )
         ax.set_yticks([TRAIN_CORRESPONDENCE[x] + 0.5 for x in self.model.training_classes], self.model.training_classes, fontsize = self.model.plot_axes["y ticks size"])
         self.view.figures["confusion"] = (fig, ax)
         self.view.canvas["confusion"].draw()

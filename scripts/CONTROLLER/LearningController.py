@@ -170,7 +170,7 @@ class LearningController:
                 self.progress.increment_progress(1)
                 # kfold
                 if self.model.enable_kfold:
-                    cv_scores = cross_val_score(clf_tester.clf, X_full, y_full, cv=self.model.kfold)
+                    cv_scores = cross_val_score(clf_tester.clf, X_full, y_full, cv=int(self.model.kfold))
                     all_cv_scores.append(cv_scores)
                 
                 self.progress.update_task(f"Testing iteration {iteration + 1}")
@@ -188,7 +188,7 @@ class LearningController:
 
             self.update_metrics_textbox(metrics_elements)
             if self.view.vars["save rfc"].get():
-                MainController.save_object(rfc, self.view.vars["save rfc"].get()+".rfc")
+                MainController.save_object(rfc, self.view.vars["save rfc"].get())
 
     @staticmethod
     def extract_rfc_params(rfc_params_string_var):
