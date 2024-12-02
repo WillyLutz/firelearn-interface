@@ -51,6 +51,7 @@ class ConfusionController:
             if filename:
                 clf = pickle.load(open(filename, "rb"))
                 self.model.clf = clf
+                self.model.clf_path = filename
 
                 self.view.vars["load clf"].set(filename)
 
@@ -353,16 +354,19 @@ class ConfusionController:
         self.view.canvas["confusion"] = new_canvas
         self.view.figures["confusion"] = (fig, ax)
         
-        sns.heatmap(ax=ax, data=overall_matrix, annot=mixed_labels_matrix, annot_kws={"font": self.model.plot_specific_settings["annot font"],
-                                                                 "size": self.model.plot_specific_settings["annot size"]}, fmt='', cmap="Blues",
-                    square=True, cbar_kws={'shrink': 0.5, 'location': 'right'})
+        annot_kws = {"font": self.model.plot_specific_settings["annot font"],
+                     "size": self.model.plot_specific_settings["annot size"]}
+        print(ax, overall_matrix, mixed_labels_matrix, annot_kws)
+        print(self.model.clf, self.model.clf_path)
+        sns.heatmap(ax=ax, data=acc_array, annot=mixed_labels_matrix, annot_kws=annot_kws, fmt='', cmap="Blues",
+                    square=True, cbar_kws={'shrink': 0.5, 'location': 'right'},)
         ax.xaxis.tick_top()
         ax.xaxis.set_label_position('top')
         ax.set_ylabel(self.model.plot_axes["y label"], fontdict={"font": self.model.plot_axes["axes font"],
                                                                  "fontsize": self.model.plot_axes["y label size"]})
         ax.set_xlabel(self.model.plot_axes["x label"], {"font": self.model.plot_axes["axes font"],
                                                         "fontsize": self.model.plot_axes["x label size"]})
-
+        
         renames_queries = {key: value.get() for (key, value) in self.view.vars.items() if "x rename " in key}
         original_labels = {key: value.get() for (key, value) in self.view.vars.items() if "x label " in key}
 

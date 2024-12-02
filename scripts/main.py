@@ -32,9 +32,9 @@ class App(ctk.CTk):
         view = MainView(self)
         splash.destroy()
         loading_time_end = datetime.now()
-        # print("loading time:", loading_time_end - loading_time_start)
+        print("loading time:", loading_time_end - loading_time_start)
         self.deiconify()
-
+        #
 
     def onClosure(self):
         self.withdraw()

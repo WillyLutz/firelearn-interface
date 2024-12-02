@@ -4,7 +4,7 @@ from tkinter import messagebox
 from scripts import params as p
 from packaging import version
 
-class PlotModel:
+class SpikeModel:
 
     def __init__(self,):
         self.version = p.version
@@ -12,11 +12,22 @@ class PlotModel:
         self.plot = None
 
         self.dataset_path = ""
+        self.parent_directory = ""
+        self.single_file = ""
 
-        self.dataset = None
-        
         self.to_include = []
         self.to_exclude = []
+        self.dataset = None
+        self.entries = {}
+        self.buttons = {}
+        self.cbboxes = {}
+        self.vars = {}
+        self.switches = {}
+        self.sliders = {}
+        self.ckboxes = {}
+        self.textboxes = {}
+        self.canvas = {}
+        self.figures = {}
         self.vars = {}
         self.canvas = {}
         self.figures = {}
@@ -39,8 +50,10 @@ class PlotModel:
         self.plot_general_settings = {'title': '', 'title font': p.DEFAULT_FONT,
                                       'title size': p.DEFAULT_FONTSIZE, 'dpi': p.DEFAULT_DPI}
 
-        self.plot_data = {'xdata': 'None', 'ellipsis': False, 'ellipsis alpha': p.DEFAULT_ALPHA,
+        self.plot_data = {'xdata': 'None',
                           'label column': 'None',}
+        
+        self.spike_params = {'dead window': 0.1, 'std threshold': 5.5, 'sampling frequency': 10000}
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
