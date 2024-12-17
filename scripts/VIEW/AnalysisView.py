@@ -5,6 +5,7 @@ from scripts.VIEW.PlotView import PlotView
 from scripts.VIEW.FeatureImportanceView import FeatureImportanceView
 from scripts.VIEW.PcaView import PcaView
 from scripts.VIEW.ConfusionView import ConfusionView
+from scripts.VIEW.SpikeView import SpikeView
 
 
 class AnalysisView(ctk.CTkFrame):
@@ -21,7 +22,7 @@ class AnalysisView(ctk.CTkFrame):
         self.analysis_subtabs.add("Feature importance")
         self.analysis_subtabs.add("PCA")
         self.analysis_subtabs.add("Confusion")
-        # self.analysis_subtabs.add("Spike detection")
+        self.analysis_subtabs.add("Spike count")
 
         self.plot_view = PlotView(app=self.app, master=self.analysis_subtabs.tab("Plot"),
                                   parent_view=self)
@@ -31,6 +32,8 @@ class AnalysisView(ctk.CTkFrame):
                                 master=self.analysis_subtabs.tab("PCA"))
         self.confusion_view = ConfusionView(app=self.app, parent_view=self,
                                             master=self.analysis_subtabs.tab("Confusion"))
+        self.spike_view = SpikeView(app=self.app, parent_view=self,
+                                            master=self.analysis_subtabs.tab("Spike count"))
 
     def update_slider_value(self, value, var):
         self.parent_view.update_slider_value(value, var)

@@ -518,8 +518,6 @@ class ProcessingView(ctk.CTkFrame):
         sorting_entry = ErrEntry(master=filesorter_frame, state='disabled', textvariable=sorting_sv)
         sorting_button = ctk.CTkButton(master=sorting_frame, text="Open", state='normal', width=40)
         
-        sorting_helper = Helper(master=filesorter_frame, event_key="#sorting-multiple-files")
-        
         to_include_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
         to_include_label = ctk.CTkLabel(master=to_include_frame, text="To include:",
                                         text_color=gp.enabled_label_color)
@@ -528,8 +526,6 @@ class ProcessingView(ctk.CTkFrame):
         add_include_button = ctk.CTkButton(master=to_include_frame, text="+", width=25, height=25, state='normal')
         subtract_include_button = ctk.CTkButton(master=to_include_frame, text="-", width=25, height=25,
                                                 state='normal')
-        
-        
         
         to_exclude_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
         to_exclude_label = ctk.CTkLabel(master=to_exclude_frame, text="To exclude:",
@@ -557,7 +553,6 @@ class ProcessingView(ctk.CTkFrame):
         
         # -------- SINGLE FILE ------------
         single_file_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
-        single_file_helper = Helper(master=filesorter_frame, event_key="#single-file-analysis")
         single_file_ckbox_var = ctk.IntVar(value=0)
         single_file_ckbox = ctk.CTkCheckBox(master=filesorter_frame, text="Single file analysis", variable=single_file_ckbox_var)
         single_file_label = ctk.CTkLabel(master=single_file_frame, text="Path to file:",
