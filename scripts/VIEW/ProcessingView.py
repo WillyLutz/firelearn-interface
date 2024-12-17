@@ -785,7 +785,7 @@ class ProcessingView(ctk.CTkFrame):
         type_harmonics_label = ctk.CTkLabel(master=signal_frame, text="Type:", text_color=gp.enabled_label_color)
         freq_harmonics_label = ctk.CTkLabel(master=signal_frame, text="Frequency (Hz):",
                                             text_color=gp.enabled_label_color)
-        nth_harmonics_label = ctk.CTkLabel(master=signal_frame, text="Up to Nth (Hz):",
+        nth_harmonics_label = ctk.CTkLabel(master=signal_frame, text="Up to Nth:",
                                            text_color=gp.enabled_label_color)
         
         harmonics_type_var = ctk.StringVar(value='None')

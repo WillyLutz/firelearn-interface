@@ -13,7 +13,7 @@ def resource_path(relative_path):
 
 
 name = 'FireLearn GUI'
-version = "0.4.1"
+version = "0.4.2"
 last_version_compatible = "0.3.1"
 description = "Description of FL project here"
 

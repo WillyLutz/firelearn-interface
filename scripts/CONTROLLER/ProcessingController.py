@@ -260,26 +260,31 @@ class ProcessingController:
                     dataset['label'] = targets['label']
                     
                     # preparation of filename
-                    processing_basename = ['DATASET', ]
+                    processing_basename = [ ]
                     characters = string.ascii_letters + string.digits
-                    if local_vars['signal select columns ckbox']:
-                        processing_basename.append(f"Sel{local_vars['signal select columns mode'].capitalize()}"
-                                                   f"{local_vars['signal select columns metric'].capitalize()}"
-                                                   f"{local_vars['signal select columns number']}")
-                    if local_vars['signal sampling ckbox']:
-                        processing_basename.append(f"Ds{local_vars['signal sampling']}")
-                    if local_vars['signal filter']:
-                        processing_basename.append(
-                            f"O{local_vars['signal filter order']}{local_cbox['signal filter type']}"
-                            f"{local_vars['signal filter first cut']}-{local_vars['signal filter second cut']}"
-                            f"H{local_vars['signal harmonics type']}{local_vars['signal filter harmonic frequency']}-"
-                            f"{local_vars['signal filter nth harmonic']}")
-                    if local_vars['signal fft']:
-                        processing_basename.append("signal fft")
-                    if local_vars['signal average']:
-                        processing_basename.append("avg")
-                    if local_vars['signal interpolation ckbox']:
-                        processing_basename.append(f"Sm{local_vars['signal interpolation']}")
+                    if not self.model.vars["filename filename"]:
+                        processing_basename.append('DATASET')
+                        if local_vars['signal select columns ckbox']:
+                            processing_basename.append(f"Sel{local_vars['signal select columns mode'].capitalize()}"
+                                                       f"{local_vars['signal select columns metric'].capitalize()}"
+                                                       f"{local_vars['signal select columns number']}")
+                        if local_vars['signal sampling ckbox']:
+                            processing_basename.append(f"Ds{local_vars['signal sampling']}")
+                        if local_vars['signal filter']:
+                            processing_basename.append(
+                                f"O{local_vars['signal filter order']}{local_cbox['signal filter type']}"
+                                f"{local_vars['signal filter first cut']}-{local_vars['signal filter second cut']}"
+                                f"H{local_vars['signal harmonics type']}{local_vars['signal filter harmonic frequency']}-"
+                                f"{local_vars['signal filter nth harmonic']}")
+                        if local_vars['signal fft']:
+                            processing_basename.append("signal fft")
+                        if local_vars['signal average']:
+                            processing_basename.append("avg")
+                        if local_vars['signal interpolation ckbox']:
+                            processing_basename.append(f"Sm{local_vars['signal interpolation']}")
+                    else:
+                        processing_basename.append(self.model.vars['filename filename'])
+                        
                     if local_vars['filename random key']:
                         processing_basename.append(''.join(random.choice(characters) for i in range(5)))
                     if local_vars['filename keyword ckbox']:

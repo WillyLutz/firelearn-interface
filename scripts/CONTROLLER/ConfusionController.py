@@ -353,6 +353,9 @@ class ConfusionController:
         self.view.canvas["confusion"] = new_canvas
         self.view.figures["confusion"] = (fig, ax)
         
+        overall_matrix = overall_matrix.astype(float)
+        print(mixed_labels_matrix,
+              overall_matrix)
         sns.heatmap(ax=ax, data=overall_matrix, annot=mixed_labels_matrix, annot_kws={"font": self.model.plot_specific_settings["annot font"],
                                                                  "size": self.model.plot_specific_settings["annot size"]}, fmt='', cmap="Blues",
                     square=True, cbar_kws={'shrink': 0.5, 'location': 'right'})
