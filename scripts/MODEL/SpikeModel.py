@@ -31,9 +31,13 @@ class SpikeModel:
         self.vars = {}
         self.canvas = {}
         self.figures = {}
-        self.targets = []
+        self.targets = {}
         self.n_ydata = -1
         self.n_ydata_offset = 10
+        self.std_per_target = {}
+        self.spikes_per_target = {}
+        self.spikes_detailed_per_target = {}
+        self.xlabels_indexes = {}
         self.plot_legend = {'show legend': p.SHOW_LEGEND, 'legend anchor': p.LEGEND_ANCHOR,
                             'legend alpha': p.LEGEND_ALPHA, 'legend x pos': 0.0, 'legend y pos': 0.0,
                             'legend draggable': p.LEGEND_DRAGGABLE, 'legend ncols': p.LEGEND_NCOLS,
@@ -53,7 +57,7 @@ class SpikeModel:
         self.plot_data = {'xdata': 'None',
                           'label column': 'None',}
         
-        self.spike_params = {'dead window': 0.1, 'std threshold': 5.5, 'sampling frequency': 10000}
+        self.spike_params = {'dead window': 0.1, 'std threshold': 5.5, 'sampling frequency': 10000,}
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))

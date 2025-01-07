@@ -4,7 +4,7 @@ from tkinter import ttk
 
 import customtkinter as ctk
 from PIL import Image
-from customtkinter import CTkLabel
+from customtkinter import CTkLabel, CTkScrollableFrame
 from matplotlib import pyplot as plt
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -435,6 +435,9 @@ class SpikeView(ctk.CTkFrame):
         draw_figure_button = ctk.CTkButton(master=execution_frame, text='Draw figure', fg_color='tomato',
                                            width=120,
                                            height=40)
+        update_figure_button = ctk.CTkButton(master=execution_frame, text='Update figure', fg_color='green',
+                                           width=120,
+                                           height=40)
         export_data_button = ctk.CTkButton(master=execution_frame, text="Export data", fg_color="green", width=120,
                                            height=40)
         
@@ -444,15 +447,22 @@ class SpikeView(ctk.CTkFrame):
         save_config_button.grid(row=0, column=1, padx=10, pady=10)
         export_data_button.grid(row=1, column=0, padx=10, pady=10, sticky='w')
         draw_figure_button.grid(row=1, column=1, padx=10, pady=10)
+        update_figure_button.grid(row=1, column=2, padx=10, pady=10)
+
         
         # ------------ CONFIGURE
         
         save_config_button.configure(command=self.controller.save_config)
         load_config_button.configure(command=self.controller.load_config)
-        draw_figure_button.configure(command=self.controller.draw_figure)
+        draw_figure_button.configure(command=self.controller.compute_spikes)
+        update_figure_button.configure(command=self.controller.draw_figure)
+
         
         # ------------- STORE
     
+        
+        
+
     def manage_specific_params_frame(self, specific_params_scrollable_frame):
         
         # row separator 0
@@ -517,21 +527,35 @@ class SpikeView(ctk.CTkFrame):
         target_textbox = ctk.CTkTextbox(master=specific_params_scrollable_frame, corner_radius=10, state='disabled', height=80)
         # row separator 22
         # row separator 23
-        std_thresh_var = ctk.DoubleVar(value=5.5)
+        std_thresh_var = ctk.DoubleVar(value=4)
         std_thresh_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Standard deviation threshold:")
         std_thresh_entry = ctk.CTkEntry(master=specific_params_scrollable_frame, textvariable=std_thresh_var)
         
         # row separator 25
-        sampling_freq_var = ctk.IntVar()
+        sampling_freq_var = ctk.IntVar(value=10000)
         sampling_freq_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Sampling frequency (Hz):")
         sampling_freq_entry = ctk.CTkEntry(master=specific_params_scrollable_frame, textvariable=sampling_freq_var)
         #row separator 27
         dead_window_label = ctk.CTkLabel(specific_params_scrollable_frame, text='Dead window (s):')
         dead_window_var = ctk.DoubleVar(value=0.1)
         dead_window_entry = ctk.CTkEntry(master=specific_params_scrollable_frame, textvariable=dead_window_var)
+        # row separator 29
+        behead_ckbox_var = ctk.IntVar(value=1)
+        behead_ckbox = ctk.CTkCheckBox(master=specific_params_scrollable_frame, text="Beheading top-file metadata",
+                                       variable=behead_ckbox_var)
+        behead_sv = ctk.StringVar(value='6')
+        behead_entry = ErrEntry(master=specific_params_scrollable_frame, state='normal', textvariable=behead_sv)
+        
+        # row separator 31
+        label_sorter_scrollable_frame = ctk.CTkScrollableFrame(master=specific_params_scrollable_frame, )
+        label_sorter_scrollable_frame.grid_columnconfigure(0, weight=10)
+        label_sorter_scrollable_frame.grid_columnconfigure(1, weight=1)
+        label_sorter_scrollable_frame.grid_columnconfigure(2, weight=20)
+        
+        
         # --------------- MANAGE SEPARATORS
-        specific_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23, 25, 27, 29 ]
-        general_params_vertical_separator_ranges = [(5, 10), (13, 14), (17, 20), (24, 30)]
+        specific_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23, 25, 27, 29 , 31]
+        general_params_vertical_separator_ranges = [(5, 10), (13, 14), (17, 20), (24, 32)]
         
         for r in range(specific_params_separators_indices[-1] + 2):
             if r in specific_params_separators_indices:
@@ -588,6 +612,11 @@ class SpikeView(ctk.CTkFrame):
         dead_window_label.grid(row=28, column=0, sticky='w')
         dead_window_entry.grid(row=28, column=2, sticky='we')
         
+        behead_ckbox.grid(row=30, column=0, sticky='ew')
+        behead_entry.grid(row=30, column=2, sticky='ew')
+        
+        label_sorter_scrollable_frame.grid(row=32, column=0, columnspan=3, sticky='nsew')
+        
         # --------- STORE WIDGETS
         self.ckboxes["multiple"] = sorting_files_ckbox
         self.entries["multiple"] = sorting_entry
@@ -611,7 +640,12 @@ class SpikeView(ctk.CTkFrame):
         self.textboxes['inclusion'] = include_textbox
         self.textboxes["exclusion"] = exclude_textbox
         self.textboxes["targets"] = target_textbox
+        self.ckboxes["ckbox behead"] = behead_ckbox
+        self.entries["behead"] = behead_entry
+        self.vars["ckbox behead"] = behead_ckbox_var
+        self.vars["behead"] = behead_sv
         
+        self.scrollable_frames["label sorter"] = label_sorter_scrollable_frame
         
         # --------------- CONFIGURE
         sorting_button.configure(command=partial(self.controller.select_parent_directory, sorting_sv))
@@ -638,9 +672,41 @@ class SpikeView(ctk.CTkFrame):
         single_file_button.configure(command=partial(self.controller.select_single_file, single_file_sv))
         
         # ---- TRACE
-        for key, widget in {"std threshold": std_thresh_var, 'dead window': dead_window_var,
-                            'sampling frequency': sampling_freq_var}.items():
-            widget.trace("w", partial(self.controller.trace_vars_to_model, key))
+        # for key, widget in {"std threshold": std_thresh_var, 'dead window': dead_window_var,
+        #                     'sampling frequency': sampling_freq_var, 'behead': behead_sv, 'behead ckbox': behead_ckbox_var}.items():
+        #     widget.trace("w", partial(self.controller.trace_vars_to_model, key))
+            
+        # ------ ENTRY BINDING
+        include_entry.bind('<Return>',
+                           lambda event: self.controller.add_subtract_to_include(include_entry,
+                                                                      self.textboxes["inclusion"], 'add'))
+        include_entry.bind('<Control-BackSpace>',
+                           lambda event: self.controller.add_subtract_to_include(include_entry,
+                                                                      self.textboxes["inclusion"],
+                                                                      'subtract'))
+        exclude_entry.bind('<Return>',
+                           lambda event: self.controller.add_subtract_to_exclude(exclude_entry,
+                                                                      self.textboxes["exclusion"],
+                                                                      mode='add'))
+        exclude_entry.bind('<Control-BackSpace>',
+                           lambda event: self.controller.add_subtract_to_exclude(exclude_entry,
+                                                                      self.textboxes["exclusion"],
+                                                                      mode='subtract'))
+        id_target_entry.bind('<Return>',
+                             lambda event: self.controller.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                    self.textboxes["targets"],
+                                                                    'add'))
+        id_target_entry.bind('<Control-BackSpace>',
+                             lambda event: self.controller.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                    self.textboxes["targets"],
+                                                                    'subtract'))
+        rename_target_entry.bind('<Return>',
+                                 lambda event: self.controller.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                        self.textboxes["targets"],
+                                                                        'add'))
+        
+        self.controller.update_label_sorter()
+
     
     def manage_spike_tab(self):
         self.master.grid_columnconfigure(0, weight=1)

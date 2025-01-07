@@ -2,7 +2,12 @@ from tkinter import messagebox
 
 
 # todo : need to add unit tests
-
+def dict_has_duplicate_values(my_dict, ):
+    rev_multidict = {}
+    for key, value in my_dict.items():
+        rev_multidict.setdefault(value, set()).add(key)
+    duplicates_keys = [key for key, values in rev_multidict.items() if len(values) > 1]
+    return duplicates_keys
 
 def value_has_forbidden_character(value):
     # forbidden_characters = "<>:\"/\\|?*[]" with slashes

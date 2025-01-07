@@ -8,6 +8,7 @@ from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from scripts.CONTROLLER.MainController import MainController
+from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.MODEL.SpikeModel import SpikeModel
 import customtkinter as ctk
 import tkinter as tk
@@ -280,52 +281,145 @@ class SpikeController:
             del self.view.sliders[f"alpha {n_ydata}"]
             
             self.model.n_ydata -= 1
-    
-    def draw_figure(self):
+    def spikes_number_of_tasks(self, n_files,):
+        reading_file = 1
+        finalizing = 1
+        spikes_detect = 11
+        return n_files * (reading_file + spikes_detect)  + finalizing
+        
+    def compute_spikes(self):
         if self.check_params_validity():
             self.update_params(self.view.entries)
             self.update_params(self.view.ckboxes)
             self.update_params(self.view.vars)
             self.update_params(self.view.textboxes)
-
-            # fig, ax = self.view.figures["plot"]
-            fig, ax = plt.subplots(figsize=(4, 4))
-            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
-            new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
-            self.view.canvas["plot toolbar"].destroy()
-            toolbar = NavigationToolbar2Tk(new_canvas,
-                                           self.view.frames["plot frame"], pack_toolbar=False)
-            toolbar.update()
-            toolbar.grid(row=1, column=0, sticky='we')
-            self.view.canvas["plot"].get_tk_widget().destroy()
-            self.view.canvas["plot"] = new_canvas
-            self.view.figures["plot"] = (fig, ax)
+            
+            
             
             files = []
             if self.view.vars["single"].get():
                 files.append(self.view.vars["single"].get())
             elif self.view.vars["multiple"].get():
-                files = ff.get_all_files(self.model.parent_directory)
-                for file in files:
+                all_files = ff.get_all_files(self.model.parent_directory)
+
+                for file in all_files:
                     if all(i in file for i in self.model.to_include) and (
                             not any(e in file for e in self.model.to_exclude)):
                         files.append(file)
-                        
+            
+            targets_list = self.view.textboxes["targets"].get(1.0, ctk.END).split("\n")
+            targets_list = [x for x in targets_list if x]
+            targets = {t.split('-')[0].strip(): t.split('-')[1].strip() for t in targets_list }
+            spikes_detailed_per_target = {v: [] for k, v in targets.items()}
+            if not files:
+                messagebox.showerror('Missing files', 'No files have been selected using the parameters.')
+            
+            n_steps_per_file = 10
+            self.progress = ProgressBar("Spikes detection", app=self.view.app)
+            self.progress.total_tasks = self.spikes_number_of_tasks(len(files))
+            self.progress.start()
+            
             for file in files:
-                df = pd.read_csv(file, skiprows=6)
-                df_spikes = []
-                for col in df.columns:
-                    row = 0
-                    std = np.std(df[col])
+                self.progress.update_task("Reading file")
+                print(file)
+                file_target = ''
+                for t in targets.keys():
+                    if t in file:
+                        file_target = targets[t]
+                if not file_target:
+                    messagebox.showerror('Missing value', 'No target has been assigned to a file.')
+                    break
                     
-                    col_spikes = df[df[col] > self.model.vars["std threshold"] * std]
-                    
-                    df_spikes.append(col_spikes)
-                print(df_spikes)
+               
+                skiprows = 0 if not self.model.vars["ckbox behead"] else int(self.model.vars["behead"])
+                df = pd.read_csv(file, skiprows=skiprows)
+                df_array = np.array(df)
+                self.progress.increment_progress(1)
+                self.progress.update_task("Spikes detection")
+                for i_col in range(1, len(df.columns)):
+                    col_array = df_array[:, i_col]
+                    if np.any(col_array):
+                        std = col_array.std()
+                        detected_indices = []
+                        i = 0
+                        
+                        while i < len(col_array):
+                            # Check if the value is above or below the threshold
+                            if (col_array[i] <= -self.view.vars["std threshold"].get() * std
+                                    or col_array[i] >= self.view.vars["std threshold"].get() * std):
+                                detected_indices.append(i)  # Record the spike index
+                                dead_samples = int(self.view.vars['dead window'].get() * self.view.vars['sampling frequency'].get())
+                                i += dead_samples  # Skip the dead time window
+                            else:
+                                i += 1  # Move to the next index
+                        if len(detected_indices) > 0:
+                            print(df.columns[i_col], len(detected_indices))
+                            spikes_detailed_per_target[file_target].append(len(detected_indices)) # increment spike count
+                self.progress.increment_progress(1)
                 
-            self.view.figures["plot"] = (fig, ax)
-            self.view.canvas["plot"].draw()
+
+            
+            self.progress.update_task('Draw figure')
+            spikes_per_target = {k: sum(v) for k, v in spikes_detailed_per_target.items()}
+            std_per_target = {k: np.array(v).std() for k, v in spikes_detailed_per_target.items()}
+            
+            self.model.spikes_per_target = spikes_per_target
+            self.model.spikes_detailed_per_target = spikes_detailed_per_target
+            self.model.std_per_target = std_per_target
+            
+            target_index = 0
+            for target in self.model.std_per_target.keys():
+                self.model.xlabels_indexes[target] = target_index
+                target_index += 1
+            print(self.model.xlabels_indexes)
+            self.draw_figure()
+            self.progress.increment_progress(1)
+
+            
     
+    
+    def draw_figure(self):
+        if self.check_params_validity():
+            
+            targets = self.model.xlabels_indexes.keys()
+            duplicates = ival.dict_has_duplicate_values(self.model.xlabels_indexes)
+            if duplicates:
+                print(duplicates)
+                messagebox.showerror("Duplicate Values", f"The labels {duplicates} have duplicates index values.")
+            else:
+                self.update_params(self.view.entries)
+                self.update_params(self.view.ckboxes)
+                self.update_params(self.view.vars)
+                self.update_params(self.view.textboxes)
+                # fig, ax = self.view.figures["plot"]
+                fig, ax = plt.subplots(figsize=(4, 4))
+                new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
+                new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+                self.view.canvas["plot toolbar"].destroy()
+                toolbar = NavigationToolbar2Tk(new_canvas,
+                                               self.view.frames["plot frame"], pack_toolbar=False)
+                toolbar.update()
+                toolbar.grid(row=1, column=0, sticky='we')
+                self.view.canvas["plot"].get_tk_widget().destroy()
+                self.view.canvas["plot"] = new_canvas
+                self.view.figures["plot"] = (fig, ax)
+                
+                ibar = 0.5
+                print(self.model.xlabels_indexes)
+                
+                ticks_labels = [(t, i + ibar) for t, i in self.model.xlabels_indexes.items()]
+                ticks_labels = sorted(ticks_labels, key=lambda x: x[1])
+                
+                print(ticks_labels)
+                for target, index in ticks_labels:
+                    plt.bar(x=index+ibar, height=self.model.spikes_per_target[target], color='gray',)
+
+                
+                ax.set_xticks([i[1] for i in ticks_labels], [i[0] for i in ticks_labels])
+                
+                self.view.figures["plot"] = (fig, ax)
+                self.view.canvas["plot"].draw()
+        
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()
@@ -455,3 +549,42 @@ class SpikeController:
                 for key, value in widgets.items():
                     local_dict[key] = value.get(1.0, tk.END)
                 self.model.textboxes.update(local_dict)
+    
+    def trace_label_indices(self, ti):
+        target = self.view.entries[f"label index {ti}"].get()
+        self.model.xlabels_indexes[target] = self.view.vars[f"label index {ti}"].get()
+    
+    def update_label_sorter(self,):
+        # destroying all widgets related
+        for child in self.view.scrollable_frames["label sorter"].winfo_children():
+            child.destroy()
+        
+        label_sorter_separators_indices = [0, 1, 3, 4, ]
+        targets = self.model.xlabels_indexes.keys()
+        ti = 0
+        if targets:
+            while ti < len(targets):
+                target_entry = ctk.CTkEntry(master=self.view.scrollable_frames["label sorter"], text=targets[ti])
+                index_var = ctk.StringVar(value=self.model.xlabels_indexes[targets[ti]])
+                index_cbbox = ttk.Combobox(master=self.view.scrollable_frames["label sorter"], values=[str(x) for x in range(len(targets))],
+                                           textvariable=index_var, state='readonly')
+                
+                target_entry.grid(row=5+2*ti, column=0, sticky='we')
+                index_cbbox.grid(row=5+2*ti, column=2, sticky='we')
+                
+                label_sorter_separators_indices.append(5+2*ti+1)
+                
+                self.view.entries[f"label index {ti}"] = target_entry
+                self.view.vars[f"label index {ti}"] = index_var
+                
+                index_var.trace('w', partial(self.trace_label_indices, ti))
+    
+            
+            n_labels = len(self.model.xlabels_indexes.keys())
+            for r in range(label_sorter_separators_indices[-1] + 2):
+                if r in label_sorter_separators_indices:
+                    sep = Separator(master=self.view.scrollable_frames["label sorter"], orient='h')
+                    sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+            
+            general_v_sep = Separator(master=self.view.scrollable_frames["label sorter"], orient='v')
+            general_v_sep.grid(row=5, column=1, rowspan=(n_labels * 2 - 5), sticky='ns')
