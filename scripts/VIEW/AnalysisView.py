@@ -22,7 +22,7 @@ class AnalysisView(ctk.CTkFrame):
         self.analysis_subtabs.add("Feature importance")
         self.analysis_subtabs.add("PCA")
         self.analysis_subtabs.add("Confusion")
-        self.analysis_subtabs.add("Spike count")
+        # self.analysis_subtabs.add("Spike count")
 
         self.plot_view = PlotView(app=self.app, master=self.analysis_subtabs.tab("Plot"),
                                   parent_view=self)
