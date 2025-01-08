@@ -469,7 +469,7 @@ class ProcessingController:
                     
         for key, widget in self.view.ckboxes.items():
             if widget.cget('state') == 'normal':
-                if self.model.switches[key]:
+                if self.model.checkboxes[key]:
                     widget.select()
                 else:
                     widget.deselect()

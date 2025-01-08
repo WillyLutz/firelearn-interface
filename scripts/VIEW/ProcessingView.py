@@ -86,10 +86,6 @@ class ProcessingView(ctk.CTkFrame):
         check_all_button = ctk.CTkButton(master=self.ibuttons_frame, text="Check all steps",
                                          command=self.controller.check_params_validity,
                                          fg_color="green", )
-        save_model_button = ctk.CTkButton(master=self.ibuttons_frame, text="Save config", fg_color="lightslategray",
-                                          command=self.save_config)
-        load_model_button = ctk.CTkButton(master=self.ibuttons_frame, text="Load config", fg_color="lightslategray",
-                                          command=self.load_model)
         process_exec_button = ctk.CTkButton(master=self.ibuttons_frame, fg_color="green", text="Process",
                                             command=self.processing, height=60)
         export_summary_button = ctk.CTkButton(master=self.ibuttons_frame, fg_color="lightslategray", text='Export summary',
@@ -114,8 +110,6 @@ class ProcessingView(ctk.CTkFrame):
         filesorter_ibtn.grid(row=0, column=0)
         signal_ibtn.grid(row=1, column=0)
         filename_ibtn.grid(row=2, column=0)
-        save_model_button.grid(row=4, column=0)
-        load_model_button.grid(row=5, column=0)
         check_all_button.grid(row=6, column=0)
         process_exec_button.grid(row=7, column=0)
         export_summary_button.grid(row=8, column=0)

@@ -356,8 +356,6 @@ class ConfusionController:
         
         annot_kws = {"font": self.model.plot_specific_settings["annot font"],
                      "size": self.model.plot_specific_settings["annot size"]}
-        print(ax, overall_matrix, mixed_labels_matrix, annot_kws)
-        print(self.model.clf, self.model.clf_path)
         sns.heatmap(ax=ax, data=acc_array, annot=mixed_labels_matrix, annot_kws=annot_kws, fmt='', cmap="Blues",
                     square=True, cbar_kws={'shrink': 0.5, 'location': 'right'},)
         ax.xaxis.tick_top()
