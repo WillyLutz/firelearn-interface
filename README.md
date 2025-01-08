@@ -1,24 +1,24 @@
-# FireLearn GUI v0.2.0: Walkthrough tutorial
+# FireLearn GUI v0.4.2: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 # Processing
 
 
 > <img height="30" src="data/help/red_warning.png" width="30"/>
 > 
-> Please note that the different processes are following a specific order, and can not be modified. 
+> Please note that the different processes are following a specific sequence, and can not be modified at the moment. 
 > Consider the order to be the order of presentation of the functionalities in this document.
 > As such, it can be considered to be
 > 
-> [sorting](#sorting-multiple-files) > [file beheading (using raw MEA recordings)](#using-raw-mea-recordings) > 
-> [electrode selection](#selecting-electrodes) > [down sampling](#recordings-down-sampling) >
+> [sorting](#sorting-multiple-files) > [file beheading](#file-beheading) > 
+> [column-based selection](#column-based-selection) > [down sampling](#down-sampling) >
 > [filtering](#filtering) > [fast fourier transform](#fast-fourier-transform) >
-> [smoothing](#smoothing) > [averaging electrode signal](#averaging-electrodes) >
+> [interpolation](#interpolation) > [averaging electrode signal](#averaging-columns) >
 > [dataset making](#resulting-datasets) > [post-processing](#post-processing) 
 > 
 > Depending on which feature is enabled or disabled.
 
 ### Example: directory structure
-For this document we will proceed considering this recommanded directory structure : 
+For this document we will proceed considering this recommended directory structure : 
 ```
 DATA (most parent common directory)
 │
@@ -38,6 +38,19 @@ DATA (most parent common directory)
 └───T24
     └───[...]
 ```
+### Processing steps
+In the processing tab, you will find three image buttons, representing respectively `File selection`, `Signal processing`
+, and `File name post-processing` as below:
+
+<img src="data/firelearn_img/filesorter_blue.png" width="70" height="70">
+<img src="data/firelearn_img/signal_blue.png" width="70" height="70">
+<img src="data/firelearn_img/filename_blue.png" width="70" height="70">
+
+When clicking those, the middle panel will change accordingly, allowing you to specify the different processing steps 
+you wish to apply to your files and data. These buttons will change colors depending on the 
+[step value verification](#check-all-steps), as green for no errors detected, red for errors detected, blue for 
+current selected panel (will also grow bigger), and gray for unvisited panel.
+
 ## Sorting multiple files
 
 This functionality aims at looking for and using multiple files under a common parent 
@@ -78,6 +91,11 @@ the `Return` key. To remove a specification, type it in the corresponding entry,
 In this example, all the files containing `Analog.csv` and who does not contain `T30` in their absolute
 paths will be included for further processing.
 
+> <img height="30" src="data/help/tip.png" width="30"/>
+> 
+> In the entries `to include`, `to exclude`, and `target key` you can use the key combination `Enter` as a substitute 
+> to the '+' button, and `Ctrl+Backspace` for the '-' button.
+
 #### Indicating targets for learning
 
 It is possible to make an entry correspond with a label, based on its path. To do so, indicate in the
@@ -114,22 +132,27 @@ in their absolute paths will be used for further processing.
 > > at the folder named 'HIV' and not 'HIV PROJECT'.
 
 
+> <img height="30" src="data/help/tip.png" width="30"/>
+> 
+> If you do not wish for your key to be different from your file label, you can leave the `Target value` entry empty - 
+> the value will take the same value as the key.
+
 ### Single file analysis
 In order to process a single file, switch on the corresponding switch and select the wanted file
 using the `Open` button.
 
-### Using raw MEA recordings
+### File beheading
 This functionality simply behead the file a specified number of rows. In the case of normed files from
 MEA recordings , there is a header of 6 rows containing metadata before the actual recording data. 
 Be aware that there must not be anything apart from the data and a row of headers.
 
 
-### Selecting electrodes
+### Column-based selection
 
 Allow to select the columns (electrodes, in case of MEA recordings) with a `mode` `metric` combination.
 Any column that contains 'time' (case-insensitive) in its header will be ignored.
 
-### Recordings down sampling
+### Down sampling
 
 This functionality will divide row-wisely every file in `n` selected pieces of equal lengths.
 e.g. In our walkthrough example, we use 1 minute long recordings.
@@ -138,16 +161,16 @@ Specifying a down sampling at `30` implies that the recordings will be divided i
 > <img src="data/help/red_warning.png" width="30" height="30">
 >
 > If the [make resulting files as dataset](#post-processing) function is not used, be aware that each file
-selected during the [selection process](#sorting-multiple-files) will generate an equal number of different
-based on the [down sampling](#recordings-down-sampling).
+selected during the [selection process](#sorting-multiple-files) will generate an equal number of different files
+based on the [down sampling](#down-sampling).
 
 ### Filtering
 
 Allow the user to apply a Butterworth filter to the data.
 
-For the use of `Lowpass` and `Highpass` filters, the first frequency `f1 (Hz)` corresponds to the cut
-frequency, and teh second frequency `f2 (Hz)` must be left emptied.
-For the use of `Bandstop` and `Bandpass` filters, the second frequency `f2 (Hz)` corresponds to the high-cut
+For the use of `Lowpass` and `Highpass` filters, the first frequency `1st cut frequency (Hz)` corresponds to the cut
+frequency, and the second frequency `2nd cut frequency (Hz)` must be left emptied.
+For the use of `Bandstop` and `Bandpass` filters, the second frequency `2nd cut frequency (Hz)` corresponds to the high-cut
 frequency and must be specified.
 
 In order to filter harmonics, the user can choose to filter only the `Even` harmonics (2nd, 4th, 6th...),
@@ -162,11 +185,11 @@ _100 Hz(1st), 300 Hz(3rd), 500 Hz(5th), 700 Hz(7th), 900 Hz(9th)_
 Applies a Fast Fourier Transform to the data (post-filtering, if the filtering is enabled). 
 The sampling rate must be specified.
 
-### Smoothing
+### Interpolation
 
-Smoothens the signal down to `n` final values. `n` must be inferior to the number of data point.
+Use a linear interpolation on the signal down to `n` final values. `n` must be inferior to the number of data point.
 
-### Averaging electrodes
+### Averaging columns
 
 Average all columns (except the 'x' column, usually TimeStamp) into one column.
 
@@ -175,36 +198,64 @@ Average all columns (except the 'x' column, usually TimeStamp) into one column.
 > <img src="data/help/red_warning.png" width="30 height=30">
 > 
 >This feature overwrites the saving of the intermediate files (e.g. those created 
-> from the [down sampling](#recordings-down-sampling) functionality) and save only
+> from the [down sampling](#down-sampling) functionality) and save only
 > a final file 'DATASET' csv file.
 
 > <img src="data/help/yellow_warning.png" width="30 height=30">
 >
->This feature is only available if the [average electrode signal](#averaging-electrodes) is enabled. 
+>This feature is only available if the [average electrode signal](#averaging-columns) is enabled. 
 
 Enabling this feature will merge all the processed files issued from the 
-[signal averaging](#averaging-electrodes) such as each merged signal results in one row in the dataset.
+[signal averaging](#averaging-columns) such as each merged signal results in one row in the dataset.
 
 ### Post-processing
 
-The first option allows to add a random key as combination of 6 alphanumerical characters to the 
+The `Add random key` option allows to add a random key as combination of 6 alphanumerical characters to the 
 resulting filenames.
 
-The second adds a timestamp of format `year-month-day-hour-minute` (at the time the file is being 
+The `Add timestamp to file names` adds a timestamp of format `year-month-day-hour-minute` (at the time the file is being 
 processed).
 
-The third adds a specified keyword to the resulting filenames.
+The `Add keyword` adds a specified keyword to the resulting filenames.
 
 > <img src="data/help/yellow_warning.png" width="30" height="30">
 >
 > These customisations do not replace the file name, which will depend on the processes it will undergo.
 > They only are added at the end of the standard file name.
 
+The `Specify file name` allows the user to specify the file name(s). A tag '_FL_processed' is added at the end.
 
-Allow to specify the directory where the resulting files will be saved.
+The `Save processed files under` allow to specify the directory where the resulting files will be saved.
 
 
 ### Miscellaneous
+
+#### Check all steps
+
+On the left side of the processing tab, you have a `check all steps` button. It allows you to check if there are any
+errors of teh different fields you filled. If so, a popup will show with some error context. The processing steps 
+where errors have been spotted will be red colored.
+
+> <img src="data/help/yellow_warning.png" width="30" height="30">
+> 
+> The software will only check for simple errors such as if you wrote letters where numbers where expected.
+> Additionally it will check for errors in the options that have been checked, for example if incompatible options
+> have been both enabled.
+
+#### Open config / Load config
+> <img src="data/help/red_warning.png" width="30" height="30">
+>
+> This functionality is in experimental phase so bugs may occur
+
+On the menu bar, in `File` > `Save config`, it will store the software variable state into a `.pcfg` file. 
+This file can then be opened with the `Load config` option to restore the software variable state, to avoid having to 
+fill everything again between different runs of the software if the same (or close) processing is needed. 
+
+#### Summary (and export)
+
+On the right side of the processing tab, there is a 'Summary' panel that will update based on the processing steps 
+selected and their values. This summary can be exported using the `Export summary` button on le left side. It will 
+produce a `.txt` file that sums up all the processing steps used when exporting. 
 
 
 # Learning

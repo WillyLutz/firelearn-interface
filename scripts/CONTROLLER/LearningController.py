@@ -459,13 +459,13 @@ class LearningController:
             self.update_params(self.view.vars)
             self.update_params(self.view.switches)
 
-            f = filedialog.asksaveasfilename(defaultextension=".lcfg",
-                                             filetypes=[("Learning - Random forest", "*.lcfg"), ])
+            f = filedialog.asksaveasfilename(defaultextension=".rfcfg",
+                                             filetypes=[("Learning - Random forest", "*.rfcfg"), ])
             if f:
                 self.model.save_model(path=f, )
 
     def load_config(self, ):
-        f = filedialog.askopenfilename(title="Open file", filetypes=(("Learning - Random forest", "*.lcfg"),))
+        f = filedialog.askopenfilename(title="Open file", filetypes=(("Learning - Random forest", "*.rfcfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model()

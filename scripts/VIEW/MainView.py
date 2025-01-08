@@ -32,12 +32,44 @@ class MainView(ttk.Frame):
 
         # ------------ MENU ----------------------------
         self.menu_bar = tk.Menu(self.app)
+        self.load_config_menu = tk.Menu(self.app)
+        self.save_config_menu = tk.Menu(self.app)
+
+        self.load_learning_menu = tk.Menu(self.app)
+        self.load_analysis_menu = tk.Menu(self.app)
+        self.save_learning_menu = tk.Menu(self.app)
+        self.save_analysis_menu = tk.Menu(self.app)
         
         self.menu_file = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_file.add_command(label="Open config...")
-        self.menu_file.add_command(label="Save config...")
+        self.menu_file.add_cascade(label="Open configuration", menu=self.load_config_menu)
+        self.menu_file.add_cascade(label="Save configuration", menu=self.save_config_menu)
         self.menu_file.add_separator()
         self.menu_file.add_command(label="Exit", command=self.quit)
+        
+        # --- load config menu
+        self.load_config_menu.add_command(label="Processing (.pcfg)...", command=self.load_processing_config)
+        self.load_config_menu.add_cascade(label="Learning", menu=self.load_learning_menu)
+        self.load_config_menu.add_cascade(label="Analysis", menu=self.load_analysis_menu)
+        
+        self.load_learning_menu.add_command(label="RFC (.rfcfg)...", command=self.load_rfc_config)
+
+        self.load_analysis_menu.add_command(label="Plot (.pltcfg)...", command=self.load_plot_config)
+        self.load_analysis_menu.add_command(label="Feature importance (.ficfg)...", command=self.load_importance_config)
+        self.load_analysis_menu.add_command(label="PCA (.pcacfg)...", command=self.load_pca_config)
+        self.load_analysis_menu.add_command(label="Confusion matrix (.confcfg)...", command=self.load_confusion_config)
+
+        # --- save config menu
+        self.save_config_menu.add_command(label="Processing (.pcfg)...", command=self.save_processing_config)
+        self.save_config_menu.add_cascade(label="Learning", menu=self.save_learning_menu)
+        self.save_config_menu.add_cascade(label="Analysis", menu=self.save_analysis_menu)
+        
+        self.save_learning_menu.add_command(label="RFC (.rfcfg)...", command=self.save_rfc_config)
+        
+        self.save_analysis_menu.add_command(label="Plot (.pltcfg)...", command=self.save_plot_config)
+        self.save_analysis_menu.add_command(label="Feature importance (.ficfg)...", command=self.save_importance_config)
+        self.save_analysis_menu.add_command(label="PCA (.pcacfg)...", command=self.save_pca_config)
+        self.save_analysis_menu.add_command(label="Confusion matrix (.confcfg)...", command=self.save_confusion_config)
+        
         
         self.menu_help = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_help.add_command(label="Help")
@@ -218,4 +250,38 @@ class MainView(ttk.Frame):
 
 
 
-
+    def load_processing_config(self):
+        self.processing_view.load_model()
+    
+    def load_rfc_config(self):
+        self.learning_view.load_model() # todo : migrate to an RfcView, for when adding other ML algorithms
+        
+    def load_plot_config(self):
+        pass # todo : implement plot load model
+    
+    def load_importance_config(self):
+        pass # todo : implement plot load model
+    
+    def load_pca_config(self):
+        pass # todo : implement plot load model
+    
+    def load_confusion_config(self):
+        pass # todo : implement plot load model
+    
+    def save_processing_config(self):
+        self.processing_view.save_config()
+    
+    def save_rfc_config(self):
+        self.learning_view.save_config()  # todo : migrate to an RfcView, for when adding other ML algorithms
+    
+    def save_plot_config(self):
+        pass  # todo : implement plot save model
+    
+    def save_importance_config(self):
+        pass  # todo : implement plot save model
+    
+    def save_pca_config(self):
+        pass  # todo : implement plot save model
+    
+    def save_confusion_config(self):
+        pass  # todo : implement plot save model
