@@ -160,6 +160,10 @@ class ProcessingView(ctk.CTkFrame):
         base = "Divide file into: "
         text = 'disabled' if not self.vars["signal sampling ckbox"].get() else self.vars["signal sampling"].get()
         self.vars["summary divide"].set(base + text)
+        
+    def trace_except_column(self, *args):
+        text = self.vars["except column"].get()
+        self.vars["summary except column"].set(text)
     
     def trace_fft(self, *args):
         base = self.vars["summary fft"].get()
@@ -331,6 +335,11 @@ class ProcessingView(ctk.CTkFrame):
         harmonics_nth_var = ctk.StringVar(value="Up to Nth: ")
         harmonics_nth_label = ctk.CTkLabel(master=harmonics_frame, textvariable=harmonics_nth_var)
         
+        #exception column
+        except_label = ctk.CTkLabel(master=summary_scrollable_frame, text="Exception column: ")
+        except_var = ctk.StringVar(value="Time")
+        except_label_variable = ctk.CTkLabel(summary_scrollable_frame, textvariable=except_var)
+        
         # ------------- FILEMANAGER ---------------
         output_label = ctk.CTkLabel(master=summary_scrollable_frame, text="Output management", font=('', 15))
         
@@ -427,27 +436,31 @@ class ProcessingView(ctk.CTkFrame):
         harmonics_frame.grid_columnconfigure(2, weight=20)
         harmonic_sep = Separator(master=harmonics_frame, orient='v')
         harmonic_sep.grid(row=0, column=1, rowspan=3, sticky="ns")
+        
         # separator row 40
-        # separator row 41
+        except_label.grid(row=41, column=0, sticky='w')
+        except_label_variable.grid(row=41, column=2, sticky='we')
         # separator row 42
-        output_label.grid(row=43, column=0, columnspan=3)
+        # separator row 43
         # separator row 44
-        random_key_label.grid(row=45, column=0, columnspan=3,  sticky='w')
+        output_label.grid(row=45, column=0, columnspan=3)
         # separator row 46
-        timestamp_label.grid(row=47, column=0, columnspan=3,  sticky='w')
+        random_key_label.grid(row=47, column=0, columnspan=3,  sticky='w')
         # separator row 48
-        keyword_label.grid(row=49, column=0, columnspan=3,  sticky='w')
+        timestamp_label.grid(row=49, column=0, columnspan=3,  sticky='w')
         # separator row 50
-        make_dataset_label.grid(row=51, column=0, columnspan=3, sticky='w')
+        keyword_label.grid(row=51, column=0, columnspan=3,  sticky='w')
         # separator row 52
-        filename_label.grid(row=53, column=0, columnspan=3,  sticky='w')
+        make_dataset_label.grid(row=53, column=0, columnspan=3, sticky='w')
         # separator row 54
-        save_under_label.grid(row=55, column=0, columnspan=3, sticky='w')
+        filename_label.grid(row=55, column=0, columnspan=3,  sticky='w')
+        # separator row 56
+        save_under_label.grid(row=57, column=0, columnspan=3, sticky='w')
         
         # ------------ SEPARATORS
         for row in range(0, 55, 1):
             if row in [0, 1, 2, 4, 6, 8, 10, 13, 16, 18, 20, 21, 22, 24, 26, 28, 30,
-                       32, 34, 36, 38, 40, 41, 42, 44, 46, 48, 50, 52, 54, ]:
+                       32, 34, 36, 38, 40, 42, 43, 44, 46, 48, 50, 52, 54, 56, ]:
                 sep = Separator(master=summary_scrollable_frame, orient='h')
                 sep.grid(row=row, column=0, columnspan=3, sticky="ew")
                 summary_scrollable_frame.grid_rowconfigure(row, weight=1)
@@ -481,6 +494,8 @@ class ProcessingView(ctk.CTkFrame):
         self.vars["summary harmonics type"] = harmonics_type_var
         self.vars["summary harmonics frequency"] = harmonics_freq_var
         self.vars["summary harmonics nth"] = harmonics_nth_var
+        
+        self.vars["summary except column"] = except_var
         
         self.vars["summary random key"] = random_key_var
         self.vars["summary timestamp"] = timestamp_var
@@ -805,6 +820,11 @@ class ProcessingView(ctk.CTkFrame):
         interpolation_entry_var = ctk.StringVar()
         interpolation_entry = ErrEntry(master=signal_frame, state='normal', textvariable=interpolation_entry_var)
         
+        # ------- EXCEPTION COLUMN
+        except_label = ctk.CTkLabel(master=signal_frame, text='Exception column')
+        except_var = ctk.StringVar(value="Time")
+        except_entry = ctk.CTkEntry(master=signal_frame, textvariable=except_var)
+        
         # ------ MANAGING WIDGETS
         behead_ckbox.grid(row=0, column=0, sticky='ew')
         behead_entry.grid(row=0, column=2, sticky='ew')
@@ -864,6 +884,10 @@ class ProcessingView(ctk.CTkFrame):
         nth_harmonics_label.grid(row=38, column=0,)
         nth_harmonics_entry.grid(row=38, column=2, sticky='ew')
         
+        # separators row 39
+        # separator row 40
+        except_label.grid(row=41, column=0, sticky='w')
+        except_entry.grid(row=41, column=2, sticky='we')
         
         # ------ SEPARATORS ------------
         signal_frame.grid_columnconfigure(0, weight=1)
@@ -873,8 +897,8 @@ class ProcessingView(ctk.CTkFrame):
             sep = Separator(master=signal_frame, orient='v')
             sep.grid(row=0, column=col, rowspan=39, sticky="ns")
             
-        for row in range(0, 39, 1):
-            if row in [1, 2, 4, 6, 8, 9, 11, 13, 15, 17, 18, 20, 22, 24, 26, 28, 30, 31, 33, 35, 37]:
+        for row in range(0, 41, 1):
+            if row in [1, 2, 4, 6, 8, 9, 11, 13, 15, 17, 18, 20, 22, 24, 26, 28, 30, 31, 33, 35, 37, 39, 40]:
                 sep = Separator(master=signal_frame, orient='h')
                 sep.grid(row=row, column=0, columnspan=3, sticky="ew")
                 signal_frame.grid_rowconfigure(row, weight=1)
@@ -936,6 +960,9 @@ class ProcessingView(ctk.CTkFrame):
         self.vars["signal harmonics ckbox"] = harmonics_filter_var
         self.vars["signal harmonics type"] = harmonics_type_var
         
+        self.vars["except column"] = except_var
+        self.entries["except column"] = except_entry
+        
         # --------- TRACE
         behead_sv.trace("w", self.trace_behead_checkbox_and_entry)
         behead_ckbox_var.trace("w", self.trace_behead_checkbox_and_entry)
@@ -965,6 +992,8 @@ class ProcessingView(ctk.CTkFrame):
         harmonics_filter_var.trace("w", self.trace_harmonics)
         nth_harmonics_sv.trace("w", self.trace_harmonics)
         freq_harmonics_sv.trace("w", self.trace_harmonics)
+        
+        except_var.trace("w", self.trace_except_column)
         
         # ------ CONFIGURE
         

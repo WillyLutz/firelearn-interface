@@ -150,7 +150,7 @@ Be aware that there must not be anything apart from the data and a row of header
 ### Column-based selection
 
 Allow to select the columns (electrodes, in case of MEA recordings) with a `mode` `metric` combination.
-Any column that contains 'time' (case-insensitive) in its header will be ignored.
+Any column that contains the [exception value](#exception-column) (case-sensitive) in its header will be ignored.
 
 ### Down sampling
 
@@ -191,7 +191,23 @@ Use a linear interpolation on the signal down to `n` final values. `n` must be i
 
 ### Averaging columns
 
-Average all columns (except the 'x' column, usually TimeStamp) into one column.
+Average all columns (except the [exception column](#exception-column), usually 
+the time) into one column.
+
+### Exception column
+
+Allow the user to specify a character chain that will exclude certain columns from the processing.
+If the entered value is **found** in a column name in the file, this column will then not be processed
+if possible (e.g. when [averaging columns](#averaging-columns), or [selecting columns](#column-based-selection))
+
+> <img src="data/help/yellow_warning.png" width="30 height=30">
+>
+> Note that this feature looks for the value in the column name, and does not require
+> the column name to be exactly the same as the Exception value.
+> 
+> e.g. 'Time' is found in 'TimeStamp [µs]' so this column will be excluded from processing.
+> However, 'time' is not found in the column name (case-sensitive function). 
+
 
 ### Resulting datasets
 
@@ -259,6 +275,46 @@ produce a `.txt` file that sums up all the processing steps used when exporting.
 
 
 # Learning
+At this moment, FireLearn offers only the possibility to use Random forest classifier. With time, many more algorithms
+will be added.
+
+## Random Forest classifier
+We use random forest classifier of the `scikit learn` library, as of version 1.3.1.
+On the left panel, there are the parameters than can be used with the RFC. To know how to modify them or what they are,
+please refer to
+[the scikit-learn documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html) .
+
+### Splitting
+On the middle panel, you can either split your dataset or train/test an RFC instance on your data.
+Either way, you need to load your dataset in the 'load dataset' section. It is recommended to keep a train/test ratio
+of 0.7 (70% of the data in the train set), as good practice, except for large datasets. The `Split` function will
+create two .csv files have the same name as the original dataset with `Xy_train` or `Xy_test`. Those sub datasets 
+are the ones to be used on the train and test sections, respectively. The split is done row-wisely. Before splitting,
+the dataset is randomly shuffled, and the splitting is done by respecting the ratio of elements in a column named `label`
+in the dataset that correspond to the labels of each row, usually obtained by the processing functions of the software. 
+
+In future versions, it will be possible to select the label column before splitting.
+
+### Training and testing
+After loading the train and test datasets, it is needed to select the target/label column. In the next field, 
+add the targets you wish to train your RFC instance on.
+
+Tre `Train/test iteration` option allows to train the model multiple times, and return average metrics in the right
+panel 'METRICS', and save le last trained.
+
+> <img src="data/help/yellow_warning.png" width="30" height="30">
+> 
+> In future versions, it will actually keep only the best performing model out of the n iterations,
+> instead of averaging results and returning the last trained.
+
+#### K-Fold Cross Validation
+You can choose to enable or disabled K-Fold cross validation using the Checkbox, and specifying a number of
+folds in the entry. It is recommended to keep it enabled to detect potential overfitting that may happen. 
+
+#### Saving
+at last, you can choose to save your trained RFC instance in order to use it later, such as when computing confusion 
+matrices. 
+
 
 # Analysis
 ## Plot

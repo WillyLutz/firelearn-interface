@@ -69,8 +69,7 @@ class ProcessingController:
                 if local_vars['signal select columns ckbox']:
                     n_columns = int(local_vars['signal select columns number'])
                 else:
-                    n_columns = int(len([col for col in example_dataframe.columns if "time" not in col.lower()]))
-                    # todo : allow to specify the excepted column
+                    n_columns = int(len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
                 
                 self.processing_progress = ProgressBar("Processing progression", app=self.view.app)
                 self.processing_progress.total_tasks = self.update_number_of_tasks(n_files, n_columns)
@@ -136,7 +135,7 @@ class ProcessingController:
                     if local_vars['signal select columns ckbox']:
                         self.processing_progress.update_task("Selecting columns")
                         df = dpr.top_n_electrodes(df, int(local_vars['signal select columns number']),
-                                                  "TimeStamp [µs]")
+                                                  except_column=self.model.vars["except column"])
                         self.processing_progress.increment_progress(1)
                     
                     # down sampling recordings
@@ -154,7 +153,7 @@ class ProcessingController:
                         # filtering
                         
                         if local_vars['signal filter']:
-                            for ch in [col for col in df_s.columns if "time" not in col.lower()]:
+                            for ch in [col for col in df_s.columns if self.model.vars["except column"] not in col]:
                                 self.processing_progress.update_task("Filtering")
                                 df_s_ch = df_s[ch]
                                 if local_vars['signal filter type'] == 'Highpass' and local_vars[
@@ -196,7 +195,7 @@ class ProcessingController:
                                 self.processing_progress.increment_progress(1)
                         
                         if local_vars['signal fft']:
-                            for ch in [col for col in df_s.columns if "time" not in col.lower()]:
+                            for ch in [col for col in df_s.columns if self.model.vars["except column"] not in col]:
                                 self.processing_progress.update_task("Fast Fourier Transform")
                                 df_s_ch = df_s[ch]
                                 # fast fourier
@@ -211,7 +210,10 @@ class ProcessingController:
                         # merge signal
                         if local_vars['signal average']:
                             self.processing_progress.update_task("Averaging signal")
-                            df_s = dpr.merge_all_columns_to_mean(df_s, "Frequency [Hz]").round(3)
+                            if local_vars['signal fft']:
+                                df_s = dpr.merge_all_columns_to_mean(df_s, "Frequency [Hz]").round(3)
+                            else:
+                                df_s = dpr.merge_all_columns_to_mean(df_s, self.model.vars["except column"]).round(3)
                             self.processing_progress.increment_progress(1)
                         
                         # interpolation signal
@@ -249,7 +251,7 @@ class ProcessingController:
                         dataframe = data[0]
                         file = data[1]
                         for col in dataframe.columns:
-                            if "time" not in col.lower() and "frequency" not in col.lower():
+                            if self.model.vars["except column"] not in col and "Frequency [Hz]" not in col:
                                 signal = dataframe[col].values
                                 dataset.loc[len(dataset)] = signal
                                 for key_target, value_target in self.model.targets.items():
@@ -700,6 +702,7 @@ class ProcessingController:
                  f"Type: {self.view.vars['signal harmonics type'].get()}\n"
                  f"Frequency (Hz): {self.view.vars['signal filter harmonic frequency'].get()}\n"
                  f"Up to Nth: {self.view.vars['signal filter nth harmonic'].get()}\n\n"
+                 f"Exception column from processing: {self.view.vars['except column'].get()}"
                  )
         
         text += f"{symbol_frame('.', text='Output management')}\n\n"
