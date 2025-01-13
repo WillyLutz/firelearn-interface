@@ -141,11 +141,11 @@ def top_n_electrodes(df, n, except_column="TimeStamp [µs]"):
     for c in dfc.columns:
         all_metric.append(np.std(dfc[c]))
     top_indices = sorted(range(len(all_metric)), key=lambda i: all_metric[i], reverse=True)[:n]
-
+    
     # creating resulting data
     for c in dfc.columns:
-        id = c.split(")")[0].split("=")[1]
-        if int(id) in top_indices:
+        index = dfc.columns.get_loc(c)
+        if index in top_indices:
             df_filtered[c] = dfc[c]
 
     return df_filtered
