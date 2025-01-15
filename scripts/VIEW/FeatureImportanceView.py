@@ -414,10 +414,7 @@ class FeatureImportanceView(ctk.CTkFrame):
     
     def manage_execution_frame(self, execution_frame):
         
-        load_config_button = ctk.CTkButton(master=execution_frame, text="Load config", fg_color="lightslategray",
-                                           width=120, height=40)
-        save_config_button = ctk.CTkButton(master=execution_frame, text="Save config", fg_color="lightslategray",
-                                           width=120, height=40)
+       
         draw_figure_button = ctk.CTkButton(master=execution_frame, text='Draw figure', fg_color='tomato',
                                            width=120,
                                            height=40)
@@ -425,16 +422,12 @@ class FeatureImportanceView(ctk.CTkFrame):
                                            height=40)
         
         # --------- MANAGE WIDGETS
-        
-        load_config_button.grid(row=0, column=0, padx=10, pady=10, sticky='w')
-        save_config_button.grid(row=0, column=1, padx=10, pady=10)
-        export_data_button.grid(row=1, column=0, padx=10, pady=10, sticky='w')
+
+        # export_data_button.grid(row=1, column=0, padx=10, pady=10, sticky='w') TODO: export FI data
         draw_figure_button.grid(row=1, column=1, padx=10, pady=10)
         
         # ------------ CONFIGURE
-        
-        save_config_button.configure(command=self.controller.save_config)
-        load_config_button.configure(command=self.controller.load_config)
+
         draw_figure_button.configure(command=self.controller.draw_figure)
         
         # ------------- STORE

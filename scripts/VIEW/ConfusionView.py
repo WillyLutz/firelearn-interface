@@ -518,39 +518,31 @@ class ConfusionView(ctk.CTkFrame):
 
     def manage_execution_frame(self, execution_frame):
 
-        load_config_button = ctk.CTkButton(master=execution_frame, text="Load config", fg_color="lightslategray",
-                                           width=120, height=40)
-        save_config_button = ctk.CTkButton(master=execution_frame, text="Save config", fg_color="lightslategray",
-                                           width=120, height=40)
-        save_figure_button = ctk.CTkButton(master=execution_frame, text="Save figure", fg_color="green", width=120,
-                                           height=40)
+     
+        # save_figure_button = ctk.CTkButton(master=execution_frame, text="Save figure", fg_color="green", width=120,
+        #                                    height=40)
         draw_figure_button = ctk.CTkButton(master=execution_frame, text='Compute confusion', fg_color='tomato', width=120,
                                            height=40)
-        export_data_button = ctk.CTkButton(master=execution_frame, text="Export data", fg_color="green", width=120,
-                                           height=40)
+        # export_data_button = ctk.CTkButton(master=execution_frame, text="Export data", fg_color="green", width=120,
+        #                                    height=40)
         update_figure_button = ctk.CTkButton(master=execution_frame, text="Update figure", width=120, height=40)
         
         
         # --------- MANAGE WIDGETS
         
-        load_config_button.grid(row=0, column=0, padx=10, pady=10, sticky='w')
-        save_config_button.grid(row=0, column=1, padx=10, pady=10)
-        save_figure_button.grid(row=0, column=2, padx=10, pady=10, sticky='e')
-        export_data_button.grid(row=1, column=0, padx=10, pady=10, sticky='w')
+        # save_figure_button.grid(row=0, column=2, padx=10, pady=10, sticky='e')
+        # export_data_button.grid(row=1, column=0, padx=10, pady=10, sticky='w')
         draw_figure_button.grid(row=1, column=1, padx=10, pady=10)
         update_figure_button.grid(row=1, column=2, padx=10, pady=10, sticky='e')
         
         # ------------ CONFIGURE
         
-        save_config_button.configure(command=self.controller.save_config)
-        load_config_button.configure(command=self.controller.load_config)
-        # save_figure_button.configure(command=partial(self.controller.save_figure, self.figures["confusion"][0]))
-        # export_data_button.configure(command=partial(self.controller.export_figure_data, self.figures["confusion"][1]))
+        # export_data_button.configure(command=partial(self.controller.export_figure_data, self.figures["confusion"][1])) todo : export conf matrix data
         draw_figure_button.configure(command=self.controller.compute_confusion)
         update_figure_button.configure(command=self.controller.update_figure)
         
         # ------------- STORE
-        self.buttons["save figure"] = save_figure_button
+        # self.buttons["save figure"] = save_figure_button
 
         
     def manage_confusion_tab(self):

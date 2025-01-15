@@ -317,12 +317,113 @@ matrices.
 
 
 # Analysis
-## Plot
+> <img src="data/help/tip.png" width="30" height="30">
+>
+>Note that on most analysis tabs, in the figure section, you have a toolbar directly issued from 
+> matplotlib. It will allow you to resize the figure, zoom in/out, save the figure, and other.
+
+> <img src="data/help/tip.png" width="30" height="30">
+>
+>Note that on most analysis tabs, only the `SPECIFIC PARAMETERS` panel will change significantly,
+> as the other sections are for the plot customization and not related to the data itself.
 
 ## Features importance
 
+> <img src="data/help/red_warning.png" width="30" height="30">
+> 
+> This feature has only been tested in the case of a RFC instance created using this software. 
+> It should be able to process any RFC instance created using scikit-learn if the versions are compatible,
+> but it has not been tested, so use at your own risk.
+
+This functionality allows the user to plot the relative feature importances of a loaded Random Forest 
+classifier, in the corresponding section in the middle panel `SPECIFIC PARAMETERS`. All the other options 
+on the other panels are to customize the plot such as the title, labels, axes, and so on. 
+
 ## Principal Component Analysis
+To use the principal component analysis, you first need to load your dataset using the `load dataset` button.
+
+If your dataset contains a column with 'label' or 'target' in its name, it will automatically be selected as
+the label column. Else, you need to select it manually using the combobox. 
+
+By default, no data is analyzed. To do so, use the `Add data +` (or `Add data -` to remove) to add
+data that will be analyzed. 
+
+The following section should appear in the middle panel:
+
+<img src="data/help/pca_add_data.png" width="300" height="300">
+
+The `label` combobox will allow you to select which label you want to analyze with PCA. The proposed values are
+based on the unique values in the `labels column` specified beforehand. Make sure your `labels column` is 
+correct.
+
+You can choose whether to fit, apply, or fit and apply the PCA transformation 
+on the said label. After this is customization for this label. 
+
+> <img src="data/help/yellow_warning.png" width="30" height="30">
+>
+> Beware, as scrolling the middle mouse button above a combobox will change its value. The scrolling of 
+> the panels with the middle mouse button are yet to be implemented.
+
+
+
 
 ## Confusion matrix
 
+The confusion matrix is a plot showing the prediction performance of a machine learning model on provided data.
+
+To use it, you will need to have a trained machine learning instance (at the moment, only RFC support is 
+provided), and a test dataset. 
+
+> <img src="data/help/red_warning.png" width="30" height="30">
+> 
+>You **MUST** have a test dataset, independent of a training dataset that have been used to train your machine learning
+> instance. Your machine learning instance must not have already seen any of the data present in 
+> your testing dataset, as this issue is known as 'data leakage', and will cause serious issues and may invalidate
+> any results obtained. To make sure that you produce no data leakage, you can use the [splitting](#splitting) feature
+> of the `Learning` section of this software, and use the `_Xy_train.csv` file to train your model and
+> the `_Xy_test.csv` file for your testing and analysis.
+
+Once the testing dataset and the classifier have been loaded, if your dataset contains a column 
+with 'label' or 'target' in its name, it will automatically be selected as the label column. 
+Else, you need to select it manually using the combobox. 
+
+> <img src="data/help/yellow_warning.png" width="30" height="30">
+>
+> When selecting a label column, its unique values will be shown as testing labels in
+> the corresponding section in the `SPECIFIC PARAMETERS` panel. If you miss click and no do select your 
+> label column, or if there is too many unique values to unpack, a warning window will pop up. It is 
+> advised to not proceed, as too many values to unpack may crash the software.
+
+The training section shows you what labels the machine learning instance has been trained to classify.
+The testing section allows you to select on which one of the labels contained in your dataset you want your 
+machine learning instance to predict.
+
+You can then choose to have to results presented on percentage or numeric mode, and whether you decide to 
+annotate only the CUPs (Confidence Upon Prediction) onto your confusion matrix or having also 
+the percentage/numerical value.
+
+
+Please note that `compute confusion` will do the whole computation and display the figure according to the specified
+parameters in the other panels, so the process may be long. If you only want to change the plot appearance
+(axes, titles...), please use the `update figure` button.
+
 # Miscellaneous
+
+Note that multiple features are already planned, such as simple data plot, spike detection, more machine learning
+models, more customization on some analysis types... for future versions. 
+
+However, if you have any suggestion, you are free and welcomed to use the [issues section](https://github.com/WillyLutz/firelearn-interface/issues)
+of the github repository, and to use the in-place tags system to specify your post, such as below.
+
+| Tag              | Description                                |
+|------------------|--------------------------------------------|
+| Bugs             | Something isn't working                    |
+| Documentation    | Improvements or additions to documentation |
+| Duplicate        | This issue or pull request already exists  |
+| Enhancement      | New feature or request                     |
+| Good first issue | Good for newcomers                         |
+| Help wanted      | Extra attention is needed                  |
+| Invalid          | This doesn't seem right                    |
+| Question         | Further information is requested           |
+| Wontfix          | This will not be worked on                 |
+
