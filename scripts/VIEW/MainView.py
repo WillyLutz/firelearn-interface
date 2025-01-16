@@ -26,7 +26,7 @@ class MainView(ttk.Frame):
         self.app.geometry("1440x900")
         self.app.resizable(1, 1)
         # self.app.configure(height=720, width=1080)
-        self.app.minsize(height=900, width=1440)
+        self.app.minsize(height=450, width=800)
 
         
 

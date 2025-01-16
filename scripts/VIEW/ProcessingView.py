@@ -346,7 +346,7 @@ class ProcessingView(ctk.CTkFrame):
         random_key_var = ctk.StringVar(value="Random key: disabled")
         timestamp_var = ctk.StringVar(value="Timestamp: disabled")
         keyword_var = ctk.StringVar(value="Keyword: disabled")
-        make_dataset_var = ctk.StringVar(value="Make files as dataset: disabled")
+        make_dataset_var = ctk.StringVar(value="Make files as dataset: enabled")
         filename_var = ctk.StringVar(value="Specified filename: disabled")
         save_under_var = ctk.StringVar(value="Save processed files under: ")
         
@@ -1061,7 +1061,7 @@ class ProcessingView(ctk.CTkFrame):
         keyword_sv = ctk.StringVar()
         keyword_entry = ErrEntry(master=filename_frame, state='normal', textvariable=keyword_sv)
         
-        make_dataset_var = ctk.IntVar(value=0)
+        make_dataset_var = ctk.IntVar(value=1)
         make_dataset_ckbox = ctk.CTkCheckBox(master=filename_frame,
                                             text="Make files as datasets", variable=make_dataset_var)
         save_files_exec_label = ctk.CTkLabel(master=filename_frame, text="Save processed files under:",

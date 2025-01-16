@@ -311,8 +311,8 @@ class LearningView(ctk.CTkFrame):
         
         # ----------- LOADING FRAME -------------------
         execution_label = ctk.CTkLabel(master=execution_frame, text="EXECUTION", font=('', 20))
-        save_config_button = ctk.CTkButton(master=execution_frame, text="Save config", fg_color="lightslategray")
-        load_config_button = ctk.CTkButton(master=execution_frame, text="Load config", fg_color="lightslategray")
+        # save_config_button = ctk.CTkButton(master=execution_frame, text="Save config", fg_color="lightslategray")
+        # load_config_button = ctk.CTkButton(master=execution_frame, text="Load config", fg_color="lightslategray")
         learning_button = ctk.CTkButton(master=execution_frame, text="Learning", fg_color="green")
         
         for i in [0, 1, 3, 4, 6, 8, 10, 12]:
@@ -320,18 +320,18 @@ class LearningView(ctk.CTkFrame):
             sep.grid(row=i, column=0, sticky='we')
         # -------- MANAGE WIDGETS
         execution_label.grid(row=2, column=0, sticky="we")
-        save_config_button.grid(row=5, column=0, sticky='we')
-        load_config_button.grid(row=7, column=0, sticky='we')
+        # save_config_button.grid(row=5, column=0, sticky='we')
+        # load_config_button.grid(row=7, column=0, sticky='we')
         learning_button.grid(row=11, column=0, sticky='we')
         
-        self.buttons["save config"] = save_config_button
-        self.buttons["load config"] = load_config_button
+        # self.buttons["save config"] = save_config_button
+        # self.buttons["load config"] = load_config_button
         self.buttons["learning"] = learning_button
         
         # ------------ CONFIGURE COMMANDS ---------------
         
-        load_config_button.configure(command=self.load_model)
-        save_config_button.configure(command=self.save_config)
+        # load_config_button.configure(command=self.load_model)
+        # save_config_button.configure(command=self.save_config)
         learning_button.configure(command=self.learning)
         
         

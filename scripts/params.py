@@ -13,8 +13,8 @@ def resource_path(relative_path):
 
 
 name = 'FireLearn GUI'
-version = "0.4.3"
-last_version_compatible = "0.3.1"
+version = "0.4.6"
+last_version_compatible = "0.4.0"
 description = "Description of FL project here"
 
 default_dataset_path = resource_path("path/of/your/dataset/here.csv")

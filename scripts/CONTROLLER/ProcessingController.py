@@ -459,6 +459,7 @@ class ProcessingController:
                 widget.insert(0, self.model.entries[key])
             else:
                 widget.configure(state='normal')
+                widget.delete(0, ctk.END)
                 widget.insert(0, self.model.entries[key])
                 widget.configure(state='disabled')
         
