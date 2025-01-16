@@ -426,8 +426,8 @@ class PcaController:
             self.view.labels_subframes[str(n_labels)] = label_data_subframe
             self.view.vars[f"label data {n_labels}"] = label_var
             self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
-            self.view.checkboxes[f"fit {n_labels}"] = fit_ckbox
-            self.view.checkboxes[f"apply {n_labels}"] = apply_ckbox
+            self.view.ckboxes[f"fit {n_labels}"] = fit_ckbox
+            self.view.ckboxes[f"apply {n_labels}"] = apply_ckbox
             self.view.vars[f"fit {n_labels}"] = fit_var
             self.view.vars[f"apply {n_labels}"] = apply_var
             self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
@@ -473,8 +473,8 @@ class PcaController:
             del self.view.vars[f"fit {n_labels}"]
             del self.view.vars[f"apply {n_labels}"]
             del self.view.vars[f"alpha {n_labels}"]
-            del self.view.checkboxes[f"fit {n_labels}"]
-            del self.view.checkboxes[f"apply {n_labels}"]
+            del self.view.ckboxes[f"fit {n_labels}"]
+            del self.view.ckboxes[f"apply {n_labels}"]
             
             self.model.n_labels -= 1
     

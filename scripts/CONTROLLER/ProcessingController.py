@@ -415,6 +415,10 @@ class ProcessingController:
                 for key, value in widgets.items():
                     local_dict[key] = value.get(1.0, tk.END)
                 self.model.textboxes.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkCheckBox:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
+                self.model.ckboxes.update(local_dict)
     
     def update_number_of_tasks(self, n_file, n_col, ):
         local_vars = self.model.vars
@@ -465,17 +469,28 @@ class ProcessingController:
         
         for key, widget in self.view.switches.items():
             if widget.cget('state') == 'normal':
-                if self.model.switches[key]:
+                if key in self.model.switches.keys():
                     widget.select()
                 else:
                     widget.deselect()
                     
         for key, widget in self.view.ckboxes.items():
             if widget.cget('state') == 'normal':
-                if self.model.checkboxes[key]:
-                    widget.select()
-                else:
-                    widget.deselect()
+                if key in self.model.ckboxes.keys():
+                    if self.model.ckboxes[key] == 1:
+                        widget.select()
+                    else:
+                        widget.deselect()
+            else:
+                widget.configure(state='normal')
+                if key in self.model.ckboxes.keys():
+                    if self.model.ckboxes[key] == 1:
+                        widget.select()
+                    else:
+                        widget.deselect()
+                widget.configure(state='disabled')
+
+
         
         for key, widget in self.view.textboxes.items():
             MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
@@ -492,12 +507,10 @@ class ProcessingController:
     
     def save_config(self, ):
         if self.check_params_validity():
-            self.update_params(self.view.entries)
-            self.update_params(self.view.cbboxes)
-            self.update_params(self.view.sliders)
-            self.update_params(self.view.vars)
-            self.update_params(self.view.switches)
-            self.update_params(self.view.textboxes)
+            for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
+                            self.view.switches, self.view.textboxes, self.view.labels]:
+                self.update_params(widgets)
+            
             
             f = filedialog.asksaveasfilename(defaultextension=".pcfg",
                                              filetypes=[("Processing", "*.pcfg"), ])

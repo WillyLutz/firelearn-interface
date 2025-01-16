@@ -23,7 +23,7 @@ class ProcessingModel:
         self.vars = {}
         self.switches = {}
         self.sliders = {}
-        self.checkboxes = {}
+        self.ckboxes = {}
         self.textboxes = {}
         self.canvas = {}
         self.figures = {}

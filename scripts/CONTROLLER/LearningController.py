@@ -15,6 +15,8 @@ from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.MODEL.ClfTester import ClfTester
 from scripts.MODEL.LearningModel import LearningModel
 from scripts.CONTROLLER.MainController import MainController
+from scripts.WIDGETS.ErrEntry import ErrEntry
+
 
 class LearningController:
     def __init__(self, view,):
@@ -104,9 +106,10 @@ class LearningController:
 
     def learning(self, ):
         if self.check_params_validity():
-            self.update_params(self.view.entries)
-            self.update_params(self.view.cbboxes)
-            self.update_params(self.view.switches)
+            for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
+                            self.view.switches, self.view.textboxes, ]:
+                self.update_params(widgets)
+            self.update_rfc_params(self.view.rfc_params_stringvar)
 
             self.progress = ProgressBar("Learning", self.view.app)
             self.progress.daemon = True
@@ -384,33 +387,52 @@ class LearningController:
             messagebox.showerror("Missing value", "Targets are needed to train a Random Forest Classifier.")
             return False
         return True
-
+    
+    def update_rfc_params(self, rfc_params):
+        local_dict = {}
+        for key, value in rfc_params.items():
+            local_dict[key] = value.get()
+            
+        self.model.rfc_params_stringvar.update(local_dict)
+    
     def update_params(self, widgets: dict, ):
-        if len(widgets) > 0:
-            local_dict = {}
-            for key, value in widgets.items():
-                if type(value) == ctk.CTkTextbox:
-                    local_dict[key] = value.get('1.0', tk.END)
-                else:
+        local_dict = {}
+        if len(widgets.items()) > 0:
+            if type(list(widgets.values())[0]) == ctk.StringVar or \
+                    type(list(widgets.values())[0]) == ctk.IntVar or \
+                    type(list(widgets.values())[0]) == ctk.DoubleVar:
+                for key, value in widgets.items():
                     local_dict[key] = value.get()
+                self.model.vars.update(local_dict)
             if type(list(widgets.values())[0]) == ctk.CTkSwitch:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
                 self.model.switches.update(local_dict)
-            if type(list(widgets.values())[0]) == ctk.CTkEntry:
+            if (type(list(widgets.values())[0]) == ctk.CTkEntry or
+                    type(list(widgets.values())[0]) == ErrEntry):
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
                 self.model.entries.update(local_dict)
             if type(list(widgets.values())[0]) == tk.ttk.Combobox:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
                 self.model.cbboxes.update(local_dict)
             if type(list(widgets.values())[0]) == ctk.CTkTextbox:
                 local_dict = {}
                 for key, value in widgets.items():
-                    local_dict[key] = value.get('1.0', tk.END)
+                    local_dict[key] = value.get(1.0, tk.END)
                 self.model.textboxes.update(local_dict)
+            if type(list(widgets.values())[0]) == ctk.CTkCheckBox:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
+                self.model.ckboxes.update(local_dict)
 
     def save_model(self, ):
         if self.check_params_validity():
-            self.update_params(self.view.entries)
-            self.update_params(self.view.cbboxes)
-            self.update_params(self.view.switches)
-            self.update_params(self.view.textboxes)
+            for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
+                            self.view.switches, self.view.textboxes, self.view.labels, ]:
+                self.update_params(widgets)
+            self.update_rfc_params(self.view.rfc_params_stringvar)
 
             f = filedialog.asksaveasfilename(defaultextension=".lcfg",
                                              filetypes=[("Learning configuration", "*.lcfg"), ])
@@ -423,9 +445,11 @@ class LearningController:
             if self.model.load_model(path=f):
                 self.reload_rfc_params(self.view.rfc_params_stringvar)
                 self.update_view_from_model()
-
+    
     def update_view_from_model(self, ):
-
+        for key, widget in self.view.vars.items():
+            widget.set(self.model.vars[key])
+            
         for key, widget in self.view.cbboxes.items():
             if widget.cget('state') == "normal":
                 widget.set(self.model.cbboxes[key])
@@ -440,24 +464,42 @@ class LearningController:
                 widget.insert(0, self.model.entries[key])
             else:
                 widget.configure(state='normal')
+                widget.delete(0, ctk.END)
                 widget.insert(0, self.model.entries[key])
                 widget.configure(state='disabled')
-
+        
         for key, widget in self.view.switches.items():
             if widget.cget('state') == 'normal':
-                if self.model.switches[key]:
+                if key in self.model.switches.keys():
                     widget.select()
                 else:
                     widget.deselect()
-
-        # for key, widget in self.view.textboxes.items():
-        #     MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
+        
+        for key, widget in self.view.ckboxes.items():
+            if widget.cget('state') == 'normal':
+                if key in self.model.ckboxes.keys():
+                    if self.model.ckboxes[key] == 1:
+                        widget.select()
+                    else:
+                        widget.deselect()
+            else:
+                widget.configure(state='normal')
+                if key in self.model.ckboxes.keys():
+                    if self.model.ckboxes[key] == 1:
+                        widget.select()
+                    else:
+                        widget.deselect()
+                widget.configure(state='disabled')
+        
+        for key, widget in self.view.textboxes.items():
+            MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
+    
     def save_config(self, ):
         if self.check_params_validity():
-            self.update_params(self.view.entries)
-            self.update_params(self.view.cbboxes)
-            self.update_params(self.view.vars)
-            self.update_params(self.view.switches)
+            for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
+                            self.view.switches, self.view.textboxes, ]:
+                self.update_params(widgets)
+            self.update_rfc_params(self.view.rfc_params_stringvar)
 
             f = filedialog.asksaveasfilename(defaultextension=".rfcfg",
                                              filetypes=[("Learning - Random forest", "*.rfcfg"), ])

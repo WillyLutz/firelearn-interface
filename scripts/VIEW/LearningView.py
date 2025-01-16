@@ -27,7 +27,7 @@ class LearningView(ctk.CTkFrame):
         self.cbboxes = {}
         self.vars = {}
         self.switches = {}
-        self.checkboxes = {}
+        self.ckboxes = {}
         self.rfc_params_stringvar = {}
         self.textboxes = {}
         self.sliders = {}
