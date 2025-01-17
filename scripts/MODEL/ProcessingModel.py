@@ -2,7 +2,7 @@ import pickle
 from tkinter import messagebox
 
 from scripts import params
-from packaging import version
+from packaging.version import Version
 
 class ProcessingModel:
 
@@ -32,8 +32,10 @@ class ProcessingModel:
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
-            if version.parse(attr_dict["version"]) >= version.parse(params.last_version_compatible):
+            if Version(attr_dict["version"]) >= Version(params.last_version_compatible):
                 self.__dict__.update(attr_dict)
+                self.version = params.version
+
                 messagebox.showinfo("Info", f"Processing configuration correctly loaded.\nVersion {self.version}")
                 return True
             else:

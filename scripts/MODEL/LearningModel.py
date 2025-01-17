@@ -1,6 +1,8 @@
 import pickle
 from tkinter import messagebox
 
+from packaging.version import Version
+
 from scripts import params
 from packaging import version
 
@@ -36,8 +38,9 @@ class LearningModel:
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
-            if version.parse(attr_dict["version"]) >= version.parse(params.last_version_compatible):
+            if Version(attr_dict["version"]) >= Version(params.last_version_compatible):
                 self.__dict__.update(attr_dict)
+                self.version = params.version
                 messagebox.showinfo("Info", f"Learning configuration correctly loaded.\nVersion {self.version}")
                 return True
             else:
@@ -52,6 +55,7 @@ class LearningModel:
     def save_model(self, path):
         try:
             attr_dict = self.__dict__
+            
             pickle.dump(attr_dict, open(path, "wb"))
             messagebox.showinfo("Info", f"Learning configuration correctly saved.\nVersion {self.version}")
         except Exception as e:
