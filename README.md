@@ -1,4 +1,4 @@
-# FireLearn GUI v0.5.0-alpha: Walkthrough tutorial
+# FireLearn GUI v0.5.1-alpha: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 
 This README file will use the firelearnGUI_demo data set as example. The archive being too big to host on github,

@@ -1,5 +1,7 @@
 import os
 import time
+import sys
+import tkinter
 from datetime import datetime
 from functools import partial
 from tkinter import PhotoImage
@@ -41,7 +43,7 @@ class App(ctk.CTk):
         plt.close('all')
         self.quit()
         self.destroy()
-        exit()
+        sys.exit()
         
 
 
@@ -49,7 +51,15 @@ class App(ctk.CTk):
 class Splash(ctk.CTkToplevel):
     def __init__(self, parent):
         ctk.CTkToplevel.__init__(self, parent)
-        self.wm_attributes('-type', 'splash')
+        try:
+            self.wm_attributes('-type', 'splash')
+        except tkinter.TclError: # we launch the app most likely on windows
+            self.wm_attributes('-disabled', 1)
+            self.wm_attributes('-topmost', 1)
+            self.wm_attributes('-toolwindow', 1)
+
+            self.title(f'FireLearn GUI v{params.version} - loading')
+
         self.geometry("500x316")
         self.resizable(False, False)
         
