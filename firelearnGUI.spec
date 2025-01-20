@@ -5,13 +5,14 @@ a = Analysis(
     ['firelearnGUI.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:\\Users\\wlutz\\PycharmProjects\\firelearn-interface\\venv\\Lib\\site-packages\\customtkinter', '.'), ('C:\\Users\\wlutz\\PycharmProjects\\firelearn-interface\\data', 'data')],
+    datas=[('C:/Users/wlutz/PycharmProjects/firelearn-interface/venv/Lib/site-packages/customtkinter', 'customtkinter'), ('C:/Users/wlutz/PycharmProjects/firelearn-interface/data', 'data')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
+    optimize=0,
 )
 pyz = PYZ(a.pure)
 
