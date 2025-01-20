@@ -23,3 +23,5 @@ class ErrEntry(ctk.CTkEntry):
     def set_error(self, message):
         self.error_message.set(message)
 
+    def clean_error(self):
+        self.error_message.set("")

@@ -1,5 +1,8 @@
 # FireLearn GUI v0.5.0-alpha: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
+
+This README file will use the firelearnGUI_demo data that is available on the github in the `demo` folder as a 
+.zip file.
 # Processing
 
 
@@ -22,34 +25,35 @@ For this document we will proceed considering this recommended directory structu
 ```
 DATA (most parent common directory)
 │
-└───T0
-│   └───INF
+└───condA
+│   └───sample1
 │   │   file.txt
-│   │   file1_Analog.csv
-│   │   file2_Analog.csv
-│   │   file3_Analog.csv
-│   │   file4_Analog.csv
-│   └───MOCK
-│   │   └───[...]
-│   └───SPIKE
-│   │   └───[...]
-└───T30
+│   │   rec1_Analog.csv
+│   │   rec2_Analog.csv
+│   │   rec3_Analog.csv
+│   │   some_useless_file_Analog1.txt
+│   └───sample2
+│       └───[...]
+└───condB
 │   └───[...]
-└───T24
+└───condC
     └───[...]
 ```
 ### Processing steps
-In the processing tab, you will find three image buttons, representing respectively `File selection`, `Signal processing`
+In the processing tab <img src="data/help/firelearn_tabs.png" width="200" height="40" style="vertical-align:middle"> ,
+you will find three image buttons, representing respectively `File selection`, `Signal processing`
 , and `File name post-processing` as below:
 
 <img src="data/firelearn_img/filesorter_blue.png" width="70" height="70">
 <img src="data/firelearn_img/signal_blue.png" width="70" height="70">
 <img src="data/firelearn_img/filename_blue.png" width="70" height="70">
 
-When clicking those, the middle panel will change accordingly, allowing you to specify the different processing steps 
+Clicking those will change the middle panel accordingly, allowing you to specify the different processing steps 
 you wish to apply to your files and data. These buttons will change colors depending on the 
 [step value verification](#check-all-steps), as green for no errors detected, red for errors detected, blue for 
 current selected panel (will also grow bigger), and gray for unvisited panel.
+
+For the demonstration purpose, all the functions available will be enabled.
 
 ## Sorting multiple files
 
@@ -72,7 +76,7 @@ refer to [the include/exclude option](#include-and-exclude-files-for-the-process
 ### Include and exclude files for the processing
 With this functionality, you can specify which file to include or exclude from the selection.
 Both the inclusion and exclusion works by looking at the content of the absolute paths of the files 
-(e.g. `H:\Electrical activity\DATA\T0\INF\Electrode Raw Data1_Analog.csv`). 
+(e.g. `H:\Electrical activity\DATA\condA\sample1\rec1_Analog.csv`). 
 
 As such, the inclusion uses the AND logic operator : 
 **The file is included if ALL the `to include` specifications are present in the absolute path**.
@@ -106,9 +110,11 @@ attributed to an entry.
 E.g. : As per the following figure, only the files that contains  "Analog.csv" **AND** "T0" **AND DO NOT CONTAIN** "TTX"
 in their absolute paths will be used for further processing.
 
-<img height="460" width="660" src="data/help/include_exclude.png" />
+<img height="403" width="666" src="data/help/include_exclude.png" />
 
-
+In our demonstration, we want to have our three conditions condA, condB, and condC. However,
+we want to rename them for the final dataset. Thus, we indicate the couples `condA` => `targetA`,
+`condB` => `targetB`, and `condC` => `targetC`, as `Target key` and `Target value` respectively.
 
 
 > <img height="30" width="30" src="data/help/yellow_warning.png" />
@@ -122,14 +128,17 @@ in their absolute paths will be used for further processing.
 > is a word in itself. It will only look at the sequence character-wise. As such when choosing the 
 > sequences you want to include or exclude, be aware of what can be in your absolute paths.
 > 
-> > E.g.: Your project is in a folder named 'HIV PROJECT', and further away in the children folders
-> > you name the different recording conditions such as 'NI' (not infected), 'HIV' (infected by HIV)
-> > BUT to select the files you specify in To exclude 'HIV', **all of your files will be excluded since
-> > 'HIV' as a sequence is also present in the project folder 'HIV PROJECT' and not only as a 'condition'**.
-> > 
-> > To remediate to such issue, it is possible to look for the sequence '/HIV/' (use your operating system path 
-> > separator) instead to ensure that we only look
-> > at the folder named 'HIV' and not 'HIV PROJECT'.
+
+> <img height="30" src="data/help/tip.png" width="30"/>
+>
+> E.g.: Your project is in a folder named 'HIV PROJECT', and further away in the children folders
+> you name the different recording conditions such as 'NI' (not infected), 'HIV' (infected by HIV)
+> BUT to select the files you specify in To exclude 'HIV', **all of your files will be excluded since
+> 'HIV' as a sequence is also present in the project folder 'HIV PROJECT' and not only as a 'condition'**.
+> 
+> To remediate to such issue, it is possible to look for the sequence '/HIV/' (use your operating system path 
+> separator) instead to ensure that we only look
+> at the folder named 'HIV' and not 'HIV PROJECT'.
 
 
 > <img height="30" src="data/help/tip.png" width="30"/>
@@ -141,10 +150,17 @@ in their absolute paths will be used for further processing.
 In order to process a single file, switch on the corresponding switch and select the wanted file
 using the `Open` button.
 
+On this demo, we will not use the 'Single file processing' option. Note that it is not compatible with the
+[sorting multiple files](#sorting-multiple-files) option.
+
+
+At this point, our summary of the 'File sorting' panel section should look like this:
+<img height="450" src="data/help/summary_processing_screenshot.png">
+
 ### File beheading
 This functionality simply behead the file a specified number of rows. In the case of normed files from
-MEA recordings , there is a header of 6 rows containing metadata before the actual recording data. 
-Be aware that there must not be anything apart from the data and a row of headers.
+MEA recordings (as is our example), there is a header of 6 rows containing metadata before the actual recording data. 
+Be aware that there must not be anything apart from the data and a row of headers for further processing.
 
 
 ### Column-based selection
@@ -152,11 +168,15 @@ Be aware that there must not be anything apart from the data and a row of header
 Allow to select the columns (electrodes, in case of MEA recordings) with a `mode` `metric` combination.
 Any column that contains the [exception value](#exception-column) (case-sensitive) in its header will be ignored.
 
+In our demo we choose to keep the 35 columns with the biggest (max) standard deviation (std).
+
 ### Down sampling
 
 This functionality will divide row-wisely every file in `n` selected pieces of equal lengths.
 e.g. In our walkthrough example, we use 1 minute long recordings.
 Specifying a down sampling at `30` implies that the recordings will be divided in 30 pieces of 2 seconds.
+
+In our demo, we choose to use 20, as it will produce sub-samples of 3 seconds.
 
 > <img src="data/help/red_warning.png" width="30" height="30">
 >
@@ -180,25 +200,36 @@ E.g. with an harmonic frequency of 100 Hz, filtering the odd harmonics up to the
 following frequencies : 
 _100 Hz(1st), 300 Hz(3rd), 500 Hz(5th), 700 Hz(7th), 900 Hz(9th)_
 
+For the demonstration, we use the following parameters (screenshot from the summary panel):
+
+<img src="data/help/firelearn_demo_filtering.png" width="300">
+
 ### Fast Fourier Transform
 
 Applies a Fast Fourier Transform to the data (post-filtering, if the filtering is enabled). 
 The sampling rate must be specified.
 
+In the demonstration case, we have a sampling rate of 10000 Hz
+
 ### Interpolation
 
 Use a linear interpolation on the signal down to `n` final values. `n` must be inferior to the number of data point.
+
+For the demonstration we choose to down-interpolate the 10000 values into 1000 values.
 
 ### Averaging columns
 
 Average all columns (except the [exception column](#exception-column), usually 
 the time) into one column.
 
+We enable this feature in the demonstration.
 ### Exception column
 
 Allow the user to specify a character chain that will exclude certain columns from the processing.
 If the entered value is **found** in a column name in the file, this column will then not be processed
 if possible (e.g. when [averaging columns](#averaging-columns), or [selecting columns](#column-based-selection))
+
+In our demonstration, we choose to except our column `Time`.
 
 > <img src="data/help/yellow_warning.png" width="30 height=30">
 >
@@ -224,6 +255,8 @@ if possible (e.g. when [averaging columns](#averaging-columns), or [selecting co
 Enabling this feature will merge all the processed files issued from the 
 [signal averaging](#averaging-columns) such as each merged signal results in one row in the dataset.
 
+We enable this feature for the demonstration.
+
 ### Post-processing
 
 The `Add random key` option allows to add a random key as combination of 6 alphanumerical characters to the 
@@ -243,7 +276,14 @@ The `Specify file name` allows the user to specify the file name(s). A tag '_FL_
 
 The `Save processed files under` allow to specify the directory where the resulting files will be saved.
 
+For the demonstration, you are free to specify what you wish. In our case, all specifications are disable 
+except for the `Specify file name` set to `demo_dataset`. The dataset is daved under the `DATASETS` forlder
+of the demonstration.
 
+Note that the extension is not required when specifying a file name.
+
+Then, you can click the `Process` button to start the processing (this operation may be a bit time-consuming depending
+on the scale of the processing).
 ### Miscellaneous
 
 #### Check all steps
@@ -295,6 +335,8 @@ in the dataset that correspond to the labels of each row, usually obtained by th
 
 In future versions, it will be possible to select the label column before splitting.
 
+For the demonstration, we split our previously computed dataset with a 0.7 ratio.
+
 ### Training and testing
 After loading the train and test datasets, it is needed to select the target/label column. In the next field, 
 add the targets you wish to train your RFC instance on.
@@ -307,14 +349,50 @@ panel 'METRICS', and save le last trained.
 > In future versions, it will actually keep only the best performing model out of the n iterations,
 > instead of averaging results and returning the last trained.
 
+In our demonstration case, our label column is `label`, and we want to train our model on targets `targetA` 
+and `targetB`. 
+
+You can specify the model hyperparameters on the left panel. They are at the documentation state by default.
+To know what are the allowed values, please refer to
+[the scikit-learn documentation](https://scikit-learn.org/1.5/modules/generated/sklearn.ensemble.RandomForestClassifier.html).
+
+As quick start, you can change the `n_estimator params` that represents the number of trees in the forest and
+the `criterion` which is the function to measure the quality of a split. For our demo, we set them as
+`150` and `entropy` respectively.
+
+
 #### K-Fold Cross Validation
 You can choose to enable or disabled K-Fold cross validation using the Checkbox, and specifying a number of
 folds in the entry. It is recommended to keep it enabled to detect potential overfitting that may happen. 
+
+Usually, it is preferred to keep it between 5 and 15, depending on the size of you dataset, 5 being better for
+small datasets and 15 for big datasets. You are however free to go above 15 if you consider you dataset
+to be big enough. 
+
+The risk of overfitting can be subjectively considered depending on the K-Fold CV scores, such as below.
+
+> Note: Those are only subjective indicators, and may or may not be appropriate considering your problematic
+
+| Range (%) | Overfitting risk                 |
+|-----------|----------------------------------|
+| 0-2       | Minor                            |
+| 2-5       | Moderate                         |
+| 5-10      | Significant                      |
+| 10-100    | Very high                        |
+
+In the demonstration case, we have the following metrics after fitting:
+
+<img src="data/help/firelearn_demo_metrics.png" width="300" >
+
+> Note: Those metrics may change slightly between users, and between each run, as some steps
+> in the learning and in the processing involve random steps (shuffling, etc.).
 
 #### Saving
 at last, you can choose to save your trained RFC instance in order to use it later, such as when computing confusion 
 matrices. 
 
+
+For the demonstration purpose we save it as `MODELS/demo_classifier.rfc`
 
 # Analysis
 > <img src="data/help/tip.png" width="30" height="30">
@@ -331,13 +409,19 @@ matrices.
 
 > <img src="data/help/red_warning.png" width="30" height="30">
 > 
-> This feature has only been tested in the case of a RFC instance created using this software. 
+> This feature has only been tested in the case of an RFC instance created using this software. 
 > It should be able to process any RFC instance created using scikit-learn if the versions are compatible,
 > but it has not been tested, so use at your own risk.
 
 This functionality allows the user to plot the relative feature importances of a loaded Random Forest 
 classifier, in the corresponding section in the middle panel `SPECIFIC PARAMETERS`. All the other options 
 on the other panels are to customize the plot such as the title, labels, axes, and so on. 
+
+In the demonstration case, after loading the previously fitted model, tweaking some plot parameters, and drawing
+the figure, we should have something similar :
+
+<img src="data/help/feature_importance_demo.png" width="300" >
+
 
 ## Principal Component Analysis
 To use the principal component analysis, you first need to load your dataset using the `load dataset` button.
@@ -364,7 +448,16 @@ on the said label. After this is customization for this label.
 > Beware, as scrolling the middle mouse button above a combobox will change its value. The scrolling of 
 > the panels with the middle mouse button are yet to be implemented.
 
+For the demonstration we chose to fit our PCA on ours targets `targetA` and `targetC`, and apply
+on our three targets, as in the following screenshot:
 
+<img src="data/help/pca_data_demo.png" width="250" >
+
+
+Computing the PCA and drawing it (after tweaking some graphical parameters) would show 
+results similar as the following:
+
+<img src="data/help/pca_demo.png" width="300" >
 
 
 ## Confusion matrix
@@ -402,18 +495,48 @@ You can then choose to have to results presented on percentage or numeric mode, 
 annotate only the CUPs (Confidence Upon Prediction) onto your confusion matrix or having also 
 the percentage/numerical value.
 
+> <img src="data/help/tip.png" width="30" height="30">
+>
+> Note that `compute confusion` will do the whole computation and display the figure according to the specified
+> parameters in the other panels, so the process may be long. If you only want to change the plot appearance
+> (axes, titles...), please use the `update figure` button.
 
-Please note that `compute confusion` will do the whole computation and display the figure according to the specified
-parameters in the other panels, so the process may be long. If you only want to change the plot appearance
-(axes, titles...), please use the `update figure` button.
+In our demonstration, we loaded the `demo_dataset_Xy_test.csv` dataset, and enabled the classification
+on all three of our targets A, B and C. After computing, we obtained a result similar as following: 
+
+<img src="data/help/confusion_demo.png" width="300" >
+
+> <img src="data/help/red_warning.png" width="30" height="30">
+>
+> As of now, you can not choose the position of the columns and rows, and they will appear on
+> a basis of "first-encountered in the dataset, first-drawn" which can be highly inconvenient for readability purpose.
+> Note that this issue is in our priority list to fix for future versions.
+
+
 
 # Miscellaneous
+## Plot customization toolbar
+For every plot, after drawing, you will have access to the following toolbar under the plot canvas:
 
+<img src="data/help/plt_toolbar.png" width="200" >
+
+This will allow you to navigate in your plot with the following functionalities respectively:
+
+* "Home" : Reset to original view
+* "Left arrow" : Back to previous view
+* "Right arrow" : Forward to next view
+* "Cross arrow" : Move and slide in the plot. The left button pans, the right button zooms. Holding CTRL keep 
+the aspect. 
+* "Lens" : Zoom in with left click, zoom out with right click.
+* "Configure": configure plot aspect (spaces on the sides of the figure etc.)
+* "Save" : save the figure as it is now (keep the changes done with the previous tools).
+
+## Issues and suggestions
 Note that multiple features are already planned, such as simple data plot, spike detection, more machine learning
 models, more customization on some analysis types... for future versions. 
 
 However, if you have any suggestion, you are free and welcomed to use the [issues section](https://github.com/WillyLutz/firelearn-interface/issues)
-of the github repository, and to use the in-place tags system to specify your post, such as below.
+of the GitHub repository, and to use the in-place tags system to specify your post, such as below.
 
 | Tag              | Description                                |
 |------------------|--------------------------------------------|
