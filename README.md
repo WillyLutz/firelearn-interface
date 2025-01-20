@@ -1,8 +1,10 @@
 # FireLearn GUI v0.5.0-alpha: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 
-This README file will use the firelearnGUI_demo data that is available on the github in the `demo` folder as a 
-.zip file.
+This README file will use the firelearnGUI_demo data set as example. The archive being too big to host on github,
+the dataset can be sent via filesender link upon request by e-mail (at willy.lutz@irim.cnrs.fr) by specifying 
+in the object "Firelearn GUI demo dataset" . A filesender link to download the demo dataset 
+will then be sent to you.
 # Processing
 
 
