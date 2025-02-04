@@ -48,11 +48,11 @@ class App(ctk.CTk):
         self.withdraw()
         plt.close('all')
         self.quit()
-        self.destroy()
+        # self.destroy()
         end_closing = datetime.now()
         print("Closing time:", end_closing - start_closing)
         
-        sys.exit()
+        # sys.exit()
         
 
 
