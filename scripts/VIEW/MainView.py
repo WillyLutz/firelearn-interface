@@ -57,6 +57,7 @@ class MainView(ttk.Frame):
         self.load_analysis_menu.add_command(label="Feature importance (.ficfg)...", command=self.load_importance_config)
         self.load_analysis_menu.add_command(label="PCA (.pcacfg)...", command=self.load_pca_config)
         self.load_analysis_menu.add_command(label="Confusion matrix (.confcfg)...", command=self.load_confusion_config)
+        self.load_analysis_menu.add_command(label="Spike detection (.skcfg)...", command=self.load_spike_config)
 
         # --- save config menu
         self.save_config_menu.add_command(label="Processing (.pcfg)...", command=self.save_processing_config)
@@ -69,7 +70,8 @@ class MainView(ttk.Frame):
         self.save_analysis_menu.add_command(label="Feature importance (.ficfg)...", command=self.save_importance_config)
         self.save_analysis_menu.add_command(label="PCA (.pcacfg)...", command=self.save_pca_config)
         self.save_analysis_menu.add_command(label="Confusion matrix (.confcfg)...", command=self.save_confusion_config)
-        
+        self.save_analysis_menu.add_command(label="Spike detection (.skcfg)...", command=self.save_spike_config)
+
         
         self.menu_help = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_help.add_command(label="Help")
@@ -268,6 +270,9 @@ class MainView(ttk.Frame):
     def load_confusion_config(self):
         pass # todo : implement plot load model
     
+    def load_spike_config(self):
+        self.analysis_view.spike_view.load_config()
+    
     def save_processing_config(self):
         self.processing_view.save_config()
     
@@ -285,3 +290,6 @@ class MainView(ttk.Frame):
     
     def save_confusion_config(self):
         pass  # todo : implement plot save model
+    
+    def save_spike_config(self):
+        self.analysis_view.spike_view.save_config()

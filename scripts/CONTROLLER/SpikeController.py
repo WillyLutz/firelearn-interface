@@ -1,3 +1,5 @@
+import multiprocessing
+from datetime import datetime
 from functools import partial
 
 import numpy as np
@@ -7,12 +9,14 @@ from matplotlib import pyplot as plt
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+from scripts.CONTROLLER import data_processing
 from scripts.CONTROLLER.MainController import MainController
 from scripts.MODEL.SpikeModel import SpikeModel
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from scripts import params as p
+from scripts.PROCESSES.SpikeDetector import SpikeDetectorProcess
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Separator import Separator
 from scripts.params import resource_path
@@ -89,34 +93,51 @@ class SpikeController:
             return False
         return True
     
-    def save_config(self, ):
-        if self.check_params_validity():
-            f = filedialog.asksaveasfilename(defaultextension=".spkcfg",
-                                             filetypes=[("Analysis - Simple plot", "*.spkcfg"), ])
-            if f:
-                self.model.save_model(path=f, )
-    
-    def load_config(self, ):
-        f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Simple plot", "*.spkcfg"),))
-        if f:
-            if self.model.load_model(path=f):
-                self.update_view_from_model()
-                # todo : does not work because widgets are not created while the top-levels are not created
-    
     def update_view_from_model(self, ):
         
-        for key, value in self.model.plot_data.items():
-            if key in self.view.vars.keys():
-                self.view.vars[key].set(value)
-        for key, value in self.model.plot_legend.items():
-            if key in self.view.vars.keys():
-                self.view.vars[key].set(value)
-        for key, value in self.model.plot_axes.items():
-            if key in self.view.vars.keys():
-                self.view.vars[key].set(value)
-        for key, value in self.model.plot_general_settings.items():
-            if key in self.view.vars.keys():
-                self.view.vars[key].set(value)
+        for key, widget in self.view.cbboxes.items():
+            if widget.cget('state') == "normal":
+                widget.set(self.model.cbboxes[key])
+            else:
+                widget.configure(state='normal')
+                widget.set(self.model.cbboxes[key])
+                widget.configure(state='readonly')
+                pass
+        for key, widget in self.view.entries.items():
+            if widget.cget('state') == 'normal':
+                widget.delete(0, ctk.END)
+                widget.insert(0, self.model.entries[key])
+            else:
+                widget.configure(state='normal')
+                widget.delete(0, ctk.END)
+                widget.insert(0, self.model.entries[key])
+                widget.configure(state='disabled')
+        
+        for key, widget in self.view.switches.items():
+            if widget.cget('state') == 'normal':
+                if key in self.model.switches.keys():
+                    widget.select()
+                else:
+                    widget.deselect()
+        
+        for key, widget in self.view.ckboxes.items():
+            if widget.cget('state') == 'normal':
+                if key in self.model.ckboxes.keys():
+                    if self.model.ckboxes[key] == 1:
+                        widget.select()
+                    else:
+                        widget.deselect()
+            else:
+                widget.configure(state='normal')
+                if key in self.model.ckboxes.keys():
+                    if self.model.ckboxes[key] == 1:
+                        widget.select()
+                    else:
+                        widget.deselect()
+                widget.configure(state='disabled')
+        
+        for key, widget in self.view.textboxes.items():
+            MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
     
     def load_plot_dataset(self, ):
         filename = filedialog.askopenfilename(title="Open file",
@@ -146,185 +167,86 @@ class SpikeController:
                 value.configure(values=columns)
                 value.set(columns[-1])
     
-    def add_ydata(self, scrollable_frame):
-        if self.model.dataset_path:
-            df = pd.read_csv(self.model.dataset_path, index_col=False)
-            columns = list(df.columns)
-            
-            self.model.n_ydata += 1
-            n_ydata = self.model.n_ydata
-            
-            ydata_subframe = ctk.CTkFrame(master=scrollable_frame, )
-            self.view.ydata_subframes[str(n_ydata)] = ydata_subframe
-            
-            n_ydata_label = ctk.CTkLabel(master=ydata_subframe, text=f"Y-DATA : {self.model.n_ydata}")
-            
-            ydata_label = ctk.CTkLabel(master=ydata_subframe, text="Y-data column:")
-            ydata_cbbox_var = tk.StringVar(value=columns[-1])
-            ydata_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=columns, state='readonly',
-                                          textvariable=ydata_cbbox_var)
-            
-            self.view.cbboxes[f"ydata {n_ydata}"] = ydata_cbbox
-            self.view.vars[f"ydata {n_ydata}"] = ydata_cbbox_var
-            
-            ydata_legend_label = ctk.CTkLabel(master=ydata_subframe, text="Legend label:")
-            ydata_legend_var = tk.StringVar()
-            ydata_legend_entry = ctk.CTkEntry(master=ydata_subframe, textvariable=ydata_legend_var)
-            
-            self.view.entries[f"ydata legend {n_ydata}"] = ydata_legend_entry
-            self.view.vars[f"ydata legend {n_ydata}"] = ydata_legend_var
-            
-            linestyle_label = ctk.CTkLabel(master=ydata_subframe, text="Linestyle:")
-            linestyle_var = tk.StringVar(value=p.DEFAULT_LINESTYLE)
-            linestyle_cbbox = tk.ttk.Combobox(master=ydata_subframe, values=list(p.LINESTYLES.keys()), state='readonly',
-                                              textvariable=linestyle_var)
-            
-            self.view.cbboxes[f"linestyle {n_ydata}"] = linestyle_cbbox
-            self.view.vars[f"linestyle {n_ydata}"] = linestyle_var
-            
-            linewidth_label = ctk.CTkLabel(master=ydata_subframe, text="Linewidth:")
-            linewidth_var = tk.StringVar(value=p.DEFAULT_LINEWIDTH)
-            linewidth_entry = ErrEntry(master=ydata_subframe, textvariable=linewidth_var)
-            
-            self.view.entries[f"linewidth {n_ydata}"] = linewidth_entry
-            self.view.vars[f"linewidth {n_ydata}"] = linewidth_var
-            
-            color_label = ctk.CTkLabel(master=ydata_subframe, text="Color:")
-            color_var = tk.StringVar(value=p.DEFAULT_COLOR)
-            color_button = ctk.CTkButton(master=ydata_subframe, textvariable=color_var,
-                                         fg_color=color_var.get(), text_color='black')
-            
-            self.view.buttons[f"color {n_ydata}"] = color_button
-            self.view.vars[f"color {n_ydata}"] = color_var
-            
-            alpha_label = ctk.CTkLabel(master=ydata_subframe, text="Alpha:")
-            alpha_var = tk.DoubleVar(value=p.DEFAULT_ALPHA)
-            alpha_slider = ctk.CTkSlider(master=ydata_subframe, from_=0, to=1, number_of_steps=10, variable=alpha_var)
-            alpha_value_label = ctk.CTkLabel(master=ydata_subframe, textvariable=alpha_var)
-            
-            self.view.vars[f"alpha {n_ydata}"] = alpha_var
-            self.view.sliders[f"alpha {n_ydata}"] = alpha_slider
-            
-            color_button.configure(command=partial(self.view.select_color, view=self.view,
-                                                   selection_button_name=f'color {n_ydata}'))
-            
-            ydata_subframe.grid_columnconfigure(0, weight=10)
-            ydata_subframe.grid_columnconfigure(1, weight=1)
-            ydata_subframe.grid_columnconfigure(2, weight=10)
-            
-            # --------------- MANAGE WIDGETS
-            
-            ydata_subframe.grid(row=n_ydata + self.model.n_ydata_offset, column=0, sticky='nsew', pady=25, columnspan=3)
-            n_ydata_label.grid(row=2, column=0, columnspan=3, sticky='we')
-            ydata_label.grid(row=5, column=0, sticky='w')
-            ydata_cbbox.grid(row=5, column=2, sticky='we')
-            ydata_legend_label.grid(row=7, column=0, sticky='w')
-            ydata_legend_entry.grid(row=7, column=2, sticky='we')
-            linestyle_label.grid(row=9, column=0, sticky='w')
-            linestyle_cbbox.grid(row=9, column=2, sticky='we')
-            linewidth_label.grid(row=11, column=0, sticky='w')
-            linewidth_entry.grid(row=11, column=2, sticky='we')
-            color_label.grid(row=13, column=0, sticky='w')
-            color_button.grid(row=13, column=2, sticky='we')
-            alpha_label.grid(row=15, column=0, sticky='w')
-            alpha_slider.grid(row=15, column=2, sticky='we')
-            alpha_value_label.grid(row=15, column=0, sticky='e')
-            
-            # --------------- MANAGE SEPARATORS
-            general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16]
-            general_params_vertical_separator_ranges = [(4, 17), ]
-            for r in range(general_params_separators_indices[-1] + 2):
-                if r in general_params_separators_indices:
-                    sep = Separator(master=ydata_subframe, orient='h')
-                    sep.grid(row=r, column=0, columnspan=3, sticky='ew')
-            for couple in general_params_vertical_separator_ranges:
-                general_v_sep = Separator(master=ydata_subframe, orient='v')
-                general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
-            
-            # ----- ENTRY VALIDATION
-            
-            linewidth_entry.configure(validate='focus',
-                                      validatecommand=(
-                                          self.view.register(partial(self.view.parent_view.parent_view.is_positive_int,
-                                                                     linewidth_entry)),
-                                          '%P'))
-        
-        else:
-            messagebox.showerror("Missing Values", "No dataset loaded")
-            return False
-    
-    def remove_ydata(self):
-        n_ydata = self.model.n_ydata
-        if n_ydata >= 0:
-            
-            # destroying all widgets related
-            for child in self.view.ydata_subframes[str(n_ydata)].winfo_children():
-                child.destroy()
-            
-            # remove the frame from self.view.ydata_subframes
-            self.view.ydata_subframes[str(n_ydata)].destroy()
-            del self.view.ydata_subframes[str(n_ydata)]
-            
-            # destroying all items related in dicts
-            del self.view.entries[f"ydata legend {n_ydata}"]
-            del self.view.entries[f"linewidth {n_ydata}"]
-            del self.view.buttons[f"color {n_ydata}"]
-            del self.view.cbboxes[f"ydata {n_ydata}"]
-            del self.view.cbboxes[f"linestyle {n_ydata}"]
-            del self.view.vars[f"linewidth {n_ydata}"]
-            del self.view.vars[f"color {n_ydata}"]
-            del self.view.vars[f"alpha {n_ydata}"]
-            del self.view.vars[f"ydata legend {n_ydata}"]
-            del self.view.vars[f"linestyle {n_ydata}"]
-            del self.view.vars[f"ydata {n_ydata}"]
-            del self.view.sliders[f"alpha {n_ydata}"]
-            
-            self.model.n_ydata -= 1
-    
-    def draw_figure(self):
+    def compute_spikes(self):
         if self.check_params_validity():
-            self.update_params(self.view.entries)
-            self.update_params(self.view.ckboxes)
-            self.update_params(self.view.vars)
-            self.update_params(self.view.textboxes)
-
+            for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
+                            self.view.switches, self.view.textboxes, ]:
+                self.update_params(widgets)
+            
             # fig, ax = self.view.figures["plot"]
-            fig, ax = plt.subplots(figsize=(4, 4))
-            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
-            new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
-            self.view.canvas["plot toolbar"].destroy()
-            toolbar = NavigationToolbar2Tk(new_canvas,
-                                           self.view.frames["plot frame"], pack_toolbar=False)
-            toolbar.update()
-            toolbar.grid(row=1, column=0, sticky='we')
-            self.view.canvas["plot"].get_tk_widget().destroy()
-            self.view.canvas["plot"] = new_canvas
-            self.view.figures["plot"] = (fig, ax)
+            
             
             files = []
+            start = datetime.now()
+            
             if self.view.vars["single"].get():
                 files.append(self.view.vars["single"].get())
             elif self.view.vars["multiple"].get():
-                files = ff.get_all_files(self.model.parent_directory)
-                for file in files:
-                    if all(i in file for i in self.model.to_include) and (
-                            not any(e in file for e in self.model.to_exclude)):
-                        files.append(file)
-                        
-            for file in files:
-                df = pd.read_csv(file, skiprows=6)
-                df_spikes = []
-                for col in df.columns:
-                    row = 0
-                    std = np.std(df[col])
-                    
-                    col_spikes = df[df[col] > self.model.vars["std threshold"] * std]
-                    
-                    df_spikes.append(col_spikes)
-                print(df_spikes)
-                
-            self.view.figures["plot"] = (fig, ax)
-            self.view.canvas["plot"].draw()
+                files = ff.get_all_files(self.model.parent_directory, to_include=self.model.to_include,
+                                         to_exclude=self.model.to_exclude)
+            
+            all_spikes = {target: [] for target in self.model.targets.keys()}
+            print(all_spikes)
+            # for file in files:
+            #     target = [x for x in self.model.targets.keys() if x in file][0]
+            #     df = pd.read_csv(file, skiprows=6, dtype=float, )
+            #     # df = data_processing.top_n_electrodes(df, 30, "TimeStamp [µs]") todo : add column selection
+            #
+            #     n_workers = 10
+            #     worker_ranges = np.linspace(0, len(df.columns), n_workers + 1).astype(int)
+            #
+            #     params_list = []
+            #     all_workers = []
+            #     manager = multiprocessing.Manager()
+            #     return_dict = manager.dict()
+            #
+            #     for n_worker in range(n_workers):
+            #         low_index = worker_ranges[n_worker]
+            #         high_index = worker_ranges[n_worker + 1]
+            #         # sub_array = df_array[:, low_index:high_index]
+            #
+            #         worker = SpikeDetectorProcess(file,
+            #                                       df.columns[low_index:high_index],
+            #                                       self.model.vars["std threshold"],
+            #                                       self.model.vars["sampling frequency"],
+            #                                       self.model.vars["dead window"],
+            #                                       return_dict)
+            #         worker.name = f"worker_{n_worker}"
+            #         worker.start()
+            #         all_workers.append(worker)
+            #
+            #     for worker in all_workers:
+            #         worker.join()
+            #
+            #     detected_spikes = dict(return_dict.items())
+            #     all_spikes[target].append(np.sum(list(detected_spikes.values())))
+            self.model.spike_params["all_spikes"] = all_spikes
+            
+            self.draw_figure()
+            
+    def draw_figure(self):
+        fig, ax = plt.subplots(figsize=(4, 4))
+        new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
+        new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+        self.view.canvas["plot toolbar"].destroy()
+        toolbar = NavigationToolbar2Tk(new_canvas,
+                                       self.view.frames["plot frame"], pack_toolbar=False)
+        toolbar.update()
+        toolbar.grid(row=1, column=0, sticky='we')
+        self.view.canvas["plot"].get_tk_widget().destroy()
+        self.view.canvas["plot"] = new_canvas
+        self.view.figures["plot"] = (fig, ax)
+        
+        x_ticks = []
+        x_ticks_label = []
+        for index, (key, value) in enumerate(self.model.spike_params["all_spikes"].items()):
+            x_ticks.append(index)
+            x_ticks_label.append(key)
+            ax.bar(x=index, height=np.sum(value), yerr=np.std(value))
+        
+        ax.set_xticks(x_ticks, x_ticks_label)
+        self.view.figures["plot"] = (fig, ax)
+        self.view.canvas["plot"].draw()
     
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():
@@ -455,3 +377,144 @@ class SpikeController:
                 for key, value in widgets.items():
                     local_dict[key] = value.get(1.0, tk.END)
                 self.model.textboxes.update(local_dict)
+    
+    def add_label_data(self, scrollable_frame):
+        if self.model.targets:
+            
+            targets = sorted(set(list(self.model.targets.values())))
+            
+            self.model.n_labels += 1
+            n_labels = self.model.n_labels
+            label_data_subframe = ctk.CTkFrame(master=scrollable_frame, )
+            
+            # row separator 0
+            # row separator 1
+            n_labels_label = ctk.CTkLabel(master=label_data_subframe, text=f"DATA: {n_labels}")
+            # row separator 3
+            # row separator 4
+            
+            labels_label = ctk.CTkLabel(master=label_data_subframe, text="Label:")
+            label_var = tk.StringVar(value=targets[0])
+            labels_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=targets, state='readonly',
+                                           textvariable=label_var)
+            # row separator 6
+            labels_legend_label = ctk.CTkLabel(master=label_data_subframe, text="Legend label:")
+            labels_legend_var = tk.StringVar(value='')
+            labels_legend_entry = ErrEntry(master=label_data_subframe, textvariable=labels_legend_var)
+            
+            # row separator 8
+            index_label = ctk.CTkLabel(master=label_data_subframe, text="Index:")
+            index_cbbox_var = ctk.IntVar(value=0)
+            index_cbbox = tk.ttk.Combobox(master=label_data_subframe, textvariable=index_cbbox_var,
+                                          values=[str(x) for x in range(len(targets))],)
+            
+            # row separator 10
+            error_bar_label = ctk.CTkLabel(master=label_data_subframe, text="Error bar")
+            error_bar_var = tk.StringVar(value='None')
+            error_bar_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=["None", 'std'],
+                                              textvariable=error_bar_var)
+            
+            # row separator 12
+            
+            color_label = ctk.CTkLabel(master=label_data_subframe, text="Color:")
+            color_var = tk.StringVar(value='green')
+            color_button = ctk.CTkButton(master=label_data_subframe, textvariable=color_var,
+                                         fg_color=color_var.get(), text_color='black')
+            # row separator 14
+            # ----- MANAGE WIDGETS
+            label_data_subframe.grid(row=n_labels + self.model.n_labels_offset,
+                                     column=0, sticky='nsew', pady=25, columnspan=3)
+            
+            n_labels_label.grid(row=2, column=0, columnspan=3, sticky="we")
+            
+            labels_label.grid(row=5, column=0, sticky='w')
+            labels_cbbox.grid(row=5, column=2, sticky='we')
+            labels_legend_label.grid(row=7, column=0, sticky='w')
+            labels_legend_entry.grid(row=7, column=2, sticky='we')
+            index_label.grid(row=9, column=0, sticky='w')
+            index_cbbox.grid(row=9, column=2, sticky='we')
+            error_bar_label.grid(row=11, column=0, sticky='w')
+            error_bar_cbbox.grid(row=11, column=2, sticky='we')
+            color_label.grid(row=13, column=0, sticky='w')
+            color_button.grid(row=13, column=2, sticky='we')
+            
+            # --------------- MANAGE SEPARATORS
+            general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, ]
+            general_params_vertical_separator_ranges = [(4, 14), ]
+            for r in range(general_params_separators_indices[-1] + 2):
+                if r in general_params_separators_indices:
+                    sep = Separator(master=label_data_subframe, orient='h')
+                    sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+            for couple in general_params_vertical_separator_ranges:
+                general_v_sep = Separator(master=label_data_subframe, orient='v')
+                general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
+            
+            # ----- CONFIGURE WIDGETS
+            color_button.configure(command=partial(self.view.select_color, view=self.view,
+                                                   selection_button_name=f'color {n_labels}'))
+            
+            
+            # ------- STORE WIDGETS
+            
+            self.view.labels_subframes[str(n_labels)] = label_data_subframe
+            self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
+            self.view.cbboxes[f"error bar {n_labels}"] = error_bar_cbbox
+            self.view.cbboxes[f"index {n_labels}"] = index_cbbox
+            self.view.vars[f"label data {n_labels}"] = label_var
+            self.view.vars[f"error bar {n_labels}"] = error_bar_var
+            self.view.vars[f"index {n_labels}"] = index_cbbox_var
+            self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
+            self.view.buttons[f"color {n_labels}"] = color_button
+            self.view.vars[f"color {n_labels}"] = color_var
+            # ----- TRACE
+            # for key, widget in {f'color {n_labels}': color_var, f"error bar {n_labels}": error_bar_var,
+            #                     f"index {n_labels}": index_cbbox_var,
+            #                     f'label data {n_labels}': label_var,
+            #                     f'label data legend {n_labels}': labels_legend_var,
+            #                     }.items():
+            #     self.model.plot_data[key] = widget.get()
+            #     widget.trace("w", partial(self.trace_vars_to_model, key))
+        
+        else:
+            messagebox.showerror("Missing Values", "No targets indicated")
+            return False
+    
+    def remove_label_data(self, ):
+        n_labels = self.model.n_labels
+        
+        if n_labels >= 0:
+            for child in self.view.labels_subframes[str(n_labels)].winfo_children():
+                child.destroy()
+            
+            # remove the frame from self.view.labels_subframes
+            self.view.labels_subframes[str(n_labels)].destroy()
+            del self.view.labels_subframes[str(n_labels)]
+            
+            # destroying all items related in dicts
+            del self.view.buttons[f"color {n_labels}"]
+            del self.view.cbboxes[f"label data {n_labels}"]
+            del self.view.vars[f"color {n_labels}"]
+            del self.view.cbboxes[f"error bar {n_labels}"]
+            del self.view.cbboxes[f"index {n_labels}"]
+            del self.view.vars[f"error bar {n_labels}"]
+            del self.view.vars[f"index {n_labels}"]
+            del self.view.vars[f"label data legend {n_labels}"]
+            
+            self.model.n_labels -= 1
+    
+    def load_config(self, ):
+        f = filedialog.askopenfilename(title="Open file", filetypes=(("Spike analysis config", "*.skcfg"),))
+        if f:
+            if self.model.load_model(path=f):
+                self.update_view_from_model()
+    
+    def save_config(self, ):
+        if self.check_params_validity():
+            for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
+                            self.view.switches, self.view.textboxes, self.view.labels, self.view.labels_subframes]:
+                self.update_params(widgets)
+            
+            f = filedialog.asksaveasfilename(defaultextension=".skcfg",
+                                             filetypes=[("Spike analysis config", "*.skcfg"), ])
+            if f:
+                self.model.save_model(path=f, )

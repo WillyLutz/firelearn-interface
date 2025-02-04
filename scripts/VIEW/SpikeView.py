@@ -32,6 +32,7 @@ class SpikeView(ctk.CTkFrame):
         self.ckboxes = {}
         self.frames = {}
         self.vars = {}
+        self.labels = {}
         self.trace_ids = {}
         self.switches = {}
         self.sliders = {}
@@ -45,7 +46,7 @@ class SpikeView(ctk.CTkFrame):
         
         self.step_check = {"plotparams": 2, "axes": 2, "figname": 2, "legend": 2}
         
-        self.ydata_subframes = {}
+        self.labels_subframes = {}
         self.manage_spike_tab()
     
     def set_controller(self, controller):
@@ -374,33 +375,33 @@ class SpikeView(ctk.CTkFrame):
                                      validatecommand=(self.register(partial(self.main_view.is_positive_int,
                                                                             yticks_round_entry)), '%P'))
         # --------------- TRACE
-        title_var.trace("w", partial(self.controller.trace_vars_to_model, 'title'))
+        # title_var.trace("w", partial(self.controller.trace_vars_to_model, 'title'))
         title_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'title size'))
-        title_font_var.trace("w", partial(self.controller.trace_vars_to_model, 'title font'))
-        dpi_strvar.trace("w", partial(self.controller.trace_vars_to_model, 'dpi'))
+        # title_font_var.trace("w", partial(self.controller.trace_vars_to_model, 'title font'))
+        # dpi_strvar.trace("w", partial(self.controller.trace_vars_to_model, 'dpi'))
         
-        x_label_var.trace("w", partial(self.controller.trace_vars_to_model, 'x label'))
-        y_label_var.trace("w", partial(self.controller.trace_vars_to_model, 'y label'))
+        # x_label_var.trace("w", partial(self.controller.trace_vars_to_model, 'x label'))
+        # y_label_var.trace("w", partial(self.controller.trace_vars_to_model, 'y label'))
         x_label_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'x label size'))
         y_label_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'y label size'))
         xticks_rotation_var.trace("w", partial(self.controller.trace_vars_to_model, 'x ticks rotation'))
         yticks_rotation_var.trace("w", partial(self.controller.trace_vars_to_model, 'y ticks rotation'))
         xticks_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'x ticks size'))
         yticks_size_var.trace("w", partial(self.controller.trace_vars_to_model, 'y ticks size'))
-        axes_font_var.trace("w", partial(self.controller.trace_vars_to_model, 'axes font'))
-        n_yticks_var.trace("w", partial(self.controller.trace_vars_to_model, 'n y ticks'))
-        n_xticks_var.trace("w", partial(self.controller.trace_vars_to_model, 'n x ticks'))
-        xticks_round_var.trace("w", partial(self.controller.trace_vars_to_model, 'round x ticks'))
-        yticks_round_var.trace("w", partial(self.controller.trace_vars_to_model, 'round y ticks'))
+        # axes_font_var.trace("w", partial(self.controller.trace_vars_to_model, 'axes font'))
+        # n_yticks_var.trace("w", partial(self.controller.trace_vars_to_model, 'n y ticks'))
+        # n_xticks_var.trace("w", partial(self.controller.trace_vars_to_model, 'n x ticks'))
+        # xticks_round_var.trace("w", partial(self.controller.trace_vars_to_model, 'round x ticks'))
+        # yticks_round_var.trace("w", partial(self.controller.trace_vars_to_model, 'round y ticks'))
         
-        show_legend_var.trace("w", partial(self.controller.trace_vars_to_model, 'show legend'))
-        fontsize_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend fontsize'))
-        legend_xpos_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend x pos'))
-        legend_ypos_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend y pos'))
-        legend_alpha_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend alpha'))
-        legend_anchor_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend anchor'))
-        ncols_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend ncols'))
-        draggable_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend draggable'))
+        # show_legend_var.trace("w", partial(self.controller.trace_vars_to_model, 'show legend'))
+        # fontsize_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend fontsize'))
+        # legend_xpos_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend x pos'))
+        # legend_ypos_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend y pos'))
+        # legend_alpha_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend alpha'))
+        # legend_anchor_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend anchor'))
+        # ncols_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend ncols'))
+        # draggable_var.trace("w", partial(self.controller.trace_vars_to_model, 'legend draggable'))
     
     def manage_plot_frame(self, plot_frame):
         plot_frame.grid_rowconfigure(0, weight=20)
@@ -427,32 +428,97 @@ class SpikeView(ctk.CTkFrame):
         self.figures["plot"] = (fig, ax)
     
     def manage_execution_frame(self, execution_frame):
-        
-        load_config_button = ctk.CTkButton(master=execution_frame, text="Load config", fg_color="lightslategray",
-                                           width=120, height=40)
-        save_config_button = ctk.CTkButton(master=execution_frame, text="Save config", fg_color="lightslategray",
-                                           width=120, height=40)
-        draw_figure_button = ctk.CTkButton(master=execution_frame, text='Draw figure', fg_color='tomato',
+        compute_spike_button = ctk.CTkButton(master=execution_frame, text='Compute spikes', fg_color='tomato',
                                            width=120,
                                            height=40)
-        export_data_button = ctk.CTkButton(master=execution_frame, text="Export data", fg_color="green", width=120,
+        draw_figure_button = ctk.CTkButton(master=execution_frame, text='Draw figure', fg_color='tomato',
+                                           width=120,
                                            height=40)
         
         # --------- MANAGE WIDGETS
         
-        load_config_button.grid(row=0, column=0, padx=10, pady=10, sticky='w')
-        save_config_button.grid(row=0, column=1, padx=10, pady=10)
-        export_data_button.grid(row=1, column=0, padx=10, pady=10, sticky='w')
+        compute_spike_button.grid(row=0, column=0, padx=10, pady=10, sticky='w')
         draw_figure_button.grid(row=1, column=1, padx=10, pady=10)
-        
         # ------------ CONFIGURE
         
-        save_config_button.configure(command=self.controller.save_config)
-        load_config_button.configure(command=self.controller.load_config)
+        compute_spike_button.configure(command=self.controller.compute_spikes)
         draw_figure_button.configure(command=self.controller.draw_figure)
         
         # ------------- STORE
+    def manage_data_frame(self, data_scrollable_frame):
+        # row separator 0
+        # row separator 1
+        
+        data_label = ctk.CTkLabel(master=data_scrollable_frame, text="DATA PARAMETERS",
+                                      font=('', 20))
+        
+        # row separator 3
+        # row separator 4
+        std_thresh_var = ctk.DoubleVar(value=5.5)
+        std_thresh_label = ctk.CTkLabel(master=data_scrollable_frame, text="Standard deviation threshold:")
+        std_thresh_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=std_thresh_var)
+        
+        # row separator 6
+        sampling_freq_var = ctk.IntVar(value=256)
+        sampling_freq_label = ctk.CTkLabel(master=data_scrollable_frame, text="Sampling frequency (Hz):")
+        sampling_freq_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=sampling_freq_var)
+        # row separator 8
+        dead_window_label = ctk.CTkLabel(data_scrollable_frame, text='Dead window (s):')
+        dead_window_var = ctk.DoubleVar(value=0.1)
+        dead_window_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=dead_window_var)
+        # row separator 10
+        add_data_label = ctk.CTkLabel(master=data_scrollable_frame, text="Add data:")
+        add_label_data_button = ctk.CTkButton(master=data_scrollable_frame, text="+", width=25, height=25,
+                                              state='normal')
+        subtract_label_data_button = ctk.CTkButton(master=data_scrollable_frame, text="-", width=25,
+                                                   height=25,
+                                                   state='normal')
+        #row separator 12
+        
+        
+        # ------ MANAGE WIDGETS
+        data_label.grid(row=2, column=0, columnspan=3, sticky='nsew')
+        
+        std_thresh_label.grid(row=5, column=0, sticky='w')
+        std_thresh_entry.grid(row=5, column=2, sticky='we')
+        
+        sampling_freq_label.grid(row=7, column=0, sticky='w')
+        sampling_freq_entry.grid(row=7, column=2, sticky='we')
+        
+        dead_window_label.grid(row=9, column=0, sticky='w')
+        dead_window_entry.grid(row=9, column=2, sticky='we')
+        
+        add_data_label.grid(row=11, column=0, sticky='w')
+        add_label_data_button.grid(row=11, column=2, sticky='w')
+        subtract_label_data_button.grid(row=11, column=2, sticky='e')
+        
+        # --------------- MANAGE SEPARATORS
+        specific_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12,]
+        general_params_vertical_separator_ranges = [(5, 12), ]
+        
+        for r in range(specific_params_separators_indices[-1] + 2):
+            if r in specific_params_separators_indices:
+                sep = Separator(master=data_scrollable_frame, orient='h')
+                sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+        for couple in general_params_vertical_separator_ranges:
+            general_v_sep = Separator(master=data_scrollable_frame, orient='v')
+            general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
+            
+        # ------ STORE WIDGETS
+
+        self.vars["std threshold"] = std_thresh_var
+        self.vars["dead window"] = dead_window_var
+        self.vars["sampling frequency"] = sampling_freq_var
+        self.entries["std threshold"] = std_thresh_entry
+        self.entries["dead window"] = dead_window_entry
+        self.entries["sampling frequency"] = sampling_freq_entry
     
+    
+        # ------- CONFIGURE
+        add_label_data_button.configure(command=partial(self.add_label_data, data_scrollable_frame))
+        subtract_label_data_button.configure(command=self.remove_label_data)
+        
+        
     def manage_specific_params_frame(self, specific_params_scrollable_frame):
         
         # row separator 0
@@ -481,7 +547,15 @@ class SpikeView(ctk.CTkFrame):
         sorting_button = ctk.CTkButton(master=specific_params_scrollable_frame, text="Open", state='normal', width=40)
         sorting_sv = ctk.StringVar()
         sorting_entry = ErrEntry(master=specific_params_scrollable_frame, state='disabled', textvariable=sorting_sv)
+        
         # row separator 8
+        behead_ckbox_var = ctk.IntVar(value=0)
+        behead_ckbox = ctk.CTkCheckBox(master=specific_params_scrollable_frame, text="Beheading top-file metadata",
+                                       variable=behead_ckbox_var)
+        behead_sv = ctk.StringVar()
+        behead_entry = ErrEntry(master=specific_params_scrollable_frame, state='normal', textvariable=behead_sv)
+        
+        # row separator 10
         to_include_frame = ctk.CTkFrame(master=specific_params_scrollable_frame, fg_color='transparent')
         to_include_label = ctk.CTkLabel(master=to_include_frame, text="To include:",)
         add_include_button = ctk.CTkButton(master=to_include_frame, text="+", width=25, height=25, state='normal')
@@ -489,9 +563,9 @@ class SpikeView(ctk.CTkFrame):
                                                 state='normal')
         include_sv = ctk.StringVar()
         include_entry = ErrEntry(master=specific_params_scrollable_frame, state='normal', textvariable=include_sv)
-        # row separator 10
-        include_textbox = ctk.CTkTextbox(master=specific_params_scrollable_frame, state='disabled', corner_radius=10, height=80)
         # row separator 12
+        include_textbox = ctk.CTkTextbox(master=specific_params_scrollable_frame, state='disabled', corner_radius=10, height=80)
+        # row separator 14
         to_exclude_frame = ctk.CTkFrame(master=specific_params_scrollable_frame, fg_color='transparent')
         to_exclude_label = ctk.CTkLabel(master=to_exclude_frame, text="To exclude:",)
         add_exclude_button = ctk.CTkButton(master=to_exclude_frame, text="+", width=25, height=25, state='normal')
@@ -499,13 +573,13 @@ class SpikeView(ctk.CTkFrame):
                                                 state='normal')
         exclude_sv = ctk.StringVar()
         exclude_entry = ErrEntry(master=specific_params_scrollable_frame, state='normal', textvariable=exclude_sv)
-        # row separator 14
-        exclude_textbox = ctk.CTkTextbox(master=specific_params_scrollable_frame, state='disabled', corner_radius=10, height=80)
         # row separator 16
+        exclude_textbox = ctk.CTkTextbox(master=specific_params_scrollable_frame, state='disabled', corner_radius=10, height=80)
+        # row separator 18
         key_target_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Target key:",)
         id_target_sv = ctk.StringVar()
         id_target_entry = ErrEntry(master=specific_params_scrollable_frame, state='normal', textvariable=id_target_sv)
-        # row separator 18
+        # row separator 20
         target_value_frame = ctk.CTkFrame(master=specific_params_scrollable_frame, fg_color='transparent')
         value_target_label = ctk.CTkLabel(master=target_value_frame, text="Target value:",)
         rename_target_sv = ctk.StringVar()
@@ -513,25 +587,14 @@ class SpikeView(ctk.CTkFrame):
         add_target_button = ctk.CTkButton(master=target_value_frame, text="+", width=25, height=25, state='normal')
         subtract_target_button = ctk.CTkButton(master=target_value_frame, text="-", width=25, height=25,
                                                state='normal')
-        # row separator 20
-        target_textbox = ctk.CTkTextbox(master=specific_params_scrollable_frame, corner_radius=10, state='disabled', height=80)
         # row separator 22
-        # row separator 23
-        std_thresh_var = ctk.DoubleVar(value=5.5)
-        std_thresh_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Standard deviation threshold:")
-        std_thresh_entry = ctk.CTkEntry(master=specific_params_scrollable_frame, textvariable=std_thresh_var)
+        target_textbox = ctk.CTkTextbox(master=specific_params_scrollable_frame, corner_radius=10, state='disabled', height=80)
+        # row separator 24
         
-        # row separator 25
-        sampling_freq_var = ctk.IntVar()
-        sampling_freq_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Sampling frequency (Hz):")
-        sampling_freq_entry = ctk.CTkEntry(master=specific_params_scrollable_frame, textvariable=sampling_freq_var)
-        #row separator 27
-        dead_window_label = ctk.CTkLabel(specific_params_scrollable_frame, text='Dead window (s):')
-        dead_window_var = ctk.DoubleVar(value=0.1)
-        dead_window_entry = ctk.CTkEntry(master=specific_params_scrollable_frame, textvariable=dead_window_var)
+        
         # --------------- MANAGE SEPARATORS
-        specific_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23, 25, 27, 29 ]
-        general_params_vertical_separator_ranges = [(5, 10), (13, 14), (17, 20), (24, 30)]
+        specific_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, ]
+        general_params_vertical_separator_ranges = [(5, 12), (15, 16), (19, 22), ]
         
         for r in range(specific_params_separators_indices[-1] + 2):
             if r in specific_params_separators_indices:
@@ -552,41 +615,36 @@ class SpikeView(ctk.CTkFrame):
         sorting_button.grid(row=7, column=0, sticky='e')
         sorting_entry.grid(row=7, column=2, sticky='we')
         
-        to_include_frame.grid(row=9, column=0, sticky='nsew')
+        behead_ckbox.grid(row=9, column=0, sticky='w')
+        behead_entry.grid(row=9, column=2, sticky='we')
+        
+        to_include_frame.grid(row=11, column=0, sticky='nsew')
         to_include_label.grid(row=0, column=0, sticky='w')
         add_include_button.grid(row=0, column=1, sticky='e')
         subtract_include_button.grid(row=0, column=2, sticky='e')
-        include_entry.grid(row=9, column=2, sticky='we')
+        include_entry.grid(row=11, column=2, sticky='we')
         
-        include_textbox.grid(row=11, column=0, columnspan=3, sticky='nsew')
+        include_textbox.grid(row=13, column=0, columnspan=3, sticky='nsew')
         
-        to_exclude_frame.grid(row=13, column=0, sticky='nsew')
+        to_exclude_frame.grid(row=15, column=0, sticky='nsew')
         to_exclude_label.grid(row=0, column=0, sticky='w')
         add_exclude_button.grid(row=0, column=1, sticky='e')
         subtract_exclude_button.grid(row=0, column=2, sticky='e')
-        exclude_entry.grid(row=13, column=2, sticky='we')
+        exclude_entry.grid(row=15, column=2, sticky='we')
         
-        exclude_textbox.grid(row=15, column=0, columnspan=3, sticky='nsew')
+        exclude_textbox.grid(row=17, column=0, columnspan=3, sticky='nsew')
         
-        key_target_label.grid(row=17, column=0, sticky='w')
-        id_target_entry.grid(row=17, column=2, sticky='we')
+        key_target_label.grid(row=19, column=0, sticky='w')
+        id_target_entry.grid(row=19, column=2, sticky='we')
         
-        target_value_frame.grid(row=19, column=0, sticky='nsew')
+        target_value_frame.grid(row=21, column=0, sticky='nsew')
         value_target_label.grid(row=0, column=0, sticky='w')
         add_target_button.grid(row=0, column=1, sticky='e')
         subtract_target_button.grid(row=0, column=2, sticky='e')
         
-        rename_target_entry.grid(row=19, column=2, sticky='we')
-        target_textbox.grid(row=21, column=0, columnspan=3, sticky='nsew')
+        rename_target_entry.grid(row=21, column=2, sticky='we')
+        target_textbox.grid(row=23, column=0, columnspan=3, sticky='nsew')
         
-        std_thresh_label.grid(row=24, column=0, sticky='w')
-        std_thresh_entry.grid(row=24, column=2, sticky='we')
-        
-        sampling_freq_label.grid(row=26, column=0, sticky='w')
-        sampling_freq_entry.grid(row=26, column=2, sticky='we')
-        
-        dead_window_label.grid(row=28, column=0, sticky='w')
-        dead_window_entry.grid(row=28, column=2, sticky='we')
         
         # --------- STORE WIDGETS
         self.ckboxes["multiple"] = sorting_files_ckbox
@@ -597,6 +655,9 @@ class SpikeView(ctk.CTkFrame):
         self.entries["value target"] = rename_target_entry
         self.entries["exclusion"] = exclude_entry
         self.entries["inclusion"] = include_entry
+        self.entries["behead"] = behead_entry
+        self.vars["behead ckbox"] = behead_ckbox_var
+        self.vars["behead"] = behead_sv
         self.vars["multiple ckbox"] = sorting_files_ckbox_var
         self.vars["multiple"] = sorting_sv
         self.vars["single"] = single_file_sv
@@ -605,12 +666,10 @@ class SpikeView(ctk.CTkFrame):
         self.vars["value target"] = rename_target_sv
         self.vars["exclusion"] = exclude_sv
         self.vars["inclusion"] = include_sv
-        self.vars["std threshold"] = std_thresh_var
-        self.vars["dead window"] = dead_window_var
-        self.vars["sampling frequency"] = sampling_freq_var
         self.textboxes['inclusion'] = include_textbox
         self.textboxes["exclusion"] = exclude_textbox
         self.textboxes["targets"] = target_textbox
+        self.checkboxes["behead"] = behead_ckbox
         
         
         # --------------- CONFIGURE
@@ -637,16 +696,43 @@ class SpikeView(ctk.CTkFrame):
                             mode='subtract'))
         single_file_button.configure(command=partial(self.controller.select_single_file, single_file_sv))
         
+        # ----- ENTRY BINDING
+        include_entry.bind('<Return>',
+                           lambda event: self.controller.add_subtract_to_include(include_entry,
+                                                                      self.textboxes["inclusion"], 'add'))
+        include_entry.bind('<Control-BackSpace>',
+                           lambda event: self.controller.add_subtract_to_include(include_entry,
+                                                                      self.textboxes["inclusion"], 'subtract'))
+        exclude_entry.bind('<Return>',
+                           lambda event: self.controller.add_subtract_to_exclude(exclude_entry,
+                                                                      self.textboxes["exclusion"], mode='add'))
+        exclude_entry.bind('<Control-BackSpace>',
+                           lambda event: self.controller.add_subtract_to_exclude(exclude_entry,
+                                                                      self.textboxes["exclusion"],
+                                                                      mode='subtract'))
+        id_target_entry.bind('<Return>',
+                             lambda event: self.controller.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                    self.textboxes["targets"],
+                                                                    'add'))
+        id_target_entry.bind('<Control-BackSpace>',
+                             lambda event: self.controller.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                    self.textboxes["targets"],
+                                                                    'subtract'))
+        rename_target_entry.bind('<Return>',
+                                 lambda event: self.controller.add_subtract_target(id_target_entry, rename_target_entry,
+                                                                        self.textboxes["targets"],
+                                                                        'add'))
+        
         # ---- TRACE
-        for key, widget in {"std threshold": std_thresh_var, 'dead window': dead_window_var,
-                            'sampling frequency': sampling_freq_var}.items():
-            widget.trace("w", partial(self.controller.trace_vars_to_model, key))
+        # for key, widget in {"std threshold": std_thresh_var, 'dead window': dead_window_var,
+        #                     'sampling frequency': sampling_freq_var}.items():
+        #     widget.trace("w", partial(self.controller.trace_vars_to_model, key))
     
     def manage_spike_tab(self):
         self.master.grid_columnconfigure(0, weight=1)
         self.master.grid_columnconfigure(1, weight=1)
         self.master.grid_columnconfigure(2, weight=2)
-        self.master.grid_rowconfigure(0, weight=3)
+        self.master.grid_rowconfigure(0, weight=1)
         self.master.grid_rowconfigure(1, weight=1)
         # --------------- GENERAL PARAMS FRAME
         general_params_scrollable_frame = ctk.CTkScrollableFrame(master=self.master, )
@@ -663,17 +749,31 @@ class SpikeView(ctk.CTkFrame):
         specific_params_scrollable_frame.grid_columnconfigure(1, weight=1)
         specific_params_scrollable_frame.grid_columnconfigure(2, weight=20)
         self.manage_specific_params_frame(specific_params_scrollable_frame)
-        specific_params_scrollable_frame.grid(row=0, column=1, rowspan=2, sticky='nsew', padx=3)
+        specific_params_scrollable_frame.grid(row=0, column=1, rowspan=1, sticky='nsew', padx=3)
+        
+        # --------------- DATA FRAME
+        data_scrollable_frame = ctk.CTkScrollableFrame(master=self.master, )
+        data_scrollable_frame.grid_columnconfigure(0, weight=10)
+        data_scrollable_frame.grid_columnconfigure(1, weight=1)
+        data_scrollable_frame.grid_columnconfigure(2, weight=20)
+        self.manage_data_frame(data_scrollable_frame)
+        data_scrollable_frame.grid(row=1, column=1, rowspan=1, sticky='nsew', padx=3)
         
         # --------------- PLOT FRAME
-        plot_frame = ctk.CTkFrame(master=self.master, )
+        plot_region_frame = ctk.CTkFrame(master=self.master,)
+        plot_region_frame.grid_columnconfigure(0, weight=10)
+        plot_region_frame.grid_rowconfigure(0, weight=3)
+        plot_region_frame.grid_rowconfigure(1, weight=1)
+        plot_region_frame.grid(row=0, column=2, rowspan=2, sticky='nsew')
+        
+        plot_frame = ctk.CTkFrame(master=plot_region_frame, )
         self.manage_plot_frame(plot_frame)
-        plot_frame.grid(row=0, column=2, sticky='nsew', padx=3, pady=3)
+        plot_frame.grid(row=0, column=0, sticky='nsew', padx=3, pady=3)
         
         # --------------- EXECUTION FRAME
-        execution_frame = ctk.CTkFrame(master=self.master, )
+        execution_frame = ctk.CTkFrame(master=plot_region_frame, )
         self.manage_execution_frame(execution_frame)
-        execution_frame.grid(row=1, column=2, sticky='nsew', padx=3, pady=3)
+        execution_frame.grid(row=1, column=0, sticky='nsew', padx=3, pady=3)
     
     def update_slider_value(self, value, var):
         self.parent_view.parent_view.update_slider_value(value, var)
@@ -685,3 +785,17 @@ class SpikeView(ctk.CTkFrame):
     def rename_dict_key(d, old_key, new_key):
         if old_key in d:
             d[new_key] = d.pop(old_key)
+
+    def add_label_data(self, scrollable_frame):
+        if self.controller:
+            self.controller.add_label_data(scrollable_frame)
+            
+    def remove_label_data(self):
+        if self.controller:
+            self.controller.remove_label_data()
+    
+    def save_config(self):
+        self.controller.save_config()
+        
+    def load_config(self):
+        self.controller.load_config()
