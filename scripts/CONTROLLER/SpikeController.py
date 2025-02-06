@@ -1,4 +1,6 @@
 import multiprocessing
+import threading
+from multiprocessing import Queue
 from datetime import datetime
 from functools import partial
 
@@ -11,6 +13,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from scripts.CONTROLLER import data_processing
 from scripts.CONTROLLER.MainController import MainController
+from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.MODEL.SpikeModel import SpikeModel
 import customtkinter as ctk
 import tkinter as tk
@@ -29,6 +32,7 @@ class SpikeController:
         self.view = view
         self.view.controller = self  # set controller
         self.progress = None
+        self.queue = Queue()
     
     def save_figure(self, fig):
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
@@ -139,33 +143,75 @@ class SpikeController:
         for key, widget in self.view.textboxes.items():
             MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
     
-    def load_plot_dataset(self, ):
-        filename = filedialog.askopenfilename(title="Open file",
-                                              filetypes=(("Tables", "*.txt *.csv"),))
-        if filename:
-            # fig, ax = self.view.figures["plot"]
-            # ax.clear()
-            for n in range(self.model.n_ydata + 1):
-                self.remove_ydata()
+    def update_number_of_tasks(self, n_file, n_col, ):
+        return n_file * n_col
+    
+    def compute_spike_thread(self):
+        # fig, ax = self.view.figures["plot"]
+        
+        files = []
+        start = datetime.now()
+        
+        if self.view.vars["single"].get():
+            files.append(self.view.vars["single"].get())
+        elif self.view.vars["multiple"].get():
+            files = ff.get_all_files(self.model.parent_directory, to_include=self.model.to_include,
+                                     to_exclude=self.model.to_exclude)
+        print(len(files))
+        all_spikes = {target: [] for target in self.model.targets.keys()}
+        print(all_spikes)
+        self.progress = ProgressBar("Processing progression", app=self.view.app)
+        self.progress.total_tasks = self.update_number_of_tasks(len(files), 30)
+        self.progress.start()
+        self.progress.update_task("Spike detection...")
+        for file in files:
+            print(file, self.progress.completed_tasks)
+            target = [x for x in self.model.targets.keys() if x in file][0]
+            if not target:
+                messagebox.showerror("Missing Value", "No corresponding target has been found in the "
+                                                      "file name.")
+                break
             
-            df = pd.read_csv(filename)
-            self.model.dataset = df
-            self.model.dataset_path = filename
-            self.view.vars["load dataset"].set(filename)
+            df = pd.read_csv(file, skiprows=6, dtype=float, )
+            df = data_processing.top_n_electrodes(df, 30, "TimeStamp [µs]")  # todo : add column selection
+            columns_with_exception = [col for col in df.columns if "TimeStamp [µs]" not in col]
             
-            columns = list(df.columns)
-            self.view.cbboxes["xdata"].configure(values=columns)
+            n_workers = 10
+            worker_ranges = np.linspace(0, len(columns_with_exception), n_workers + 1).astype(int)
             
-            label_col = columns[0]
-            for col in columns:
-                if 'label' in col or 'target' in col:  # try to auto-detect the label column
-                    label_col = col
-            self.view.cbboxes["xdata"].set(label_col)
+            params_list = []
+            all_workers = []
+            manager = multiprocessing.Manager()
+            return_dict = manager.dict()
+            for n_worker in range(n_workers):
+                low_index = worker_ranges[n_worker]
+                high_index = worker_ranges[n_worker + 1]
+                # sub_array = df_array[:, low_index:high_index]
+                
+                worker = SpikeDetectorProcess(file,
+                                              columns_with_exception[low_index:high_index],
+                                              self.model.vars["std threshold"],
+                                              self.model.vars["sampling frequency"],
+                                              self.model.vars["dead window"],
+                                              return_dict,
+                                              self.queue)
+                worker.name = f"worker_{n_worker}"
+                worker.start()
+                all_workers.append(worker)
             
-            ydata_curves = {key: value for (key, value) in self.view.cbboxes.items() if "ydata " in key}
-            for key, value in ydata_curves.items():
-                value.configure(values=columns)
-                value.set(columns[-1])
+            while any([w.is_alive() for w in all_workers]):
+                if not self.queue.empty():
+                    self.progress.increment_progress(self.queue.get())
+            
+            for worker in all_workers:
+                worker.join()
+            
+            detected_spikes = dict(return_dict.items())
+            all_spikes[target].append(np.sum(list(detected_spikes.values())))
+        self.model.spike_params["all_spikes"] = all_spikes
+        print("done", all_spikes)
+        self.draw_figure()
+        
     
     def compute_spikes(self):
         if self.check_params_validity():
@@ -173,81 +219,87 @@ class SpikeController:
                             self.view.switches, self.view.textboxes, ]:
                 self.update_params(widgets)
             
-            # fig, ax = self.view.figures["plot"]
             
+            thread = threading.Thread(name='spike', target=self.compute_spike_thread, daemon=True)
+            thread.start()
             
-            files = []
-            start = datetime.now()
+       
+    def check_plot_params_validity(self):
+        errors = []
+        if not self.model.n_labels > -1:
+            errors.append("You need to add data to plot.")
             
-            if self.view.vars["single"].get():
-                files.append(self.view.vars["single"].get())
-            elif self.view.vars["multiple"].get():
-                files = ff.get_all_files(self.model.parent_directory, to_include=self.model.to_include,
-                                         to_exclude=self.model.to_exclude)
+        indices = []
+        for n_label in range(self.model.n_labels):
+            index = self.view.vars[f"index {n_label}"].get()
+            indices.append(index)
+        
+        if len(indices) != len(set(indices)):
+            errors.append("Two data point can not have the same plot index.")
             
-            all_spikes = {target: [] for target in self.model.targets.keys()}
-            print(all_spikes)
-            # for file in files:
-            #     target = [x for x in self.model.targets.keys() if x in file][0]
-            #     df = pd.read_csv(file, skiprows=6, dtype=float, )
-            #     # df = data_processing.top_n_electrodes(df, 30, "TimeStamp [µs]") todo : add column selection
-            #
-            #     n_workers = 10
-            #     worker_ranges = np.linspace(0, len(df.columns), n_workers + 1).astype(int)
-            #
-            #     params_list = []
-            #     all_workers = []
-            #     manager = multiprocessing.Manager()
-            #     return_dict = manager.dict()
-            #
-            #     for n_worker in range(n_workers):
-            #         low_index = worker_ranges[n_worker]
-            #         high_index = worker_ranges[n_worker + 1]
-            #         # sub_array = df_array[:, low_index:high_index]
-            #
-            #         worker = SpikeDetectorProcess(file,
-            #                                       df.columns[low_index:high_index],
-            #                                       self.model.vars["std threshold"],
-            #                                       self.model.vars["sampling frequency"],
-            #                                       self.model.vars["dead window"],
-            #                                       return_dict)
-            #         worker.name = f"worker_{n_worker}"
-            #         worker.start()
-            #         all_workers.append(worker)
-            #
-            #     for worker in all_workers:
-            #         worker.join()
-            #
-            #     detected_spikes = dict(return_dict.items())
-            #     all_spikes[target].append(np.sum(list(detected_spikes.values())))
-            self.model.spike_params["all_spikes"] = all_spikes
-            
-            self.draw_figure()
-            
+        if errors:
+            messagebox.showerror("Not plottable", "\n".join(errors))
+        return True if len(errors)==0 else False
+        
     def draw_figure(self):
-        fig, ax = plt.subplots(figsize=(4, 4))
-        new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
-        new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
-        self.view.canvas["plot toolbar"].destroy()
-        toolbar = NavigationToolbar2Tk(new_canvas,
-                                       self.view.frames["plot frame"], pack_toolbar=False)
-        toolbar.update()
-        toolbar.grid(row=1, column=0, sticky='we')
-        self.view.canvas["plot"].get_tk_widget().destroy()
-        self.view.canvas["plot"] = new_canvas
-        self.view.figures["plot"] = (fig, ax)
-        
-        x_ticks = []
-        x_ticks_label = []
-        for index, (key, value) in enumerate(self.model.spike_params["all_spikes"].items()):
-            x_ticks.append(index)
-            x_ticks_label.append(key)
-            ax.bar(x=index, height=np.sum(value), yerr=np.std(value))
-        
-        ax.set_xticks(x_ticks, x_ticks_label)
-        self.view.figures["plot"] = (fig, ax)
-        self.view.canvas["plot"].draw()
-    
+        print("draw")
+        if self.check_plot_params_validity() and self.check_params_validity():
+            for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
+                            self.view.switches, self.view.textboxes, ]:
+                self.update_params(widgets)
+                
+            print("params, ok, drawing")
+            fig, ax = plt.subplots(figsize=(4, 4))
+            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
+            new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+            self.view.canvas["plot toolbar"].destroy()
+            toolbar = NavigationToolbar2Tk(new_canvas,
+                                           self.view.frames["plot frame"], pack_toolbar=False)
+            toolbar.update()
+            toolbar.grid(row=1, column=0, sticky='we')
+            self.view.canvas["plot"].get_tk_widget().destroy()
+            self.view.canvas["plot"] = new_canvas
+            self.view.figures["plot"] = (fig, ax)
+            ax.clear()
+            
+            x_ticks = []
+            x_ticks_label = []
+            all_spikes = self.model.spike_params["all_spikes"]
+            
+            for n_label in range(self.model.n_labels):
+                label = self.model.vars[f"label data {n_label}"]
+                label_legend = self.model.vars[f"label data legend {n_label}"]
+                index = self.model.vars[f"index {n_label}"]
+                x_ticks_label.append(label_legend) if label_legend else x_ticks_label.append(label)
+                x_ticks.append(index)
+                ax.bar(x=index, height=np.sum(all_spikes[label]),
+                       yerr=np.std(all_spikes["label"]),
+                       color=self.model.vars[f"color {n_label}"],)
+                
+            
+            # ---- LABELS
+            ax.set_xlabel(self.model.vars["x label"],
+                          fontdict={"font": self.model.vars["axes font"],
+                                    "fontsize": self.model.vars["x label size"]})
+            ax.set_ylabel(self.model.plot_axes["y label"],
+                          fontdict={"font": self.model.vars["axes font"],
+                                    "fontsize": self.model.vars["y label size"]})
+            ax.set_title(self.model.plot_general_settings["title"],
+                         fontdict={"font": self.model.vars["title font"],
+                                   "fontsize": self.model.vars["title size"]}, )
+            
+            # ----- TICKS
+            
+            ax.set_xticks(x_ticks, x_ticks_label)
+            ax.tick_params(axis='x',
+                           labelsize=self.model.vars["x ticks size"],
+                           labelrotation=float(self.model.vars["x ticks rotation"]))
+            
+            self.view.figures["plot"] = (fig, ax)
+            self.view.canvas["plot"].draw()
+        else:
+            messagebox.showerror("Missing data", )
+            
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()

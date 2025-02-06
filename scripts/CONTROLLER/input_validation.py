@@ -22,6 +22,16 @@ def is_number(num):
         return True
     except ValueError:
         return False
+    
+def is_number_or_empty(num):
+    if num == "":
+        return True
+    else:
+        try:
+            float(num)
+            return True
+        except ValueError:
+            return False
 
 
 def isfloat(num):
@@ -31,6 +41,15 @@ def isfloat(num):
     except ValueError:
         return False
 
+def is_int_or_empty(num):
+    if num == "":
+        return True
+    else:
+        try:
+            int(num)
+            return True
+        except ValueError:
+            return False
 
 def isint(num):
     try:

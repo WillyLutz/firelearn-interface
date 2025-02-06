@@ -233,7 +233,9 @@ class MainView(ttk.Frame):
             self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
             widget.set_error('')
             return True
-
+        
+    
+        
     def is_valid_directory(self, widget, *args):
         value = widget.get()
 

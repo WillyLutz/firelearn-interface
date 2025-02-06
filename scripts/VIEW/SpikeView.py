@@ -15,7 +15,7 @@ from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.ImageButton import ImageButton
 from scripts.WIDGETS.Separator import Separator
 from scripts.params import resource_path
-
+from scripts.CONTROLLER import input_validation as ival
 
 class SpikeView(ctk.CTkFrame):
     def __init__(self, app, master, parent_view):
@@ -435,6 +435,9 @@ class SpikeView(ctk.CTkFrame):
                                            width=120,
                                            height=40)
         
+        
+        self.buttons["compute"] = compute_spike_button
+        self.buttons["draw"] = draw_figure_button
         # --------- MANAGE WIDGETS
         
         compute_spike_button.grid(row=0, column=0, padx=10, pady=10, sticky='w')
@@ -454,18 +457,26 @@ class SpikeView(ctk.CTkFrame):
         
         # row separator 3
         # row separator 4
-        std_thresh_var = ctk.DoubleVar(value=5.5)
+        std_thresh_var = ctk.StringVar(value=5.5)
         std_thresh_label = ctk.CTkLabel(master=data_scrollable_frame, text="Standard deviation threshold:")
-        std_thresh_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=std_thresh_var)
+        std_thresh_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=std_thresh_var,
+                                        validate="all",
+                                        validatecommand=(self.app.register(ival.is_number_or_empty), "%P"))
         
         # row separator 6
         sampling_freq_var = ctk.IntVar(value=256)
         sampling_freq_label = ctk.CTkLabel(master=data_scrollable_frame, text="Sampling frequency (Hz):")
-        sampling_freq_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=sampling_freq_var)
+        sampling_freq_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=sampling_freq_var,
+                                           validate="all",
+                                           validatecommand=(self.app.register(ival.is_int_or_empty), "%P")
+                                           )
         # row separator 8
         dead_window_label = ctk.CTkLabel(data_scrollable_frame, text='Dead window (s):')
-        dead_window_var = ctk.DoubleVar(value=0.1)
-        dead_window_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=dead_window_var)
+        dead_window_var = ctk.StringVar(value=0.1)
+        dead_window_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=dead_window_var,
+                                         validate="all",
+                                         validatecommand=(self.app.register(ival.is_number_or_empty), "%P")
+                                         )
         # row separator 10
         add_data_label = ctk.CTkLabel(master=data_scrollable_frame, text="Add data:")
         add_label_data_button = ctk.CTkButton(master=data_scrollable_frame, text="+", width=25, height=25,
@@ -509,14 +520,16 @@ class SpikeView(ctk.CTkFrame):
         self.vars["std threshold"] = std_thresh_var
         self.vars["dead window"] = dead_window_var
         self.vars["sampling frequency"] = sampling_freq_var
-        self.entries["std threshold"] = std_thresh_entry
-        self.entries["dead window"] = dead_window_entry
-        self.entries["sampling frequency"] = sampling_freq_entry
+        
+        # self.entries["std threshold"] = std_thresh_entry
+        # self.entries["dead window"] = dead_window_entry
+        # self.entries["sampling frequency"] = sampling_freq_entry
     
     
         # ------- CONFIGURE
         add_label_data_button.configure(command=partial(self.add_label_data, data_scrollable_frame))
         subtract_label_data_button.configure(command=self.remove_label_data)
+        
         
         
     def manage_specific_params_frame(self, specific_params_scrollable_frame):

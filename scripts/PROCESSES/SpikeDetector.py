@@ -3,9 +3,11 @@ from multiprocessing import Process
 import numpy as np
 import pandas as pd
 
+from scripts.CONTROLLER.ProgressBar import ProgressBar
+
 
 class SpikeDetectorProcess(Process):
-    def __init__(self, filename, columns, threshold, sf, dead_window, return_dict, **kwargs):
+    def __init__(self, filename, columns, threshold, sf, dead_window, return_dict, queue, **kwargs):
         super().__init__(**kwargs)
         self.filename = filename
         self.columns = columns
@@ -14,6 +16,7 @@ class SpikeDetectorProcess(Process):
         self.dead_window = dead_window
         
         self.data = None
+        self.queue = queue
         
         self.detected_spikes = return_dict
     
@@ -49,3 +52,5 @@ class SpikeDetectorProcess(Process):
                     self.detected_spikes[self.columns[i_col]] = len(detected_indices)
                 else:
                     self.detected_spikes[self.columns[i_col]] = 0
+            
+            self.queue.put(1)
