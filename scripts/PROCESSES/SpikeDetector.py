@@ -7,15 +7,14 @@ from scripts.CONTROLLER.ProgressBar import ProgressBar
 
 
 class SpikeDetectorProcess(Process):
-    def __init__(self, filename, columns, threshold, sf, dead_window, return_dict, queue, **kwargs):
+    def __init__(self, df, columns, threshold, sf, dead_window, return_dict, queue, **kwargs):
         super().__init__(**kwargs)
-        self.filename = filename
         self.columns = columns
         self.threshold = threshold
         self.sf = sf
         self.dead_window = dead_window
         
-        self.data = None
+        self.data = df
         self.queue = queue
         
         self.detected_spikes = return_dict
@@ -25,7 +24,8 @@ class SpikeDetectorProcess(Process):
         return self.detected_spikes
     
     def run(self):
-        self.data = np.array(pd.read_csv(self.filename, skiprows=6, dtype=np.float64, usecols=self.columns))
+        # self.data = np.array(pd.read_csv(self.filename, skiprows=6, dtype=np.float64, usecols=self.columns))
+        print(f"start {self.name}")
         dead_samples = int(self.dead_window * self.sf)  # Dead time in number of samples
         
         for i_col in range(0, self.data.shape[1]):
@@ -54,3 +54,5 @@ class SpikeDetectorProcess(Process):
                     self.detected_spikes[self.columns[i_col]] = 0
             
             self.queue.put(1)
+        print(f"end {self.name}")
+

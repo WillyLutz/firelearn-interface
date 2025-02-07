@@ -421,11 +421,11 @@ class SpikeView(ctk.CTkFrame):
         toolbar.update()
         toolbar.grid(row=1, column=0, sticky='we')
         
-        self.canvas["plot"] = canvas
+        self.canvas["spike"] = canvas
         self.canvas["plot toolbar"] = toolbar
         
         self.frames['plot frame'] = plot_frame
-        self.figures["plot"] = (fig, ax)
+        self.figures["spike"] = (fig, ax)
     
     def manage_execution_frame(self, execution_frame):
         compute_spike_button = ctk.CTkButton(master=execution_frame, text='Compute spikes', fg_color='tomato',
@@ -457,14 +457,14 @@ class SpikeView(ctk.CTkFrame):
         
         # row separator 3
         # row separator 4
-        std_thresh_var = ctk.StringVar(value=5.5)
+        std_thresh_var = ctk.StringVar(value="5.5")
         std_thresh_label = ctk.CTkLabel(master=data_scrollable_frame, text="Standard deviation threshold:")
         std_thresh_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=std_thresh_var,
                                         validate="all",
                                         validatecommand=(self.app.register(ival.is_number_or_empty), "%P"))
         
         # row separator 6
-        sampling_freq_var = ctk.IntVar(value=256)
+        sampling_freq_var = ctk.StringVar(value="256")
         sampling_freq_label = ctk.CTkLabel(master=data_scrollable_frame, text="Sampling frequency (Hz):")
         sampling_freq_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=sampling_freq_var,
                                            validate="all",
@@ -472,7 +472,7 @@ class SpikeView(ctk.CTkFrame):
                                            )
         # row separator 8
         dead_window_label = ctk.CTkLabel(data_scrollable_frame, text='Dead window (s):')
-        dead_window_var = ctk.StringVar(value=0.1)
+        dead_window_var = ctk.StringVar(value="0.1")
         dead_window_entry = ctk.CTkEntry(master=data_scrollable_frame, textvariable=dead_window_var,
                                          validate="all",
                                          validatecommand=(self.app.register(ival.is_number_or_empty), "%P")

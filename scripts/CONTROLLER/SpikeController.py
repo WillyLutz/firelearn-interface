@@ -10,6 +10,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from requests.packages import target
 
 from scripts.CONTROLLER import data_processing
 from scripts.CONTROLLER.MainController import MainController
@@ -58,12 +59,12 @@ class SpikeController:
         if len(targets)==0 and not self.view.vars["single ckbox"].get():
             plot_params_errors.append('At least one target is needed to plot')
             
-        if self.view.vars["dead window"].get() < 0:
+        if float(self.view.vars["dead window"].get()) < 0:
             plot_params_errors.append('Dead window length must be a positive number.')
         
-        if self.view.vars["sampling frequency"].get() <= 0:
+        if int(self.view.vars["sampling frequency"].get()) <= 0:
             plot_params_errors.append('Sampling frequency must be a positive number.')
-        if self.view.vars["std threshold"].get() < 0:
+        if float(self.view.vars["std threshold"].get()) < 0:
             plot_params_errors.append('Std threshold must be a positive number.')
         
         for key, textbox in self.view.textboxes.items():
@@ -159,58 +160,68 @@ class SpikeController:
                                      to_exclude=self.model.to_exclude)
         print(len(files))
         all_spikes = {target: [] for target in self.model.targets.keys()}
+        samples_per_target = {target: 0 for target in self.model.targets.keys()}
         print(all_spikes)
+        n_cols = 10
         self.progress = ProgressBar("Processing progression", app=self.view.app)
-        self.progress.total_tasks = self.update_number_of_tasks(len(files), 30)
+        self.progress.total_tasks = self.update_number_of_tasks(len(files), n_cols)
         self.progress.start()
         self.progress.update_task("Spike detection...")
         for file in files:
             print(file, self.progress.completed_tasks)
             target = [x for x in self.model.targets.keys() if x in file][0]
+            samples_per_target[target] += 1
             if not target:
                 messagebox.showerror("Missing Value", "No corresponding target has been found in the "
                                                       "file name.")
                 break
+            if self.model.vars["behead ckbox"]:
+                df = pd.read_csv(file, skiprows=self.model.vars["behead"], dtype=float, index_col=False)
+            else:
+                df = pd.read_csv(file, dtype=float, index_col=False)
+                
+            df = data_processing.top_n_electrodes(df, n_cols,  "TimeStamp [s]")  # todo : add column selection
+            columns_with_exception = [col for col in df.columns if "TimeStamp [s]" not in col]
             
-            df = pd.read_csv(file, skiprows=6, dtype=float, )
-            df = data_processing.top_n_electrodes(df, 30, "TimeStamp [µs]")  # todo : add column selection
-            columns_with_exception = [col for col in df.columns if "TimeStamp [µs]" not in col]
-            
-            n_workers = 10
+            n_workers = 8 if 8 < len(df.columns)/2 else int(len(df.columns)/2)
             worker_ranges = np.linspace(0, len(columns_with_exception), n_workers + 1).astype(int)
             
             params_list = []
             all_workers = []
             manager = multiprocessing.Manager()
             return_dict = manager.dict()
+            
             for n_worker in range(n_workers):
                 low_index = worker_ranges[n_worker]
                 high_index = worker_ranges[n_worker + 1]
                 # sub_array = df_array[:, low_index:high_index]
                 
-                worker = SpikeDetectorProcess(file,
-                                              columns_with_exception[low_index:high_index],
-                                              self.model.vars["std threshold"],
-                                              self.model.vars["sampling frequency"],
-                                              self.model.vars["dead window"],
-                                              return_dict,
-                                              self.queue)
-                worker.name = f"worker_{n_worker}"
-                worker.start()
-                all_workers.append(worker)
+                if high_index > low_index: # so no workers have empty datasets
+                    worker = SpikeDetectorProcess(df.loc[:, columns_with_exception[low_index:high_index]].values,
+                                                  columns_with_exception[low_index:high_index],
+                                                  float(self.model.vars["std threshold"]),
+                                                  int(self.model.vars["sampling frequency"]),
+                                                  float(self.model.vars["dead window"]),
+                                                  return_dict,
+                                                  self.queue,)
+                    worker.name = f"worker_{n_worker}"
+                    worker.start()
+                    all_workers.append(worker)
             
             while any([w.is_alive() for w in all_workers]):
                 if not self.queue.empty():
-                    self.progress.increment_progress(self.queue.get())
+                    self.progress.increment_progress(self.queue.get(timeout=1))
             
             for worker in all_workers:
-                worker.join()
-            
+                worker.join(timeout=10)
+                if worker.is_alive():
+                    print(f"Terminating stuck worker: {worker.name}")
+                    worker.terminate()
             detected_spikes = dict(return_dict.items())
             all_spikes[target].append(np.sum(list(detected_spikes.values())))
         self.model.spike_params["all_spikes"] = all_spikes
+        self.model.spike_params["samples_per_target"] = samples_per_target
         print("done", all_spikes)
-        self.draw_figure()
         
     
     def compute_spikes(self):
@@ -219,9 +230,11 @@ class SpikeController:
                             self.view.switches, self.view.textboxes, ]:
                 self.update_params(widgets)
             
-            
-            thread = threading.Thread(name='spike', target=self.compute_spike_thread, daemon=True)
-            thread.start()
+            self.compute_spike_thread()
+            # thread = threading.Thread(name='spike', target=self.compute_spike_thread, daemon=True)
+            # thread.start()
+            # thread.join()
+            self.draw_figure()
             
        
     def check_plot_params_validity(self):
@@ -257,23 +270,25 @@ class SpikeController:
                                            self.view.frames["plot frame"], pack_toolbar=False)
             toolbar.update()
             toolbar.grid(row=1, column=0, sticky='we')
-            self.view.canvas["plot"].get_tk_widget().destroy()
-            self.view.canvas["plot"] = new_canvas
-            self.view.figures["plot"] = (fig, ax)
+            self.view.canvas["spike"].get_tk_widget().destroy()
+            self.view.canvas["spike"] = new_canvas
+            self.view.figures["spike"] = (fig, ax)
             ax.clear()
             
             x_ticks = []
             x_ticks_label = []
             all_spikes = self.model.spike_params["all_spikes"]
             
-            for n_label in range(self.model.n_labels):
+            print(all_spikes)
+            for n_label in range(self.model.n_labels+1):
                 label = self.model.vars[f"label data {n_label}"]
                 label_legend = self.model.vars[f"label data legend {n_label}"]
                 index = self.model.vars[f"index {n_label}"]
                 x_ticks_label.append(label_legend) if label_legend else x_ticks_label.append(label)
                 x_ticks.append(index)
-                ax.bar(x=index, height=np.sum(all_spikes[label]),
-                       yerr=np.std(all_spikes["label"]),
+                height = int(np.sum(all_spikes[label])/self.model.spike_params["samples_per_target"][label])
+                ax.bar(x=index, height=height,
+                       yerr=np.std(all_spikes[label]),
                        color=self.model.vars[f"color {n_label}"],)
                 
             
@@ -295,8 +310,8 @@ class SpikeController:
                            labelsize=self.model.vars["x ticks size"],
                            labelrotation=float(self.model.vars["x ticks rotation"]))
             
-            self.view.figures["plot"] = (fig, ax)
-            self.view.canvas["plot"].draw()
+            self.view.figures["spike"] = (fig, ax)
+            self.view.canvas["spike"].draw()
         else:
             messagebox.showerror("Missing data", )
             
@@ -446,7 +461,7 @@ class SpikeController:
             # row separator 4
             
             labels_label = ctk.CTkLabel(master=label_data_subframe, text="Label:")
-            label_var = tk.StringVar(value=targets[0])
+            label_var = tk.StringVar(value=targets[n_labels] if n_labels < len(targets) else 0)
             labels_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=targets, state='readonly',
                                            textvariable=label_var)
             # row separator 6
@@ -456,7 +471,7 @@ class SpikeController:
             
             # row separator 8
             index_label = ctk.CTkLabel(master=label_data_subframe, text="Index:")
-            index_cbbox_var = ctk.IntVar(value=0)
+            index_cbbox_var = ctk.IntVar(value=n_labels if n_labels < len(targets) else 0)
             index_cbbox = tk.ttk.Combobox(master=label_data_subframe, textvariable=index_cbbox_var,
                                           values=[str(x) for x in range(len(targets))],)
             
