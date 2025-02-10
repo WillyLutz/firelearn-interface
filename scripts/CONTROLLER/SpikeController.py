@@ -452,69 +452,68 @@ class SpikeController:
             
             self.model.n_labels += 1
             n_labels = self.model.n_labels
-            label_data_subframe = ctk.CTkFrame(master=scrollable_frame, )
+            column = n_labels + self.model.n_labels_offset
+            # label_data_subframe = ctk.CTkFrame(master=scrollable_frame, )
             
-            # row separator 0
-            # row separator 1
-            n_labels_label = ctk.CTkLabel(master=label_data_subframe, text=f"DATA: {n_labels}")
-            # row separator 3
-            # row separator 4
+            # row separator
+            n_labels_label = ctk.CTkLabel(master=scrollable_frame, text=f"DATA: {n_labels}")
+            # row separator
+            # row separator
             
-            labels_label = ctk.CTkLabel(master=label_data_subframe, text="Label:")
             label_var = tk.StringVar(value=targets[n_labels] if n_labels < len(targets) else 0)
-            labels_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=targets, state='readonly',
+            labels_cbbox = tk.ttk.Combobox(master=scrollable_frame, values=targets, state='readonly',
                                            textvariable=label_var)
-            # row separator 6
-            labels_legend_label = ctk.CTkLabel(master=label_data_subframe, text="Legend label:")
+            # row separator
             labels_legend_var = tk.StringVar(value='')
-            labels_legend_entry = ErrEntry(master=label_data_subframe, textvariable=labels_legend_var)
+            labels_legend_entry = ErrEntry(master=scrollable_frame, textvariable=labels_legend_var)
             
-            # row separator 8
-            index_label = ctk.CTkLabel(master=label_data_subframe, text="Index:")
+            # row separator
             index_cbbox_var = ctk.IntVar(value=n_labels if n_labels < len(targets) else 0)
-            index_cbbox = tk.ttk.Combobox(master=label_data_subframe, textvariable=index_cbbox_var,
+            index_cbbox = tk.ttk.Combobox(master=scrollable_frame, textvariable=index_cbbox_var,
                                           values=[str(x) for x in range(len(targets))],)
             
-            # row separator 10
-            error_bar_label = ctk.CTkLabel(master=label_data_subframe, text="Error bar")
+            # row separator
             error_bar_var = tk.StringVar(value='None')
-            error_bar_cbbox = tk.ttk.Combobox(master=label_data_subframe, values=["None", 'std'],
+            error_bar_cbbox = tk.ttk.Combobox(master=scrollable_frame, values=["None", 'std'],
                                               textvariable=error_bar_var)
+        
+            # row separator
             
-            # row separator 12
-            
-            color_label = ctk.CTkLabel(master=label_data_subframe, text="Color:")
             color_var = tk.StringVar(value='green')
-            color_button = ctk.CTkButton(master=label_data_subframe, textvariable=color_var,
+            color_button = ctk.CTkButton(master=scrollable_frame, textvariable=color_var,
                                          fg_color=color_var.get(), text_color='black')
-            # row separator 14
+            # row separator
+            print(self.model.plot_data)
+            plot_type = tk.ttk.Combobox(master=scrollable_frame, values=self.model.plot_data["type"], state='readonly')
+            plot_type.set(self.model.plot_data["type"][0])
+            
+            #row separator
+            show_points = ctk.CTkCheckBox(master=scrollable_frame, )
+            show_points.select()
             # ----- MANAGE WIDGETS
-            label_data_subframe.grid(row=n_labels + self.model.n_labels_offset,
-                                     column=0, sticky='nsew', pady=25, columnspan=3)
+            # label_data_subframe.grid(row=0,
+            #                          column=column, sticky='nsew', pady=25, rowspan=17)
             
-            n_labels_label.grid(row=2, column=0, columnspan=3, sticky="we")
+            n_labels_label.grid(row=1, column=column, sticky="we")
             
-            labels_label.grid(row=5, column=0, sticky='w')
-            labels_cbbox.grid(row=5, column=2, sticky='we')
-            labels_legend_label.grid(row=7, column=0, sticky='w')
-            labels_legend_entry.grid(row=7, column=2, sticky='we')
-            index_label.grid(row=9, column=0, sticky='w')
-            index_cbbox.grid(row=9, column=2, sticky='we')
-            error_bar_label.grid(row=11, column=0, sticky='w')
-            error_bar_cbbox.grid(row=11, column=2, sticky='we')
-            color_label.grid(row=13, column=0, sticky='w')
-            color_button.grid(row=13, column=2, sticky='we')
+            labels_cbbox.grid(row=4, column=column, sticky='we')
+            labels_legend_entry.grid(row=6, column=column, sticky='we')
+            index_cbbox.grid(row=8, column=column, sticky='we')
+            error_bar_cbbox.grid(row=10, column=column, sticky='we')
+            color_button.grid(row=12, column=column, sticky='we')
+            plot_type.grid(row=14, column=column, sticky='we')
+            show_points.grid(row=16, column=column, sticky='we')
             
             # --------------- MANAGE SEPARATORS
-            general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, ]
-            general_params_vertical_separator_ranges = [(4, 14), ]
+            general_params_separators_indices = [0, 2, 3, 5, 7, 9, 11, 13, 15, 17]
+            general_params_vertical_separator_ranges = [(0, 18), ]
             for r in range(general_params_separators_indices[-1] + 2):
                 if r in general_params_separators_indices:
-                    sep = Separator(master=label_data_subframe, orient='h')
-                    sep.grid(row=r, column=0, columnspan=3, sticky='ew')
-            for couple in general_params_vertical_separator_ranges:
-                general_v_sep = Separator(master=label_data_subframe, orient='v')
-                general_v_sep.grid(row=couple[0], column=1, rowspan=couple[1] - couple[0], sticky='ns')
+                    sep = Separator(master=scrollable_frame, orient='h')
+                    sep.grid(row=r, column=column, columnspan=1, sticky='ew')
+            # for couple in general_params_vertical_separator_ranges:
+            #     general_v_sep = Separator(master=scrollable_frame, orient='v')
+            #     general_v_sep.grid(row=couple[0], column=column, rowspan=couple[1] - couple[0], sticky='ns')
             
             # ----- CONFIGURE WIDGETS
             color_button.configure(command=partial(self.view.select_color, view=self.view,
@@ -523,7 +522,7 @@ class SpikeController:
             
             # ------- STORE WIDGETS
             
-            self.view.labels_subframes[str(n_labels)] = label_data_subframe
+            # self.view.labels_subframes[str(n_labels)] = label_data_subframe
             self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
             self.view.cbboxes[f"error bar {n_labels}"] = error_bar_cbbox
             self.view.cbboxes[f"index {n_labels}"] = index_cbbox
@@ -533,6 +532,8 @@ class SpikeController:
             self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
             self.view.buttons[f"color {n_labels}"] = color_button
             self.view.vars[f"color {n_labels}"] = color_var
+            self.view.cbboxes["plot type"] = plot_type
+            self.view.ckboxes["show points"] = show_points
             # ----- TRACE
             # for key, widget in {f'color {n_labels}': color_var, f"error bar {n_labels}": error_bar_var,
             #                     f"index {n_labels}": index_cbbox_var,
@@ -546,12 +547,21 @@ class SpikeController:
             messagebox.showerror("Missing Values", "No targets indicated")
             return False
     
+    @staticmethod
+    def clear_column(parent, column):
+        for widget in parent.winfo_children():
+            if isinstance(widget, tk.Widget):  # Ensure it's a widget
+                grid_info = widget.grid_info()
+                if grid_info and int(grid_info['column']) == column:
+                    widget.destroy()
+    
     def remove_label_data(self, ):
+        
         n_labels = self.model.n_labels
         
+        column = n_labels + self.model.n_labels_offset
         if n_labels >= 0:
-            for child in self.view.labels_subframes[str(n_labels)].winfo_children():
-                child.destroy()
+            self.clear_column(self.view.scrollable_frames["data"], column)
             
             # remove the frame from self.view.labels_subframes
             self.view.labels_subframes[str(n_labels)].destroy()

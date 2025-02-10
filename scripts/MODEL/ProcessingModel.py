@@ -33,6 +33,11 @@ class ProcessingModel:
         try:
             attr_dict = pickle.load(open(path, "rb"))
             if Version(attr_dict["version"]) >= Version(params.last_version_compatible):
+                # Preserve missing keys in nested dictionaries
+                for key, value in self.__dict__.items():
+                    if isinstance(value, dict) and key in attr_dict:
+                        for sub_key, sub_value in value.items():
+                            attr_dict[key].setdefault(sub_key, sub_value)
                 self.__dict__.update(attr_dict)
                 self.version = params.version
 
