@@ -33,13 +33,14 @@ class SpikeModel:
         self.figures = {}
         self.targets = {}
         self.n_labels = -1
+        self.max_n_labels = 24
         self.n_labels_offset = 2
         self.plot_legend = {'show legend': p.SHOW_LEGEND, 'legend anchor': p.LEGEND_ANCHOR,
                             'legend alpha': p.LEGEND_ALPHA, 'legend x pos': 0.0, 'legend y pos': 0.0,
                             'legend draggable': p.LEGEND_DRAGGABLE, 'legend ncols': p.LEGEND_NCOLS,
                             'legend fontsize': p.LEGEND_FONTSIZE, }
 
-        self.plot_axes = {'x label': '', 'y label': '', 'x label size': p.DEFAULT_FONTSIZE,
+        self.plot_axes = {'x label': '', 'y label': 'Spike count/sample', 'x label size': p.DEFAULT_FONTSIZE,
                           'y label size': p.DEFAULT_FONTSIZE, 'n x ticks': p.DEFAULT_NTICKS,
                           'n y ticks': p.DEFAULT_NTICKS, 'x ticks rotation': p.DEFAULT_FONTROTATION,
                           'y ticks rotation': p.DEFAULT_FONTROTATION, 'x ticks size': p.DEFAULT_FONTSIZE,

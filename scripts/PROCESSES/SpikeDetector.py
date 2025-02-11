@@ -25,7 +25,6 @@ class SpikeDetectorProcess(Process):
     
     def run(self):
         # self.data = np.array(pd.read_csv(self.filename, skiprows=6, dtype=np.float64, usecols=self.columns))
-        print(f"start {self.name}")
         dead_samples = int(self.dead_window * self.sf)  # Dead time in number of samples
         
         for i_col in range(0, self.data.shape[1]):
@@ -54,5 +53,4 @@ class SpikeDetectorProcess(Process):
                     self.detected_spikes[self.columns[i_col]] = 0
             
             self.queue.put(1)
-        print(f"end {self.name}")
 

@@ -1,4 +1,6 @@
+import math
 import multiprocessing
+import random
 import threading
 from multiprocessing import Queue
 from datetime import datetime
@@ -10,7 +12,6 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from requests.packages import target
 
 from scripts.CONTROLLER import data_processing
 from scripts.CONTROLLER.MainController import MainController
@@ -26,6 +27,7 @@ from scripts.WIDGETS.Separator import Separator
 from scripts.params import resource_path
 from fiiireflyyy import files as ff
 import scripts.CONTROLLER.input_validation as ival
+import seaborn as sns
 
 class SpikeController:
     def __init__(self, view, ):
@@ -55,6 +57,15 @@ class SpikeController:
         if self.view.vars["multiple ckbox"].get() and not self.view.vars["multiple"].get():
             plot_params_errors.append("No file selected to analyze.")
         
+        if self.view.vars['select columns ckbox'].get():
+            if not self.view.vars['select columns number'].get():
+                plot_params_errors.append("You have to indicate a number of columns to select.")
+            if self.view.vars['select columns mode'].get() == 'None':
+                plot_params_errors.append("You have to select a mode for column selection.")
+            
+            if self.view.vars['select columns metric'].get() == 'None':
+                plot_params_errors.append("You have to select a metric to use for the electrode selection.")
+        
         targets = self.view.textboxes["targets"].get(1.0, ctk.END)
         if len(targets)==0 and not self.view.vars["single ckbox"].get():
             plot_params_errors.append('At least one target is needed to plot')
@@ -74,16 +85,10 @@ class SpikeController:
                 if fcs:
                     plot_params_errors.append(f"Forbidden characters in '{element}' : {fcs}")
         
-        
-        # ---- legend errors
-        legend_entry_keys = ["legend ncols", "dpi"]
-        for key in legend_entry_keys:
-            e = self.view.entries[key].error_message.get()
-            if e:
-                legend_errors.append(e)
+    
         
         # ---- axis errors
-        axes_entry_keys = ["round x ticks", "round y ticks", "n x ticks", "n y ticks"]
+        axes_entry_keys = ["round y ticks", "n y ticks"]
         for key in axes_entry_keys:
             e = self.view.entries[key].error_message.get()
             if e:
@@ -158,17 +163,23 @@ class SpikeController:
         elif self.view.vars["multiple"].get():
             files = ff.get_all_files(self.model.parent_directory, to_include=self.model.to_include,
                                      to_exclude=self.model.to_exclude)
-        print(len(files))
         all_spikes = {target: [] for target in self.model.targets.keys()}
         samples_per_target = {target: 0 for target in self.model.targets.keys()}
-        print(all_spikes)
-        n_cols = 10
+        skiprow = 0
+        if self.model.vars['behead ckbox']:
+            skiprow = int(self.model.vars['behead'])
+        
+        example_dataframe = pd.read_csv(files[0], index_col=False, skiprows=skiprow)
+        if self.model.vars['select columns ckbox']:
+            n_cols = int(self.model.vars['select columns number'])
+        else:
+            n_cols = int(
+                len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
         self.progress = ProgressBar("Processing progression", app=self.view.app)
         self.progress.total_tasks = self.update_number_of_tasks(len(files), n_cols)
         self.progress.start()
         self.progress.update_task("Spike detection...")
         for file in files:
-            print(file, self.progress.completed_tasks)
             target = [x for x in self.model.targets.keys() if x in file][0]
             samples_per_target[target] += 1
             if not target:
@@ -180,8 +191,10 @@ class SpikeController:
             else:
                 df = pd.read_csv(file, dtype=float, index_col=False)
                 
-            df = data_processing.top_n_electrodes(df, n_cols,  "TimeStamp [s]")  # todo : add column selection
-            columns_with_exception = [col for col in df.columns if "TimeStamp [s]" not in col]
+            if self.model.vars["select columns ckbox"]:
+                df = data_processing.top_n_electrodes(df, n_cols,  self.model.vars["except column"])
+                
+            columns_with_exception = [col for col in df.columns if self.model.vars["except column"] not in col]
             
             n_workers = 8 if 8 < len(df.columns)/2 else int(len(df.columns)/2)
             worker_ranges = np.linspace(0, len(columns_with_exception), n_workers + 1).astype(int)
@@ -215,13 +228,11 @@ class SpikeController:
             for worker in all_workers:
                 worker.join(timeout=10)
                 if worker.is_alive():
-                    print(f"Terminating stuck worker: {worker.name}")
                     worker.terminate()
             detected_spikes = dict(return_dict.items())
             all_spikes[target].append(np.sum(list(detected_spikes.values())))
         self.model.spike_params["all_spikes"] = all_spikes
         self.model.spike_params["samples_per_target"] = samples_per_target
-        print("done", all_spikes)
         
     
     def compute_spikes(self):
@@ -255,13 +266,11 @@ class SpikeController:
         return True if len(errors)==0 else False
         
     def draw_figure(self):
-        print("draw")
         if self.check_plot_params_validity() and self.check_params_validity():
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, ]:
                 self.update_params(widgets)
                 
-            print("params, ok, drawing")
             fig, ax = plt.subplots(figsize=(4, 4))
             new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
             new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
@@ -278,29 +287,46 @@ class SpikeController:
             x_ticks = []
             x_ticks_label = []
             all_spikes = self.model.spike_params["all_spikes"]
-            
-            print(all_spikes)
+            ymin = 0
+            ymax = -math.inf
             for n_label in range(self.model.n_labels+1):
                 label = self.model.vars[f"label data {n_label}"]
                 label_legend = self.model.vars[f"label data legend {n_label}"]
                 index = self.model.vars[f"index {n_label}"]
                 x_ticks_label.append(label_legend) if label_legend else x_ticks_label.append(label)
                 x_ticks.append(index)
-                height = int(np.sum(all_spikes[label])/self.model.spike_params["samples_per_target"][label])
-                ax.bar(x=index, height=height,
-                       yerr=np.std(all_spikes[label]),
-                       color=self.model.vars[f"color {n_label}"],)
                 
+                height = int(np.sum(all_spikes[label])/self.model.spike_params["samples_per_target"][label])
+                for spike in all_spikes[label]:
+                    if spike > ymax:
+                        ymax = spike
+                    
+                if self.model.cbboxes[f"plot type"] == "bar":
+                    yerr = np.std(all_spikes[label]) if self.model.vars[f"error bar {index}"] else None
+                    ax.bar(x=index, height=height,
+                           yerr=yerr,
+                           color=self.model.vars[f"color {n_label}"],)
+                elif self.model.cbboxes[f"plot type"] == "violin":
+                    df = pd.DataFrame({"x": index, "y": all_spikes[label]})
+                    sns.violinplot(x="x", y="y", data=df, ax=ax, color=self.model.vars[f"color {n_label}"])
+                    # sns.violinplot(ax=ax, x=[index, ], data=all_spikes[label],
+                    #        color=self.model.vars[f"color {n_label}"], )
+                
+                if self.model.ckboxes["show points"] == 1:
+                    for spike in all_spikes[label]:
+                        offset = 0.15
+                        rand_index = random.uniform(index-offset, index+offset)
+                        ax.scatter(x=rand_index, y=spike, color='k')
             
             # ---- LABELS
             ax.set_xlabel(self.model.vars["x label"],
                           fontdict={"font": self.model.vars["axes font"],
                                     "fontsize": self.model.vars["x label size"]})
-            ax.set_ylabel(self.model.plot_axes["y label"],
+            ax.set_ylabel(self.model.vars["y label"],
                           fontdict={"font": self.model.vars["axes font"],
                                     "fontsize": self.model.vars["y label size"]})
-            ax.set_title(self.model.plot_general_settings["title"],
-                         fontdict={"font": self.model.vars["title font"],
+            ax.set_title(self.model.entries["title"],
+                         fontdict={"font": self.model.cbboxes["title font"],
                                    "fontsize": self.model.vars["title size"]}, )
             
             # ----- TICKS
@@ -310,10 +336,44 @@ class SpikeController:
                            labelsize=self.model.vars["x ticks size"],
                            labelrotation=float(self.model.vars["x ticks rotation"]))
             
+            
+            yticks = np.linspace(ymin, ymax, int(self.model.entries["n y ticks"]))
+            rounded_yticks = list(np.around(np.array(yticks), int(self.model.entries["round y ticks"])))
+            ax.set_yticks(rounded_yticks)
+            ax.tick_params(axis='y',
+                           labelsize=self.model.vars["y ticks size"],
+                           labelrotation=float(self.model.vars["y ticks rotation"]))
+            # ---------- LEGEND
+            if self.model.ckboxes["show legend"]:
+                if not self.model.vars["legend fontsize"] == '':
+                    if self.model.cbboxes["legend anchor"] == 'custom':
+                        ax.legend(loc='upper left',
+                                  bbox_to_anchor=(float(self.model.sliders["legend x pos"]),
+                                                  float(self.model.sliders["legend y pos"])),
+                                  draggable=bool(self.model.ckboxes["legend draggable"]),
+                                  ncols=int(self.model.entries["legend ncols"]),
+                                  fontsize=int(self.model.vars["legend fontsize"]),
+                                  framealpha=float(self.model.vars["legend alpha"]),
+                                  )
+                    else:
+                        ax.legend(loc=self.model.cbboxes["legend anchor"],
+                                  draggable=bool(self.model.ckboxes["legend draggable"]),
+                                  ncols=int(self.model.entries["legend ncols"]),
+                                  fontsize=int(self.model.vars["legend fontsize"]),
+                                  framealpha=float(self.model.vars["legend alpha"]),
+                                  )
+                    
+                    for t, lh in zip(ax.get_legend().texts, ax.get_legend().legendHandles):
+                        t.set_alpha(float(self.model.vars["legend alpha"]))
+                        lh.set_alpha(float(self.model.vars["legend alpha"]))
+            
+            elif ax.get_legend():
+                ax.get_legend().remove()
+                
             self.view.figures["spike"] = (fig, ax)
             self.view.canvas["spike"].draw()
         else:
-            messagebox.showerror("Missing data", )
+            messagebox.showerror("", "Missing data", )
             
     def trace_vars_to_model(self, key, *args):
         if key in self.model.plot_general_settings.keys():
@@ -447,102 +507,74 @@ class SpikeController:
     
     def add_label_data(self, scrollable_frame):
         if self.model.targets:
-            
-            targets = sorted(set(list(self.model.targets.values())))
-            
-            self.model.n_labels += 1
-            n_labels = self.model.n_labels
-            column = n_labels + self.model.n_labels_offset
-            # label_data_subframe = ctk.CTkFrame(master=scrollable_frame, )
-            
-            # row separator
-            n_labels_label = ctk.CTkLabel(master=scrollable_frame, text=f"DATA: {n_labels}")
-            # row separator
-            # row separator
-            
-            label_var = tk.StringVar(value=targets[n_labels] if n_labels < len(targets) else 0)
-            labels_cbbox = tk.ttk.Combobox(master=scrollable_frame, values=targets, state='readonly',
-                                           textvariable=label_var)
-            # row separator
-            labels_legend_var = tk.StringVar(value='')
-            labels_legend_entry = ErrEntry(master=scrollable_frame, textvariable=labels_legend_var)
-            
-            # row separator
-            index_cbbox_var = ctk.IntVar(value=n_labels if n_labels < len(targets) else 0)
-            index_cbbox = tk.ttk.Combobox(master=scrollable_frame, textvariable=index_cbbox_var,
-                                          values=[str(x) for x in range(len(targets))],)
-            
-            # row separator
-            error_bar_var = tk.StringVar(value='None')
-            error_bar_cbbox = tk.ttk.Combobox(master=scrollable_frame, values=["None", 'std'],
-                                              textvariable=error_bar_var)
-        
-            # row separator
-            
-            color_var = tk.StringVar(value='green')
-            color_button = ctk.CTkButton(master=scrollable_frame, textvariable=color_var,
-                                         fg_color=color_var.get(), text_color='black')
-            # row separator
-            print(self.model.plot_data)
-            plot_type = tk.ttk.Combobox(master=scrollable_frame, values=self.model.plot_data["type"], state='readonly')
-            plot_type.set(self.model.plot_data["type"][0])
-            
-            #row separator
-            show_points = ctk.CTkCheckBox(master=scrollable_frame, )
-            show_points.select()
-            # ----- MANAGE WIDGETS
-            # label_data_subframe.grid(row=0,
-            #                          column=column, sticky='nsew', pady=25, rowspan=17)
-            
-            n_labels_label.grid(row=1, column=column, sticky="we")
-            
-            labels_cbbox.grid(row=4, column=column, sticky='we')
-            labels_legend_entry.grid(row=6, column=column, sticky='we')
-            index_cbbox.grid(row=8, column=column, sticky='we')
-            error_bar_cbbox.grid(row=10, column=column, sticky='we')
-            color_button.grid(row=12, column=column, sticky='we')
-            plot_type.grid(row=14, column=column, sticky='we')
-            show_points.grid(row=16, column=column, sticky='we')
-            
-            # --------------- MANAGE SEPARATORS
-            general_params_separators_indices = [0, 2, 3, 5, 7, 9, 11, 13, 15, 17]
-            general_params_vertical_separator_ranges = [(0, 18), ]
-            for r in range(general_params_separators_indices[-1] + 2):
-                if r in general_params_separators_indices:
-                    sep = Separator(master=scrollable_frame, orient='h')
-                    sep.grid(row=r, column=column, columnspan=1, sticky='ew')
-            # for couple in general_params_vertical_separator_ranges:
-            #     general_v_sep = Separator(master=scrollable_frame, orient='v')
-            #     general_v_sep.grid(row=couple[0], column=column, rowspan=couple[1] - couple[0], sticky='ns')
-            
-            # ----- CONFIGURE WIDGETS
-            color_button.configure(command=partial(self.view.select_color, view=self.view,
-                                                   selection_button_name=f'color {n_labels}'))
-            
-            
-            # ------- STORE WIDGETS
-            
-            # self.view.labels_subframes[str(n_labels)] = label_data_subframe
-            self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
-            self.view.cbboxes[f"error bar {n_labels}"] = error_bar_cbbox
-            self.view.cbboxes[f"index {n_labels}"] = index_cbbox
-            self.view.vars[f"label data {n_labels}"] = label_var
-            self.view.vars[f"error bar {n_labels}"] = error_bar_var
-            self.view.vars[f"index {n_labels}"] = index_cbbox_var
-            self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
-            self.view.buttons[f"color {n_labels}"] = color_button
-            self.view.vars[f"color {n_labels}"] = color_var
-            self.view.cbboxes["plot type"] = plot_type
-            self.view.ckboxes["show points"] = show_points
-            # ----- TRACE
-            # for key, widget in {f'color {n_labels}': color_var, f"error bar {n_labels}": error_bar_var,
-            #                     f"index {n_labels}": index_cbbox_var,
-            #                     f'label data {n_labels}': label_var,
-            #                     f'label data legend {n_labels}': labels_legend_var,
-            #                     }.items():
-            #     self.model.plot_data[key] = widget.get()
-            #     widget.trace("w", partial(self.trace_vars_to_model, key))
-        
+            if self.model.n_labels + 1 <= self.model.max_n_labels:
+                targets = sorted(set(list(self.model.targets.values())))
+                self.model.n_labels += 1
+                n_labels = self.model.n_labels
+                column = n_labels + self.model.n_labels_offset
+                # label_data_subframe = ctk.CTkFrame(master=scrollable_frame, )
+                # row separator
+                n_labels_label = ctk.CTkLabel(master=scrollable_frame, text=f"DATA: {n_labels}")
+                # row separator
+                # row separator
+                label_var = tk.StringVar(value=targets[n_labels] if n_labels < len(targets) else 0)
+                labels_cbbox = tk.ttk.Combobox(master=scrollable_frame, values=targets, state='readonly',
+                                               textvariable=label_var)
+                # row separator
+                labels_legend_var = tk.StringVar(value='')
+                labels_legend_entry = ErrEntry(master=scrollable_frame, textvariable=labels_legend_var)
+                # row separator
+                index_cbbox_var = ctk.IntVar(value=n_labels if n_labels < len(targets) else 0)
+                index_cbbox = tk.ttk.Combobox(master=scrollable_frame, textvariable=index_cbbox_var,
+                                              values=[str(x) for x in range(len(targets))],)
+                # row separator
+                error_bar_var = tk.StringVar(value='None')
+                error_bar_cbbox = tk.ttk.Combobox(master=scrollable_frame, values=["None", 'std'],
+                                                  textvariable=error_bar_var)
+                # row separator
+                color_var = tk.StringVar(value='green')
+                color_button = ctk.CTkButton(master=scrollable_frame, textvariable=color_var,
+                                             fg_color=color_var.get(), text_color='black')
+               
+                # ----- MANAGE WIDGETS
+                n_labels_label.grid(row=1, column=column, sticky="we", padx=2)
+                labels_cbbox.grid(row=4, column=column, sticky='we', padx=2)
+                labels_legend_entry.grid(row=6, column=column, sticky='we', padx=2)
+                index_cbbox.grid(row=8, column=column, sticky='we', padx=2)
+                error_bar_cbbox.grid(row=10, column=column, sticky='we', padx=2)
+                color_button.grid(row=12, column=column, sticky='we', padx=2)
+                
+                # --------------- MANAGE SEPARATORS
+                general_params_separators_indices = [0, 2, 3, 5, 7, 9, 11, 13, ]
+                general_params_vertical_separator_ranges = [(0, 14), ]
+                for r in range(general_params_separators_indices[-1] + 2):
+                    if r in general_params_separators_indices:
+                        sep = Separator(master=scrollable_frame, orient='h')
+                        sep.grid(row=r, column=column, columnspan=1, sticky='ew')
+                # for couple in general_params_vertical_separator_ranges:
+                #     general_v_sep = Separator(master=scrollable_frame, orient='v')
+                #     general_v_sep.grid(row=couple[0], column=column, rowspan=couple[1] - couple[0], sticky='ns')
+                
+                # ----- CONFIGURE WIDGETS
+                color_button.configure(command=partial(self.view.select_color, view=self.view,
+                                                       selection_button_name=f'color {n_labels}'))
+                
+                scrollable_frame.grid_columnconfigure(index=column, weight=1)
+                # ------- STORE WIDGETS
+                
+                # self.view.labels_subframes[str(n_labels)] = label_data_subframe
+                self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
+                self.view.cbboxes[f"error bar {n_labels}"] = error_bar_cbbox
+                self.view.cbboxes[f"index {n_labels}"] = index_cbbox
+                self.view.vars[f"label data {n_labels}"] = label_var
+                self.view.vars[f"error bar {n_labels}"] = error_bar_var
+                self.view.vars[f"index {n_labels}"] = index_cbbox_var
+                self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
+                self.view.buttons[f"color {n_labels}"] = color_button
+                self.view.vars[f"color {n_labels}"] = color_var
+                # ----- TRACE
+            else:
+                messagebox.showinfo("", f"Maximum number of labels {self.model.max_n_labels} reached.")
         else:
             messagebox.showerror("Missing Values", "No targets indicated")
             return False
@@ -550,22 +582,20 @@ class SpikeController:
     @staticmethod
     def clear_column(parent, column):
         for widget in parent.winfo_children():
-            if isinstance(widget, tk.Widget):  # Ensure it's a widget
-                grid_info = widget.grid_info()
-                if grid_info and int(grid_info['column']) == column:
-                    widget.destroy()
+            grid_info = widget.grid_info()
+            if grid_info and int(grid_info['column']) == column:
+                widget.destroy()
     
     def remove_label_data(self, ):
         
         n_labels = self.model.n_labels
-        
         column = n_labels + self.model.n_labels_offset
         if n_labels >= 0:
             self.clear_column(self.view.scrollable_frames["data"], column)
             
             # remove the frame from self.view.labels_subframes
-            self.view.labels_subframes[str(n_labels)].destroy()
-            del self.view.labels_subframes[str(n_labels)]
+            # self.view.labels_subframes[str(n_labels)].destroy()
+            # del self.view.labels_subframes[str(n_labels)]
             
             # destroying all items related in dicts
             del self.view.buttons[f"color {n_labels}"]
@@ -576,7 +606,6 @@ class SpikeController:
             del self.view.vars[f"error bar {n_labels}"]
             del self.view.vars[f"index {n_labels}"]
             del self.view.vars[f"label data legend {n_labels}"]
-            
             self.model.n_labels -= 1
     
     def load_config(self, ):
