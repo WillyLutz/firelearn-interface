@@ -163,13 +163,13 @@ class SpikeController:
         elif self.view.vars["multiple"].get():
             files = ff.get_all_files(self.model.parent_directory, to_include=self.model.to_include,
                                      to_exclude=self.model.to_exclude)
-        all_spikes = {target: [] for target in self.model.targets.keys()}
-        samples_per_target = {target: 0 for target in self.model.targets.keys()}
+        all_spikes = {value: [] for target, value in self.model.targets.items()}
+        samples_per_target = {value: 0 for target, value in self.model.targets.items()}
         skiprow = 0
         if self.model.vars['behead ckbox']:
             skiprow = int(self.model.vars['behead'])
         
-        example_dataframe = pd.read_csv(files[0], index_col=False, skiprows=skiprow)
+        example_dataframe = pd.read_csv(files[0], dtype=float, index_col=False, skiprows=skiprow)
         if self.model.vars['select columns ckbox']:
             n_cols = int(self.model.vars['select columns number'])
         else:
@@ -180,14 +180,14 @@ class SpikeController:
         self.progress.start()
         self.progress.update_task("Spike detection...")
         for file in files:
-            target = [x for x in self.model.targets.keys() if x in file][0]
-            samples_per_target[target] += 1
+            target, value = [(k, v) for k, v in self.model.targets.items() if k in file][0]
+            samples_per_target[value] += 1
             if not target:
                 messagebox.showerror("Missing Value", "No corresponding target has been found in the "
                                                       "file name.")
                 break
             if self.model.vars["behead ckbox"]:
-                df = pd.read_csv(file, skiprows=self.model.vars["behead"], dtype=float, index_col=False)
+                df = pd.read_csv(file, skiprows=int(self.model.vars["behead"]), dtype=float, index_col=False)
             else:
                 df = pd.read_csv(file, dtype=float, index_col=False)
                 
@@ -230,7 +230,7 @@ class SpikeController:
                 if worker.is_alive():
                     worker.terminate()
             detected_spikes = dict(return_dict.items())
-            all_spikes[target].append(np.sum(list(detected_spikes.values())))
+            all_spikes[value].append(np.sum(list(detected_spikes.values())))
         self.model.spike_params["all_spikes"] = all_spikes
         self.model.spike_params["samples_per_target"] = samples_per_target
         
@@ -344,31 +344,31 @@ class SpikeController:
                            labelsize=self.model.vars["y ticks size"],
                            labelrotation=float(self.model.vars["y ticks rotation"]))
             # ---------- LEGEND
-            if self.model.ckboxes["show legend"]:
-                if not self.model.vars["legend fontsize"] == '':
-                    if self.model.cbboxes["legend anchor"] == 'custom':
-                        ax.legend(loc='upper left',
-                                  bbox_to_anchor=(float(self.model.sliders["legend x pos"]),
-                                                  float(self.model.sliders["legend y pos"])),
-                                  draggable=bool(self.model.ckboxes["legend draggable"]),
-                                  ncols=int(self.model.entries["legend ncols"]),
-                                  fontsize=int(self.model.vars["legend fontsize"]),
-                                  framealpha=float(self.model.vars["legend alpha"]),
-                                  )
-                    else:
-                        ax.legend(loc=self.model.cbboxes["legend anchor"],
-                                  draggable=bool(self.model.ckboxes["legend draggable"]),
-                                  ncols=int(self.model.entries["legend ncols"]),
-                                  fontsize=int(self.model.vars["legend fontsize"]),
-                                  framealpha=float(self.model.vars["legend alpha"]),
-                                  )
-                    
-                    for t, lh in zip(ax.get_legend().texts, ax.get_legend().legendHandles):
-                        t.set_alpha(float(self.model.vars["legend alpha"]))
-                        lh.set_alpha(float(self.model.vars["legend alpha"]))
-            
-            elif ax.get_legend():
-                ax.get_legend().remove()
+            # if self.model.ckboxes["show legend"]:
+            #     if not self.model.vars["legend fontsize"] == '':
+            #         if self.model.cbboxes["legend anchor"] == 'custom':
+            #             ax.legend(loc='upper left',
+            #                       bbox_to_anchor=(float(self.model.sliders["legend x pos"]),
+            #                                       float(self.model.sliders["legend y pos"])),
+            #                       draggable=bool(self.model.ckboxes["legend draggable"]),
+            #                       ncols=int(self.model.entries["legend ncols"]),
+            #                       fontsize=int(self.model.vars["legend fontsize"]),
+            #                       framealpha=float(self.model.vars["legend alpha"]),
+            #                       )
+            #         else:
+            #             ax.legend(loc=self.model.cbboxes["legend anchor"],
+            #                       draggable=bool(self.model.ckboxes["legend draggable"]),
+            #                       ncols=int(self.model.entries["legend ncols"]),
+            #                       fontsize=int(self.model.vars["legend fontsize"]),
+            #                       framealpha=float(self.model.vars["legend alpha"]),
+            #                       )
+            #
+            #         for t, lh in zip(ax.get_legend().texts, ax.get_legend().legendHandles):
+            #             t.set_alpha(float(self.model.vars["legend alpha"]))
+            #             lh.set_alpha(float(self.model.vars["legend alpha"]))
+            #
+            # elif ax.get_legend():
+            #     ax.get_legend().remove()
                 
             self.view.figures["spike"] = (fig, ax)
             self.view.canvas["spike"].draw()
@@ -624,3 +624,19 @@ class SpikeController:
                                              filetypes=[("Spike analysis config", "*.skcfg"), ])
             if f:
                 self.model.save_model(path=f, )
+                
+    def export_data(self):
+        try:
+            f = filedialog.asksaveasfilename(defaultextension=".csv",
+                                             filetypes=[("Table", "*.csv"), ],
+                                             initialfile="spike_detection_export.csv")
+            df = pd.DataFrame.from_dict(self.model.spike_params["all_spikes"], orient="index").transpose()
+            
+            df.to_csv(f, index=False)
+            
+            messagebox.showinfo("", "File correctly saved")
+        except Exception as e:
+            messagebox.showerror("", "An error has occurred while saving.")
+            print(e)
+        
+        

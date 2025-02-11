@@ -453,6 +453,8 @@ class SpikeView(ctk.CTkFrame):
                                            width=120,
                                            height=40)
         
+        export_data = ctk.CTkButton(master=execution_frame, text="Export data", command=self.controller.export_data)
+        
 
         self.buttons["compute"] = compute_spike_button
         self.buttons["draw"] = draw_figure_button
@@ -461,6 +463,7 @@ class SpikeView(ctk.CTkFrame):
         general_params_button.grid(row=0, column=0, rowspan=2, sticky='nsew')
         compute_spike_button.grid(row=0, column=1, padx=10, pady=10, sticky='w')
         draw_figure_button.grid(row=1, column=1, padx=10, pady=10)
+        export_data.grid(row=1, column=2, padx=10, pady=10)
         # ------------ CONFIGURE
         
         compute_spike_button.configure(command=self.controller.compute_spikes)

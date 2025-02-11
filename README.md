@@ -1,10 +1,29 @@
-# FireLearn GUI v0.5.1-alpha: Walkthrough tutorial
+# FireLearn GUI v0.6.0-alpha: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 
 This README file will use the firelearnGUI_demo data set as example. The archive being too big to host on github,
 the dataset can be sent via filesender link upon request by e-mail (at willy.lutz@irim.cnrs.fr) by specifying 
 in the object "Firelearn GUI demo dataset" . A filesender link to download the demo dataset 
 will then be sent to you.
+
+# v0.6.0 - What's new ?
+
+* Spike detection
+  * **addition of spike detection feature**
+  * Enables load / save configs
+  * Enables multiprocessing
+  * Add violin plot
+  * Add random offset when plotting data points
+  * Add column selection for spikes
+  * Removing legend from spikes params
+  * Reworking add label for spikes
+  * Rework of spike detection GUI
+  * Autofill for index and label when adding data labels for spike detection
+* General
+  * Enlarging version compatibility when loading models
+  * Optimizing the closing of the app
+  * Add opening / usage / closing timers
+
 # Processing
 
 
@@ -514,7 +533,38 @@ on all three of our targets A, B and C. After computing, we obtained a result si
 > a basis of "first-encountered in the dataset, first-drawn" which can be highly inconvenient for readability purpose.
 > Note that this issue is in our priority list to fix for future versions.
 
+## Spike detection
+Allow the user to compute the number of spikes. 
 
+The general parameters such as the labels, title, and ticks, are located in a separated window you can access by 
+clicking the "GENERAL PARAMETERS" button on the bottom right.
+
+The leftmost panel, the `SPECIFIC PARAMETERS` allow you to apply a simple file sorting with the same principle as 
+the processing steps [(sorting multiple files)](#sorting-multiple-files). You can also apply basic file processing
+in the same way that [file beheading](#file-beheading), [column-based selection](#column-based-selection),
+and the [exception column](#exception-column). 
+
+However, you have parameters specific to the spike detection such as the sampling frequency, the std threshold, and a 
+dead window. To detect a spike, the standard deviation is computed.
+you then specify a threshold (5.5 by default). If the amplitude of the signal is lower than `-std*threshold` or greater
+than `std*threshold` then a spike is detected, and a dead window of length `dead window (s)` (0.1 s by default) is 
+applied during which a new spike can not be detected.
+
+On the middle panel `DATA PARAMETERS` you can specify multiple parameters for the plot, such as the data that will
+be plotted and the type of plot.
+
+Please note that `compute spikes` and `draw figure` are separated options so once the computation is done, you can 
+still change the plot appearance without recomputing. The computation still call the `draw figure` automatically.
+
+You can then obtain figures as the following:
+
+<img src="data/help/spike_detection_violin_demo.png" width="300" >
+
+<img src="data/help/spike_detection_bar_demo.png" width="300" >
+
+> <img src="data/help/tip.png" width="30" height="30">
+>
+> Clicking the 'export' button allow you to export the computed data into a csv file.
 
 # Miscellaneous
 ## Plot customization toolbar

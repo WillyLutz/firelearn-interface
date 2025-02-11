@@ -94,9 +94,9 @@ class MainView(ttk.Frame):
         # ------------- TABS MENU ----------------------
         self.tabs_view = ctk.CTkTabview(master=self.master_frame, border_color='red', corner_radius=10)
         self.tabs_view.place(relwidth=1.0, relheight=1.0)
-        self.tabs_view.add("Analysis")
         self.tabs_view.add("Processing")
         self.tabs_view.add("Learning")
+        self.tabs_view.add("Analysis")
 
         # ------------- MANAGING PARENT TABS -----------
 
