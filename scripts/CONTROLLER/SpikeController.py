@@ -289,6 +289,14 @@ class SpikeController:
             all_spikes = self.model.spike_params["all_spikes"]
             ymin = 0
             ymax = -math.inf
+            
+            new_indices = {self.model.vars[f"label data {n_label}"]: int(self.model.vars[f"index {n_label}"])
+                           for n_label in range(self.model.n_labels+1)}
+            inverted_new_indices = {v: k for k, v in new_indices.items()}
+            label_order = [inverted_new_indices[key] for key in sorted(inverted_new_indices, key=int)]
+            color_dict = {self.model.vars[f"label data {n_label}"]:self.model.vars[f"color {n_label}"]
+                          for n_label in range(self.model.n_labels+1)}
+            
             for n_label in range(self.model.n_labels+1):
                 label = self.model.vars[f"label data {n_label}"]
                 label_legend = self.model.vars[f"label data legend {n_label}"]
@@ -306,18 +314,19 @@ class SpikeController:
                     ax.bar(x=index, height=height,
                            yerr=yerr,
                            color=self.model.vars[f"color {n_label}"],)
+
                 elif self.model.cbboxes[f"plot type"] == "violin":
-                    df = pd.DataFrame({"x": index, "y": all_spikes[label]})
-                    sns.violinplot(x="x", y="y", data=df, ax=ax, color=self.model.vars[f"color {n_label}"])
-                    # sns.violinplot(ax=ax, x=[index, ], data=all_spikes[label],
-                    #        color=self.model.vars[f"color {n_label}"], )
+                    sns.violinplot(all_spikes, order=label_order, ax=ax, palette=color_dict)
                 
+            for n_label in range(self.model.n_labels + 1):
+                label = self.model.vars[f"label data {n_label}"]
                 if self.model.ckboxes["show points"] == 1:
                     for spike in all_spikes[label]:
                         offset = 0.15
-                        rand_index = random.uniform(index-offset, index+offset)
-                        ax.scatter(x=rand_index, y=spike, color='k')
-            
+                        rand_index = random.uniform(new_indices[label] - offset, new_indices[label] + offset)  # Add jitter
+                        ax.scatter(x=rand_index, y=spike, color='black', alpha=0.7, s=15)
+                        
+                        
             # ---- LABELS
             ax.set_xlabel(self.model.vars["x label"],
                           fontdict={"font": self.model.vars["axes font"],
@@ -526,7 +535,7 @@ class SpikeController:
                 # row separator
                 index_cbbox_var = ctk.IntVar(value=n_labels if n_labels < len(targets) else 0)
                 index_cbbox = tk.ttk.Combobox(master=scrollable_frame, textvariable=index_cbbox_var,
-                                              values=[str(x) for x in range(len(targets))],)
+                                              values=[str(x) for x in range(len(targets))], state='readonly')
                 # row separator
                 error_bar_var = tk.StringVar(value='None')
                 error_bar_cbbox = tk.ttk.Combobox(master=scrollable_frame, values=["None", 'std'],
