@@ -34,16 +34,25 @@ class App(ctk.CTk):
         view = MainView(self)
         splash.destroy()
         loading_time_end = datetime.now()
-        print("loading time:", loading_time_end - loading_time_start)
+        print("Loading time:", loading_time_end - loading_time_start)
+        
+        global usage_start_time
+        usage_start_time = datetime.now()
         self.deiconify()
         #
 
     def onClosure(self):
+        usage_end_time = datetime.now()
+        print("Usage time:", usage_end_time - usage_start_time)
+        start_closing = datetime.now()
         self.withdraw()
         plt.close('all')
         self.quit()
         self.destroy()
-        sys.exit()
+        end_closing = datetime.now()
+        print("Closing time:", end_closing - start_closing)
+        
+        # sys.exit()
         
 
 
@@ -79,6 +88,7 @@ class Splash(ctk.CTkToplevel):
         self.update()
         
         
+usage_start_time = datetime.now()
 
 def main():
     ctk.set_default_color_theme(resource_path("data/theme.json"))
@@ -86,4 +96,5 @@ def main():
     app = App()
     
     app.mainloop()
+    
     

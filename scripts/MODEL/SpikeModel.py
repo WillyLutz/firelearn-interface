@@ -31,15 +31,16 @@ class SpikeModel:
         self.vars = {}
         self.canvas = {}
         self.figures = {}
-        self.targets = []
-        self.n_ydata = -1
-        self.n_ydata_offset = 10
+        self.targets = {}
+        self.n_labels = -1
+        self.max_n_labels = 24
+        self.n_labels_offset = 2
         self.plot_legend = {'show legend': p.SHOW_LEGEND, 'legend anchor': p.LEGEND_ANCHOR,
                             'legend alpha': p.LEGEND_ALPHA, 'legend x pos': 0.0, 'legend y pos': 0.0,
                             'legend draggable': p.LEGEND_DRAGGABLE, 'legend ncols': p.LEGEND_NCOLS,
                             'legend fontsize': p.LEGEND_FONTSIZE, }
 
-        self.plot_axes = {'x label': '', 'y label': '', 'x label size': p.DEFAULT_FONTSIZE,
+        self.plot_axes = {'x label': '', 'y label': 'Spike count/sample', 'x label size': p.DEFAULT_FONTSIZE,
                           'y label size': p.DEFAULT_FONTSIZE, 'n x ticks': p.DEFAULT_NTICKS,
                           'n y ticks': p.DEFAULT_NTICKS, 'x ticks rotation': p.DEFAULT_FONTROTATION,
                           'y ticks rotation': p.DEFAULT_FONTROTATION, 'x ticks size': p.DEFAULT_FONTSIZE,
@@ -51,13 +52,20 @@ class SpikeModel:
                                       'title size': p.DEFAULT_FONTSIZE, 'dpi': p.DEFAULT_DPI}
 
         self.plot_data = {'xdata': 'None',
-                          'label column': 'None',}
+                          'label column': 'None',
+                          'type': ['bar', 'violin']}
         
-        self.spike_params = {'dead window': 0.1, 'std threshold': 5.5, 'sampling frequency': 10000}
+        self.spike_params = {'dead window': 0.1, 'std threshold': 5.5, 'sampling frequency': 10000, 'all_spikes': {},
+                             }
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
             if version.parse(attr_dict["version"]) >= version.parse(p.last_version_compatible):
+                # Preserve missing keys in nested dictionaries
+                for key, value in self.__dict__.items():
+                    if isinstance(value, dict) and key in attr_dict:
+                        for sub_key, sub_value in value.items():
+                            attr_dict[key].setdefault(sub_key, sub_value)
                 self.__dict__.update(attr_dict)
                 messagebox.showinfo("Info", f"Analysis configuration correctly loaded.\nVersion {self.version}")
                 return True
