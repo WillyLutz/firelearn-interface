@@ -1,6 +1,7 @@
 import os
 import pickle
 import tkinter as tk
+from itertools import product
 from tkinter import ttk, filedialog, messagebox
 
 import customtkinter as ctk
@@ -15,7 +16,9 @@ from scripts.MODEL.ClfTester import ClfTester
 from scripts.MODEL.LearningModel import LearningModel
 from scripts.CONTROLLER.MainController import MainController
 from scripts.WIDGETS.ErrEntry import ErrEntry
-
+from scripts.WIDGETS.Separator import Separator
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import ParameterGrid
 
 class LearningController:
     def __init__(self, view,):
@@ -24,6 +27,9 @@ class LearningController:
         self.view.controller = self  # set controller
 
         self.progress = None
+        
+        self.scoring = 'rel_cv' # todo : add option for optimization metric
+
 
     @staticmethod
     def reload_rfc_params(rfc_params_string_var):
@@ -31,9 +37,12 @@ class LearningController:
         for name, value in clf.get_params().items():
             rfc_params_string_var[name].set(value)
 
-    def load_train_dataset(self):
-        filename = filedialog.askopenfilename(title="Open file",
-                                              filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
+    def load_train_dataset(self, autoload=''):
+        if not autoload:
+            filename = filedialog.askopenfilename(title="Open file",
+                                                  filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
+        else:
+            filename = autoload
         strvar = self.view.vars["load train dataset"]
         label_cbbox = self.view.cbboxes["target column"]
         if filename:
@@ -48,9 +57,13 @@ class LearningController:
 
             self.view.vars['target column'].trace('w', self.trace_target_column)
             
-    def load_test_dataset(self):
-        filename = filedialog.askopenfilename(title="Open file",
-                                              filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
+    def load_test_dataset(self, autoload = ''):
+        if not autoload:
+            filename = filedialog.askopenfilename(title="Open file",
+                                                  filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
+        else:
+            filename = autoload
+        
         strvar = self.view.vars["load test dataset"]
         if filename:
             strvar.set(filename)
@@ -102,7 +115,27 @@ class LearningController:
             strvars["rfc path"].set(os.path.dirname(filename))
             strvars["rfc name"].set(os.path.basename(filename))
             strvars["rfc status"].set("True")
-
+    
+    def get_param_grid_search(self, ):
+        
+        rfc_params = self.extract_rfc_params(self.view.rfc_params_stringvar)
+        param_grid = {}
+        
+        checked_hyperparams = [key for key in self.model.hyperparameters_to_tune.keys() if self.view.ckboxes[f"hyperparameter {key}"].get()]
+        
+        for param, values in [(param, self.view.entries[f"hyperparameter {param}"].get()) for param in checked_hyperparams]: # params to be optimized
+            indiv_values = [val.strip() for val in values.split(',')]
+            
+            # check for 'None' values as string and replace them by actual None
+            indiv_values = self.convert_list_elements(indiv_values)
+                    
+            param_grid[param] = indiv_values
+            
+        for k, v in rfc_params.items():  # params with a single value
+            if k not in param_grid.keys():
+                param_grid[k] = [v, ]
+        return param_grid
+        
     def learning(self, ):
         if self.check_params_validity():
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
@@ -110,15 +143,17 @@ class LearningController:
                 self.update_params(widgets)
             self.update_rfc_params(self.view.rfc_params_stringvar)
 
+            param_grid = self.get_param_grid_search()
+            num_combinations = len(list(product(*param_grid.values())))
+            
             self.progress = ProgressBar("Learning", self.view.app)
             self.progress.daemon = True
-            self.progress.total_tasks = 1 + 1 + 2 * int(self.view.vars["n iter"].get())
+            # self.progress.total_tasks = 1 + 1 + 2 * int(self.view.vars["n iter"].get())
+            # loading dataset + splitting + n_comb_opti*(train + test)
+            self.progress.total_tasks = 1 + 1 + num_combinations*2
             self.progress.start()
+            self.progress.update_task("Loading dataset")
 
-            self.progress.update_task("Loading datatset")
-
-            rfc_params = self.extract_rfc_params(self.view.rfc_params_stringvar)
-            
             full_df = pd.read_csv(self.model.full_dataset_path, index_col=False)
             train_df = pd.read_csv(self.model.train_dataset_path, index_col=False)
             test_df = pd.read_csv(self.model.test_dataset_path, index_col=False)
@@ -133,6 +168,7 @@ class LearningController:
             y_full = full_df[target_column]
             y_full = self.label_encoding(y_full)
             X_full = full_df.loc[:, full_df.columns != target_column]
+            
 
             train_df = train_df[train_df[target_column].isin(self.model.targets)]
             train_df.reset_index(inplace=True, drop=True)
@@ -146,18 +182,22 @@ class LearningController:
             y_test = self.label_encoding(y_test)
             X_test = test_df.loc[:, test_df.columns != target_column]
 
-
+            
             all_test_scores = []
             all_train_scores = []
             all_train_metrics = []
             all_test_metrics = []
-            self.progress.increment_progress(1)
-
-            rfc = RandomForestClassifier()
-            rfc.set_params(**rfc_params)
             all_cv_scores = []
-            for iteration in range(int(self.view.entries["n iter"].get())):
+            all_param_combinations = []
+            all_classifiers = []
+            self.progress.increment_progress(1)
+            
+            iteration = 0
+            for param_combination in ParameterGrid(param_grid):
                 self.progress.update_task(f"Training iteration {iteration + 1}")
+                all_param_combinations.append(param_combination)
+                rfc = RandomForestClassifier()
+                rfc.set_params(**param_combination)
                 clf_tester = ClfTester(rfc)
 
                 clf_tester.train(X_train, y_train)
@@ -174,54 +214,98 @@ class LearningController:
                 if self.model.enable_kfold:
                     cv_scores = cross_val_score(clf_tester.clf, X_full, y_full, cv=int(self.model.kfold))
                     all_cv_scores.append(cv_scores)
+                    
+                all_classifiers.append(rfc)
                 
                 self.progress.update_task(f"Testing iteration {iteration + 1}")
                 self.progress.increment_progress(1)
+                iteration += 1
 
             
-
+            best_index = self.get_best_performing_index(all_cv_scores, all_train_scores, all_test_scores)
             # MainController.update_textbox(self.model.textboxes)
+            
+            metrics_text_elements = []
+            metrics_text_elements = self.learning_display_computed_metrics(best_index,
+                                                                      metrics_text_elements,
+                                                                      all_train_scores,
+                                                                      all_test_scores,
+                                                                      all_cv_scores,
+                                                                      all_param_combinations)
 
-            metrics_elements = []
-            metrics_elements = self.learning_display_computed_metrics(metrics_elements, self.view.entries,
-                                                                      all_train_metrics,
-                                                                      all_test_metrics, all_train_scores,
-                                                                      all_test_scores, all_cv_scores)
-
-            self.update_metrics_textbox(metrics_elements)
+            self.update_metrics_textbox(metrics_text_elements)
             if self.view.vars["save rfc"].get():
-                MainController.save_object(rfc, self.view.vars["save rfc"].get())
-
+                MainController.save_object(all_classifiers[best_index], self.view.vars["save rfc"].get())
+        
+    def get_best_performing_index(self, all_cv_scores, all_train_scores, all_test_scores ):
+            best_index = 0
+            if self.scoring == 'rel_cv':
+                best_rel_cv = 100
+                for i, kcv_iters in enumerate(all_cv_scores):
+                    kcv = np.mean(kcv_iters)
+                    acc = all_train_scores[i]
+                    kfold_acc_diff = round(acc - kcv, 3)
+                    kfold_acc_relative_diff = round(kfold_acc_diff / acc * 100, 2)
+                    
+                    best_index = i if kfold_acc_relative_diff < best_rel_cv else best_index
+            
+            return best_index
+    
     @staticmethod
     def extract_rfc_params(rfc_params_string_var):
         rfc_params = {}
         for key, widget in rfc_params_string_var.items():
-            if ival.isint(widget.get()):
-                rfc_params[key] = int(widget.get())
-            elif ival.isfloat(widget.get()):
-                rfc_params[key] = float(widget.get())
-            elif widget.get() == 'None':
-                rfc_params[key] = None
-            else:
-                rfc_params[key] = widget.get()
+            if 'class_weight' not in key:
+                if ival.isint(widget.get()):
+                    rfc_params[key] = int(widget.get())
+                elif ival.isfloat(widget.get()):
+                    rfc_params[key] = float(widget.get())
+                elif widget.get() == 'None':
+                    rfc_params[key] = None
+                else:
+                    rfc_params[key] = widget.get()
         return rfc_params
 
-    def learning_display_computed_metrics(self, metrics_elements, entries, all_train_metrics,
-                                          all_test_metrics,
-                                          all_train_scores, all_test_scores, all_cv_scores):
+    def learning_display_computed_metrics(self,
+                                          best_index,
+                                          metrics_text_elements,
+                                          all_train_scores,
+                                          all_test_scores,
+                                          all_cv_scores,
+                                          all_param_combinations):
 
-        metrics_elements.append("CLASSIFICATION METRICS")
-        metrics_elements.append("---------------------------------------------------------------")
-        metrics_elements.append("")
+        metrics_text_elements.append("CLASSIFICATION METRICS")
+        metrics_text_elements.append("---------------------------------------------------------------")
+        metrics_text_elements.append("")
 
         pm = u"\u00B1"
-        metrics_elements.append(f"Number of training iterations: {int(entries['n iter'].get())}", )
-        metrics_elements.append(f"Number of testing iterations: {int(entries['n iter'].get())}", )
-
+        metrics_text_elements.append(f"Number of parameters combination : {len(all_param_combinations)}", )
+        
+        metrics_text_elements.append("-"*25)
+        metrics_text_elements.append(f"Scoring function: {self.scoring}")
+        metrics_text_elements.append("Best performing model metrics:")
+        metrics_text_elements.append(f"Training accuracy: {all_train_scores[best_index]}")
+        metrics_text_elements.append(f"Testing accuracy: {all_test_scores[best_index]}")
+        if self.model.enable_kfold:
+            acc = all_train_scores[best_index]
+            kcv = round(np.array(all_cv_scores[best_index]).mean(), 3)
+            kcv_acc_diff = round(acc - kcv, 3)
+            kcv_acc_relative_diff = round(kcv_acc_diff / acc * 100, 2)
+            metrics_text_elements.append(f"{self.model.kfold}-fold Cross Validation: {kcv}")
+            metrics_text_elements.append(f"KFold-Accuracy difference = {acc}-{kcv} = {kcv_acc_diff}\n")
+            metrics_text_elements.append(f"KFold-Accuracy relative difference: {kcv_acc_relative_diff} %\n")
+        
+        metrics_text_elements.append("")
+        for param, value in all_param_combinations[best_index].items():
+            metrics_text_elements.append(f"{param} : {value}")
+        
+        metrics_text_elements.append("")
+        metrics_text_elements.append("-"*30)
+        metrics_text_elements.append("Average metrics across all iterations: ")
         mean_accuracy = np.mean(all_train_scores).round(3)
-        metrics_elements.append(
+        metrics_text_elements.append(
                 f"Training accuracy: {str(mean_accuracy)} {pm} {str(np.std(all_train_scores).round(3))}", )
-        metrics_elements.append(
+        metrics_text_elements.append(
             f"Testing accuracy: {str(np.mean(all_test_scores).round(3))} {pm} {str(np.std(all_test_scores).round(3))}")
 
         if self.model.enable_kfold:
@@ -229,65 +313,12 @@ class LearningController:
             std_kfold = round(np.array(all_cv_scores).std(), 3)
             kfold_acc_diff = round(mean_accuracy - mean_kfold, 3)
             kfold_acc_relative_diff = round(kfold_acc_diff / mean_accuracy * 100, 2)
-            metrics_elements.append(f"{len(all_cv_scores[0])}-fold Cross Validation: {str(mean_kfold)} {pm} {str(std_kfold)}")
-            metrics_elements.append(f"KFold-Accuracy difference = {mean_accuracy}-{mean_kfold} = {kfold_acc_diff}\n")
-            metrics_elements.append(f"KFold-Accuracy relative difference: {kfold_acc_relative_diff} %\n")
-        metrics_elements.append("")
-        metrics_elements.append("TRAINING------------------------")
-        if not self.model.rfc:  # not pre-trained:
-            for t in self.model.targets:
-                t_metrics = {t: [[], []]}  # {class1 : [[true probas],[false probas]] }
+            metrics_text_elements.append(f"{len(all_cv_scores[0])}-fold Cross Validation: {str(mean_kfold)} {pm} {str(std_kfold)}")
+            metrics_text_elements.append(f"KFold-Accuracy difference = {mean_accuracy}-{mean_kfold} = {kfold_acc_diff}\n")
+            metrics_text_elements.append(f"KFold-Accuracy relative difference: {kfold_acc_relative_diff} %\n")
+        metrics_text_elements.append("")
 
-                for train_metrics in all_train_metrics:
-                    for target, target_metric in train_metrics.items():
-                        if t == target:
-                            t_metrics[t][0] = t_metrics[t][0] + target_metric[0]
-                            t_metrics[t][1] = t_metrics[t][1] + target_metric[1]
-
-                true_preds = t_metrics[t][0]
-                false_preds = t_metrics[t][1]
-                if not true_preds:
-                    true_preds.append(0)
-                if not false_preds:
-                    false_preds.append(0)
-                metrics_elements.append("---")
-                metrics_elements.append(f"Target: {t}")
-                metrics_elements.append(f"Number of true predictions: {len(true_preds)}")
-                metrics_elements.append(f"Number of false predictions: {len(false_preds)}")
-                metrics_elements.append(
-                    f"CUP for true predictions: {np.mean(true_preds).round(3)} {pm} {np.std(true_preds).round(3)}")
-                metrics_elements.append(
-                    f"CUP for false predictions: {np.mean(false_preds).round(3)} {pm} {np.std(false_preds).round(3)}")
-                metrics_elements.append(f"")
-
-        metrics_elements.append("")
-        metrics_elements.append("TESTING------------------------")
-        for t in self.model.targets:
-            t_metrics = {t: [[], []]}  # {class1 : [[true probas],[false probas]] }
-
-            for test_metrics in all_test_metrics:
-                for target, target_metric in test_metrics.items():
-                    if t == target:
-                        t_metrics[t][0] = t_metrics[t][0] + target_metric[0]
-                        t_metrics[t][1] = t_metrics[t][1] + target_metric[1]
-
-            true_preds = t_metrics[t][0]
-            false_preds = t_metrics[t][1]
-            if not true_preds:
-                true_preds.append(0)
-            if not false_preds:
-                false_preds.append(0)
-            metrics_elements.append("---")
-            metrics_elements.append(f"Target: {t}")
-            metrics_elements.append(f"Number of true predictions: {len(true_preds)}")
-            metrics_elements.append(f"Number of false predictions: {len(false_preds)}")
-            metrics_elements.append(
-                f"CUP for true predictions: {np.mean(true_preds).round(3)} {pm} {np.std(true_preds).round(3)}")
-            metrics_elements.append(
-                f"CUP for false predictions: {np.mean(false_preds).round(3)} {pm} {np.std(false_preds).round(3)}")
-            metrics_elements.append(f"")
-
-        return metrics_elements
+        return metrics_text_elements
 
     def update_metrics_textbox(self, elements):
         self.view.textboxes["metrics"].configure(state='normal')
@@ -299,6 +330,7 @@ class LearningController:
         self.view.textboxes["metrics"].configure(state='disabled')
 
     def export(self, ):
+        # FIXME
         classification_metrics = pd.DataFrame(columns=["Phase", "Iterations", "Accuracy", "Std"])
         advanced_metrics = pd.DataFrame(columns=["Phase", "Target", "N true", "Mean CUP true", "Std CUP true",
                                                  "N false", "Mean CUP false", "Std CUP false"])
@@ -365,6 +397,18 @@ class LearningController:
         return y
 
     def check_params_validity(self, ):
+        
+        if self.view.entries["save rfc"].get() == "":
+            proceed = messagebox.askokcancel("No save directory", "You will run a training without"
+                                                        " saving the resulting model. Continue ?")
+            if not proceed:
+                return False
+                
+        if 'cv' in self.scoring and not self.view.vars["kfold ckbox"].get():
+            messagebox.showerror('Value Error', 'You can not chose a scoring function involving Cross Validation if'
+                                                ' K-Fold option is unchecked.')
+            return False
+        
         if not os.path.exists(os.path.dirname(self.view.entries["save rfc"].get())):
             messagebox.showerror("Value error", "Path to save the classifier does not exist.")
             return False
@@ -548,6 +592,9 @@ class LearningController:
             base_path = path.split(".")
             train_df.to_csv(base_path[0]+"_Xy_train." + base_path[1], index=False)
             test_df.to_csv(base_path[0] + "_Xy_test." + base_path[1], index=False)
+            
+            self.load_train_dataset(autoload=base_path[0]+"_Xy_train." + base_path[1])
+            self.load_test_dataset(autoload=base_path[0]+"_Xy_test." + base_path[1])
 
             messagebox.showinfo("Splitting", "Splitting done")
 
@@ -557,3 +604,53 @@ class LearningController:
         
     def trace_dataset(self, *args):
         self.model.full_dataset_path = self.view.vars["split dataset path"].get()
+        
+    def fill_hyperparameters_to_tune(self, frame):
+        row_index = 0
+        row_index_offset = 3
+        params_to_tune_label = ctk.CTkLabel(master=frame, text="HYPERPARAMETERS TO TUNE", font=('', 14))
+        possible_values_label = ctk.CTkLabel(master=frame, text="POSSIBLE VALUES (coma separated)", font=('', 14))
+        general_params_separators_indices = [1, 2, ]
+
+        for param, values in self.model.hyperparameters_to_tune.items():
+            param_ckbox = ctk.CTkCheckBox(master=frame, text=param)
+            value_entry = ctk.CTkEntry(master=frame, )
+            value_entry.insert(0, values)
+            
+            param_ckbox.grid(row=row_index+row_index_offset, column=0, sticky='we')
+            value_entry.grid(row=row_index+row_index_offset, column=2, sticky='we')
+            
+            general_params_separators_indices.append(row_index+row_index_offset+1)
+            
+            self.view.entries[f"hyperparameter {param}"] = value_entry
+            self.view.ckboxes[f"hyperparameter {param}"] = param_ckbox
+            
+            
+            row_index += 2
+        
+        general_v_sep = Separator(master=frame, orient='v')
+        general_v_sep.grid(row=row_index_offset, column=1, rowspan=row_index+1, sticky='ns')
+        
+        params_to_tune_label.grid(row=0, column=0,)
+        possible_values_label.grid(row=0, column=2,)
+        
+        for r in range(general_params_separators_indices[-1] + 2):
+            if r in general_params_separators_indices:
+                sep = Separator(master=frame, orient='h')
+                sep.grid(row=r, column=0, columnspan=3, sticky='ew')
+            
+    @staticmethod
+    def convert_list_elements(lst):
+        def convert(value):
+            if value.lower() == "none":
+                return None
+            elif value.isdigit():
+                return int(value)
+            try:
+                return float(value)
+            except ValueError:
+                return value  # Return as string if not None, int, or float
+    
+        return [convert(item) for item in lst]
+            
+            

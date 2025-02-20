@@ -19,6 +19,10 @@ class LearningModel:
         self.rfc = None
         self.enable_kfold = True
         self.kfold = 5
+        self.hyperparameters_to_tune = {'n_estimators': '100, 200, 500',
+                                        'criterion': 'gini, entropy, log_loss',
+                                        'max_depth': 'None, 5, 10',
+                                        }
 
         self.rfc_params_stringvar = {}
 

@@ -1,3 +1,4 @@
+import os.path
 import tkinter as tk
 from functools import partial
 from tkinter import ttk, filedialog
@@ -10,6 +11,7 @@ from scripts.CONTROLLER.LearningController import LearningController
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Helper import Helper
 from scripts.WIDGETS.Separator import Separator
+from fiiireflyyy import files as ff
 
 
 class LearningView(ctk.CTkFrame):
@@ -62,7 +64,9 @@ class LearningView(ctk.CTkFrame):
         params_scrollable_frame.grid_columnconfigure(2, weight=20)
         
         n_param = 0
-        for name, value in clf.get_params().items():
+        for name, value in clf.get_params().items() :
+            if name == 'class_weight':
+                value = 'balanced'
             param_label = ctk.CTkLabel(master=params_scrollable_frame, text=name, justify='left')
             param_label.grid(row=n_param, column=0, pady=5, padx=0, sticky='w')
             
@@ -168,13 +172,17 @@ class LearningView(ctk.CTkFrame):
         kfold_entry_var = ctk.StringVar(value='5')
         kfold_entry = ctk.CTkEntry(master=dataset_frame, textvariable=kfold_entry_var)
         # row separator 28
+        finetune_params_frame = ctk.CTkScrollableFrame(dataset_frame)
+        self.fill_hyperperameters_to_tune(finetune_params_frame)
+        
+        # row separator 30
         save_rfc_strvar = ctk.StringVar()
         save_entry = ErrEntry(master=dataset_frame, textvariable=save_rfc_strvar)
         save_rfc_button = ctk.CTkButton(master=dataset_frame, text="Save classifier as", )
-        # row separator 30
+        # row separator 32
         # --------------- MANAGE SEPARATORS
-        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 11, 13, 14, 16 , 18, 20, 22, 24, 26, 28, 30]
-        general_params_vertical_separator_ranges = [(5, 8), (15, 23), (25, 30)]
+        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 11, 13, 14, 16 , 18, 20, 22, 24, 26, 28, 30, 32]
+        general_params_vertical_separator_ranges = [(5, 8), (15, 23), (25, 31)]
         for r in range(general_params_separators_indices[-1] + 2):
             if r in general_params_separators_indices:
                 sep = Separator(master=dataset_frame, orient='h')
@@ -214,6 +222,12 @@ class LearningView(ctk.CTkFrame):
         save_rfc_button.grid(row=29, column=0, sticky='w')
         save_entry.grid(row=29, column=2, sticky='we')
 
+        finetune_params_frame.grid(row=31, column=0, columnspan=3,sticky='nsew')
+        finetune_params_frame.grid_columnconfigure(0, weight=20)
+        finetune_params_frame.grid_columnconfigure(1, weight=1)
+        finetune_params_frame.grid_columnconfigure(2, weight=20)
+        
+
     
         # ------------ STORE WIDGETS
         
@@ -251,8 +265,8 @@ class LearningView(ctk.CTkFrame):
         kfold_entry_var.trace("w", self.trace_kfold)
         load_var.trace("w", self.trace_dataset)
         
-        load_train_dataset_button.configure(command=self.load_train_dataset)
-        load_test_dataset_button.configure(command=self.load_test_dataset)
+        load_train_dataset_button.configure(command=self.controller.load_train_dataset)
+        load_test_dataset_button.configure(command=self.controller.load_test_dataset)
         
         save_rfc_button.configure(command=partial(self.savepath_rfc, self.vars["save rfc"]))
         add_target_button.configure(command=self.add_target)
@@ -284,7 +298,7 @@ class LearningView(ctk.CTkFrame):
         # row separator 4
       
         metrics_textbox = ctk.CTkTextbox(master=display_frame, state='disabled')
-        export_button = ctk.CTkButton(master=display_frame, text="Export results", fg_color="green")
+        export_button = ctk.CTkButton(master=display_frame, text="Export results", fg_color="green", state='disabled')
     
 
         # --------------- MANAGE SEPARATORS
@@ -406,13 +420,6 @@ class LearningView(ctk.CTkFrame):
         if self.controller:
             self.controller.reload_rfc_params(self.rfc_params_stringvar)
 
-    def load_train_dataset(self):
-        if self.controller:
-            self.controller.load_train_dataset()
-
-    def load_test_dataset(self):
-        if self.controller:
-            self.controller.load_test_dataset()
 
 
     def load_splitting_dataset(self):
@@ -421,6 +428,19 @@ class LearningView(ctk.CTkFrame):
 
         if filename:
             self.vars["split dataset path"].set(filename)
+            self.auto_load_train_test_dataset()
+            
+    def auto_load_train_test_dataset(self):
+        dataset_path = self.vars["split dataset path"].get()
+        all_files = ff.get_all_files(os.path.dirname(dataset_path))
+        for file in all_files:
+            base_path = dataset_path.split(".")
+            if file == base_path[0]+"_Xy_train." + base_path[1]:
+                self.controller.load_train_dataset(autoload=file)
+            if file == base_path[0]+"_Xy_test." + base_path[1]:
+                self.controller.load_test_dataset(autoload=file)
+                
+        
     def trace_kfold(self, *args):
         self.controller.trace_kfold(*args)
         
@@ -429,4 +449,7 @@ class LearningView(ctk.CTkFrame):
         
     def trace_round_var(self, *args):
         self.vars[args[0]].set(round(self.vars[args[0]].get(), 2))
+        
+    def fill_hyperperameters_to_tune(self, frame):
+        self.controller.fill_hyperparameters_to_tune(frame)
 
