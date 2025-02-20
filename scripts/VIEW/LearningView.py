@@ -163,9 +163,12 @@ class LearningView(ctk.CTkFrame):
         training_textbox = ctk.CTkTextbox(master=dataset_frame, corner_radius=10, state='disabled', height=100)
         
         # row separator 24
-        n_iter_label = ctk.CTkLabel(master=dataset_frame, text="Train / test iterations:")
-        n_iter_sv = tk.StringVar(value="1")
-        n_iter_entry = ErrEntry(master=dataset_frame, textvariable=n_iter_sv, state='normal')
+        scoring_label = ctk.CTkLabel(master=dataset_frame, text="Scoring function:")
+        scoring_sv = tk.StringVar(value="Relative K-Fold CV accuracy")
+        scoring_cbbox = tk.ttk.Combobox(master=dataset_frame, textvariable=scoring_sv,
+                                        values=["Relative K-Fold CV accuracy", "K-Fold CV accuracy",
+                                                "Training accuracy", "Testing accuracy"],
+                                        state='readonly')
         # row separator 26
         kfold_ckbox_var = ctk.IntVar(value=1)
         kfold_ckbox = ctk.CTkCheckBox(master=dataset_frame, variable=kfold_ckbox_var, text="K-fold Cross Validation")
@@ -215,8 +218,8 @@ class LearningView(ctk.CTkFrame):
         add_target_button.grid(row=0, column=1, sticky='w')
         subtract_target_button.grid(row=0, column=2, sticky='w')
         training_textbox.grid(row=23, column=0, columnspan=3, sticky='nsew')
-        n_iter_label.grid(row=25, column=0, sticky='w')
-        n_iter_entry.grid(row=25, column=2, sticky='we')
+        scoring_label.grid(row=25, column=0, sticky='w')
+        scoring_cbbox.grid(row=25, column=2, sticky='we')
         kfold_ckbox.grid(row=27, column=0, sticky='w')
         kfold_entry.grid(row=27, column=2, sticky='we')
         save_rfc_button.grid(row=29, column=0, sticky='w')
@@ -246,8 +249,8 @@ class LearningView(ctk.CTkFrame):
         self.buttons["add target"] = add_target_button
         self.buttons["subtract target"] = subtract_target_button
         self.textboxes["targets"] = training_textbox
-        self.vars["n iter"] = n_iter_sv
-        self.entries["n iter"] = n_iter_entry
+        self.vars["scoring"] = scoring_sv
+        self.cbboxes["scoring"] = scoring_cbbox
         self.entries["save rfc"] = save_entry
         self.vars["save rfc"] = save_rfc_strvar
         self.buttons["save rfc"] = save_rfc_button
@@ -276,12 +279,11 @@ class LearningView(ctk.CTkFrame):
                                                partial(self.parent_view.is_valid_directory, load_train_dataset_entry)),
                                                             '%P'))
         
-        n_iter_entry.configure(validate='focus',
-                               validatecommand=(
-                               self.register(partial(self.parent_view.is_positive_int, n_iter_entry)), '%P'))
         save_entry.configure(validate='focus',
                              validatecommand=(
                              self.register(partial(self.parent_view.is_valid_directory, save_entry)), '%P'))
+        
+        scoring_sv.trace('w', self.controller.trace_scoring)
         
     def manage_display_frame(self, display_frame):
         
@@ -440,6 +442,7 @@ class LearningView(ctk.CTkFrame):
             if file == base_path[0]+"_Xy_test." + base_path[1]:
                 self.controller.load_test_dataset(autoload=file)
                 
+    
         
     def trace_kfold(self, *args):
         self.controller.trace_kfold(*args)

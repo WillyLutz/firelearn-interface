@@ -28,7 +28,7 @@ class LearningController:
 
         self.progress = None
         
-        self.scoring = 'rel_cv' # todo : add option for optimization metric
+        self.scoring = 'Relative K-Fold CV accuracy' # todo : add option for optimization metric
 
 
     @staticmethod
@@ -122,7 +122,7 @@ class LearningController:
         param_grid = {}
         
         checked_hyperparams = [key for key in self.model.hyperparameters_to_tune.keys() if self.view.ckboxes[f"hyperparameter {key}"].get()]
-        
+        print(checked_hyperparams)
         for param, values in [(param, self.view.entries[f"hyperparameter {param}"].get()) for param in checked_hyperparams]: # params to be optimized
             indiv_values = [val.strip() for val in values.split(',')]
             
@@ -239,7 +239,7 @@ class LearningController:
         
     def get_best_performing_index(self, all_cv_scores, all_train_scores, all_test_scores ):
             best_index = 0
-            if self.scoring == 'rel_cv':
+            if self.scoring == 'Relative K-Fold CV accuracy':
                 best_rel_cv = 100
                 for i, kcv_iters in enumerate(all_cv_scores):
                     kcv = np.mean(kcv_iters)
@@ -248,6 +248,21 @@ class LearningController:
                     kfold_acc_relative_diff = round(kfold_acc_diff / acc * 100, 2)
                     
                     best_index = i if kfold_acc_relative_diff < best_rel_cv else best_index
+            
+            if self.scoring == 'K-Fold CV accuracy':
+                best_cv = 0
+                for i, kcv_iters in enumerate(all_cv_scores):
+                    kcv = np.mean(kcv_iters)
+                    best_index = i if kcv > best_cv else best_index
+                    
+            if self.scoring == 'Training accuracy':
+                best_acc = 0
+                for i, acc in enumerate(all_train_scores):
+                    best_index = i if acc > best_acc else best_index
+            if self.scoring == 'Testing accuracy':
+                best_acc = 0
+                for i, acc in enumerate(all_test_scores):
+                    best_index = i if acc > best_acc else best_index
             
             return best_index
     
@@ -398,27 +413,23 @@ class LearningController:
 
     def check_params_validity(self, ):
         
+        
         if self.view.entries["save rfc"].get() == "":
             proceed = messagebox.askokcancel("No save directory", "You will run a training without"
                                                         " saving the resulting model. Continue ?")
             if not proceed:
                 return False
-                
+        elif not os.path.exists(os.path.dirname(self.view.entries["save rfc"].get())):
+            messagebox.showerror("Value error", "Path to save the classifier does not exist.")
+            return False
+        
         if 'cv' in self.scoring and not self.view.vars["kfold ckbox"].get():
             messagebox.showerror('Value Error', 'You can not chose a scoring function involving Cross Validation if'
                                                 ' K-Fold option is unchecked.')
             return False
         
-        if not os.path.exists(os.path.dirname(self.view.entries["save rfc"].get())):
-            messagebox.showerror("Value error", "Path to save the classifier does not exist.")
-            return False
 
-
-        if not ival.widget_value_is_positive_int_or_empty(self.view.entries["n iter"]) or \
-                int(self.view.entries["n iter"].get()) == 0:
-            messagebox.showerror("Value error", "Value for Train / test iterations needs to be a positive integer"
-                                                " and superior to zero.")
-            return False
+        
         if not self.model.train_dataset_path:
             messagebox.showerror("Missing Value", "No dataset loaded.")
             return False
@@ -598,6 +609,9 @@ class LearningController:
 
             messagebox.showinfo("Splitting", "Splitting done")
 
+    def trace_scoring(self, *args):
+        self.scoring = self.view.vars["scoring"].get()
+        
     def trace_kfold(self, *args):
         self.model.kfold = self.view.vars["kfold"].get()
         self.model.enable_kfold = True if self.view.vars["kfold ckbox"].get() else False
