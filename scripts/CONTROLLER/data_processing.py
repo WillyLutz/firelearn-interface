@@ -4,6 +4,32 @@ from scipy.signal import butter, freqz, filtfilt
 
 
 def butter_filter(signal, order, btype, lowcut=None, highcut=None, cut=None, fs=10000 ):
+    """
+    Applies a Butterworth filter to a signal.
+
+    Parameters
+    ----------
+    signal : np.ndarray
+        The input signal to filter.
+    order : int
+        The order of the filter.
+    btype : str
+        Type of filter ('lowpass', 'highpass', 'bandpass', or 'bandstop').
+    lowcut : float, optional
+        Low-frequency cutoff for bandpass and bandstop filters.
+    highcut : float, optional
+        High-frequency cutoff for bandpass and bandstop filters.
+    cut : float, optional
+        Cutoff frequency for lowpass or highpass filters.
+    fs : int, optional, default=10000
+        Sampling frequency of the signal.
+
+    Returns
+    -------
+    np.ndarray
+        The filtered signal.
+    """
+    
     nyq = 0.5 * fs
     if cut:
         midcut = cut / nyq
@@ -26,9 +52,25 @@ def butter_filter(signal, order, btype, lowcut=None, highcut=None, cut=None, fs=
     return filtered_signal  # , xanswer, yanswer
 
 
-def fast_fourier(dfy, freq):
-    fft_df = np.fft.fft(dfy)
-    freqs = np.fft.fftfreq(len(dfy), d=1 / freq)
+def fast_fourier(signal, freq):
+    """
+    Computes the Fast Fourier Transform (FFT) of a signal.
+
+    Parameters
+    ----------
+    signal : np.ndarray
+        The input signal.
+    freq : int
+        The sampling frequency.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        The FFT magnitude spectrum and the corresponding frequencies.
+    """
+    
+    fft_df = np.fft.fft(signal)
+    freqs = np.fft.fftfreq(len(signal), d=1 / freq)
 
     clean_fft_df = abs(fft_df)
     clean_freqs = abs(freqs[0:len(freqs // 2)])
@@ -38,25 +80,19 @@ def fast_fourier(dfy, freq):
 
 def merge_all_columns_to_mean(df: pd.DataFrame, except_column=""):
     """
-    merge_all_columns_to_mean(data: pd.DataFrame, except_column=""):
+    Computes the mean of all columns in a DataFrame except for one optional column.
 
-        average all the columns, except an optional specified one,
-        in a data into one. The average is done row-wise.
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input DataFrame.
+    except_column : str, optional, default=""
+        The column to exclude from the mean computation.
 
-        Parameters
-        ----------
-        df: DataFrame
-            the data to average
-        except_column: str, optional, default: ""
-            the name of the column to exclude from the average.
-            Will be included in the resulting dataset.
-
-        Returns
-        --------
-        out: DataFrame
-            Dataframe containing on column labeled 'mean', and
-            an optional second column based on the
-            except_column parameter
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame with the mean of the selected columns and the excluded column (if specified).
     """
 
     excepted_column = pd.DataFrame()
@@ -80,51 +116,35 @@ def merge_all_columns_to_mean(df: pd.DataFrame, except_column=""):
 
 
 
-def top_n_electrodes(df, n, except_column="TimeStamp [µs]"):
+def top_n_columns(df, n, except_column="TimeStamp [µs]"):
     """
-        top_N_electrodes(data, n, except_column):
+    Selects the top N columns with the highest standard deviation.
 
-            Select only the n electrodes with the highest standard
-            deviation, symbolizing the highest activity.
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input DataFrame containing electrode signals.
+    n : int
+        The number of columns to retain based on standard deviation.
+    except_column : str, optional, default="TimeStamp [µs]"
+        The column to exclude from selection but retain in the output.
 
-            Parameters
-            ----------
-            df: Dataframe
-                Contains the data. If using MEA it has the following
-                formatting: the first column contains the time dimension,
-                names 'TimeStamp [µs]', while each other represent the
-                different electrodes of the MEA, with names going as
-                '48 (ID=1) [pV]' or similar.
-            n: int
-                the number of channels to keep, sorted by the highest
-                standard deviation.
-            except_column: str, optional, default: 'TimeStamp [µs]'
-                The name of a column to exclude of the selection.
-                This column will be included in the resulting
-                data.
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the top N columns and the `except_column`.
 
-            Returns
-            -------
-            out: pandas Dataframe
-                Dataframe containing only n columns, corresponding
-                to the n channels with the highest standard deviation.
-                If except_column exists, then this very column is added
-                untouched from the original data to the resulting
-                one.
+    Notes
+    -----
+    - Uses standard deviation to rank columns.
+    - Can be adapted to other ranking metrics by modifying the relevant section.
 
-            Notes
-            -----
-            This function only use the standard deviation as metric to
-            use to sort the channels. Any modification on this metric
-            should be done on the line indicated below.
-
-            Examples
-            --------
-            >> data = pd.read_csv(file)
-            >> df_top = dpr.top_N_electrodes(data=data, n=35, except_column='TimaStamp [µs]")
-            Returns a data containing the top 35 channels based on the std of the signal
-
+    Examples
+    --------
+    >> data = pd.read_csv("electrodes.csv")
+    >> top_channels = top_n_electrodes(data, n=10, except_column="TimeStamp [µs]")
     """
+    
     # getting the complete name of the column to exclude, in case of slight fluctuation in name
     if except_column:
         for col in df.columns:

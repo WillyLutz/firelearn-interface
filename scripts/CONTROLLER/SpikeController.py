@@ -192,7 +192,7 @@ class SpikeController:
                 df = pd.read_csv(file, dtype=float, index_col=False)
                 
             if self.model.vars["select columns ckbox"]:
-                df = data_processing.top_n_electrodes(df, n_cols,  self.model.vars["except column"])
+                df = data_processing.top_n_columns(df, n_cols, self.model.vars["except column"])
                 
             columns_with_exception = [col for col in df.columns if self.model.vars["except column"] not in col]
             

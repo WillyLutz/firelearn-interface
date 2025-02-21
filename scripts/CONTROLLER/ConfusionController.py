@@ -29,8 +29,42 @@ class ConfusionController:
         self.view = view
         self.view.controller = self  # set controller
         self.progress = None
+        
+        self.TRAIN_CORRESPONDENCE = {}
+        self.TEST_CORRESPONDENCE = {}
+        
+    @staticmethod
+    def rename_dict_key(d, old_key, new_key):
+        """
+        Renames a key in a dictionary. Changes are in-place.
 
+        Parameters
+        ----------
+        d : dict
+            The dictionary in which the key needs to be renamed.
+
+        old_key : str
+            The key that needs to be renamed.
+
+        new_key : str
+            The new name for the key.
+
+        Returns
+        -------
+        """
+        if old_key in d:
+            d[new_key] = d.pop(old_key)
+            
     def load_clf(self, loaded=False):
+        """
+        Loads a classifier model (.rfc file) and updates the UI accordingly.
+
+        If `loaded` is True, it assumes the classifier is already set in the model.
+        Otherwise, it opens a file dialog to allow the user to select a classifier file.
+
+        Args:
+            loaded (bool): Whether the classifier is already loaded (default: False).
+        """
         if loaded:
             self.view.vars["load clf"].set(self.model.clf_path)
 
@@ -67,230 +101,59 @@ class ConfusionController:
                     target_radio.select()
                     target_radio.grid(row=t, column=0, padx=10, pady=10, sticky='w')
     
-    def test_clf_by_confusion(self, test_dataset: pd.DataFrame, training_targets: tuple, return_data=False, **kwargs):
+    def predict_X_values(self, X):
         """
-        Test an already trained Random forest classifier model,
-        resulting in a confusion matrix. The test can be done
-        on targets_labels different from the targets_labels used for training
-        the model.
-            Parameters
-            ----------
-            clf: RandomForestClassifier
-                the trained model.
-            test_dataset:  pandas Dataframe.
-                Dataframe containing the data used for testing the
-                model. The rows are the entries, and the columns are
-                the features on which the model has been trained.
-                The last column is 'status' containing the labels
-                of the targets_labels for each entry.
-            training_targets: tuple of str
-                the targets on which the model has been trained.
-            **kwargs: keyword arguments
-                savepath: str, optional, default: ""
-                    If not empty, path where le result will be saved.
-                verbose: Bool, optional. Default: False
-                    Whether to display more information when computing
-                    or not.
-                show: Bool, optional. Default: True
-                    Whether to show the resulting confusion matrix or not.
-                iterations: int, optional. Default: 10
-                    Number of iterations the test will be computed.
-                commentary: str, optional. Default: ""
-                    If any specification to add to the file name.
-                testing_targets: tuple of str
-                    the targets on which the model will be tested.
-                    Can be different from the training targets.
-                mode: ['numeric', 'percent'], default 'numeric'
+        Predict the values for a given dataframe `X` using the trained classifier.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Dataframe containing all the entries that need to be predicted.
+
+        Returns
+        -------
+        predictions : list of tuple of size 2
+            List of tuples containing the predicted class label (`y_pred`) as the first element
+            and the associated probabilities for all classes (`proba_class`) as the second element.
         """
-        options = {"verbose": False, "show": True,
-                   "testing_targets": (),
-                   "iterations": 10,
-                   "commentary": "", "savepath": "", "title": ""}
-        options.update(**kwargs)
-        self.progress.update_task("Data preparation")
-        if not options["testing_targets"]:
-            options["testing_targets"] = training_targets
-        TRAIN_CORRESPONDENCE = {}
-        TEST_CORRESPONDENCE = {}
-        train_target_id = 0
-        test_target_id = 0
-        for t in training_targets:
-            if t not in TRAIN_CORRESPONDENCE:
-                TRAIN_CORRESPONDENCE[t] = train_target_id
-                train_target_id += 1
-        for t in options["testing_targets"]:
-            if t not in TEST_CORRESPONDENCE:
-                TEST_CORRESPONDENCE[t] = test_target_id
-                test_target_id += 1
-        
-        if not TEST_CORRESPONDENCE:
-            TEST_CORRESPONDENCE = TRAIN_CORRESPONDENCE.copy()
-        
-        X = test_dataset.loc[:, ~test_dataset.columns.isin(['label', 'ID'])]
-        y = test_dataset["label"]
-        
-        X.reset_index(drop=True, inplace=True)
-        
-        if options["verbose"]:
-            progress = 0
-            sys.stdout.write(f"\rTesting model: {progress}%")
-            sys.stdout.flush()
-        self.progress.increment_progress(1)
-        
-        # get predictions and probabilities
-        all_matrices = []
-        all_probability_matrices = []
-        for iters in range(options["iterations"]):
-            self.progress.update_task("Predicting")
-            matrix = np.zeros((len(training_targets), len(options['testing_targets'])))
-            probabilities_matrix = np.empty((len(training_targets), len(options['testing_targets'])), dtype=object)
-            
-            # Initializing the matrix containing the probabilities
-            for i in range(len(probabilities_matrix)):
-                for j in range(len(probabilities_matrix[i])):
-                    probabilities_matrix[i][j] = []
-            
-            # Making predictions and storing the results in predictions[]
-            predictions = []
-            for i in range(len(X.values)):
-                row = X.iloc[i]
-                y_pred = self.model.clf.predict([row])[0]
-                proba_class = self.model.clf.predict_proba([row])[0]
-                predictions.append((y_pred, proba_class))
-                self.progress.increment_progress(1)
-            
-            #
-            targets = []
-            for i in y.index:
-                targets.append(y.loc[i])
-            # Building the confusion matrix
-            self.progress.update_task("Building matrix")
-            for i in range(len(targets)):
-                y_true = targets[i]
-                y_pred = predictions[i][0]
-                y_proba = max(predictions[i][1])
-                matrix[TRAIN_CORRESPONDENCE[y_pred]][TEST_CORRESPONDENCE[y_true]] += 1
-                
-                probabilities_matrix[TRAIN_CORRESPONDENCE[y_pred]][TEST_CORRESPONDENCE[y_true]].append(y_proba)
-                
-            mean_probabilities = np.zeros((len(training_targets), len(options['testing_targets'])))
-            
-            for i in range(len(probabilities_matrix)):
-                for j in range(len(probabilities_matrix[i])):
-                    mean_probabilities[i][j] = np.mean(probabilities_matrix[i][j])
-            all_matrices.append(matrix)
-            all_probability_matrices.append(mean_probabilities)
+        predictions = []
+        for i in range(len(X.values)):
+            row = X.iloc[i]
+            y_pred = self.model.clf.predict([row])[0]
+            proba_class = self.model.clf.predict_proba([row])[0]
+            predictions.append((y_pred, proba_class))
             self.progress.increment_progress(1)
-
-        self.progress.update_task("Formatting matrices")
-        mean_probabilities_matrix = np.empty((len(training_targets), len(options['testing_targets'])))
-        overall_matrix = np.mean(np.array([i for i in all_matrices]), axis=0)
         
-        overall_probabilities = np.mean(np.array([i for i in all_probability_matrices]), axis=0)
+        return predictions
         
-        accuracies_percent = np.empty((len(training_targets), len(options['testing_targets']))).tolist()
-        accuracies_numeric = np.empty((len(training_targets), len(options['testing_targets']))).tolist()
-        
-        cups = np.empty((len(training_targets), len(options['testing_targets']))).tolist()
-        
-        # averaging the probabilities
-        for i in range(len(overall_probabilities)):
-            for j in range(len(overall_probabilities[i])):
-                mean_probabilities_matrix[i][j] = np.mean(overall_probabilities[i][j])
-                self.progress.increment_progress(1)
-
-        
-        # mixing count and probabilities for displaying
-        
-        total_per_column = np.sum(overall_matrix, axis=0)
-        
-        for i in range(len(overall_probabilities)):
-            for j in range(len(overall_probabilities[i])):
-                np.nan_to_num(overall_matrix[i][j])
-                np.nan_to_num(mean_probabilities_matrix[i][j])
-                CUP = round(mean_probabilities_matrix[i][j], 3) if int(overall_matrix[i][j]) != 0 else 0
-                
-                percent = round(int(overall_matrix[i][j]) / total_per_column[j] * 100, 1) if int(
-                    overall_matrix[i][j]) != 0 else "0"
-                
-                accuracies_numeric[i][j] = int(overall_matrix[i][j])
-                accuracies_percent[i][j] = percent
-                cups[i][j] = CUP
-                self.progress.increment_progress(1)
-                
-        
-        self.progress.update_task("Formatting results")
-        columns = [x for x in TEST_CORRESPONDENCE.keys()]
-        indexes = [x for x in TRAIN_CORRESPONDENCE.keys()]
-        df_acc_percent = pd.DataFrame(columns=columns, index=indexes, data=accuracies_percent)
-        df_acc_numeric = pd.DataFrame(columns=columns, index=indexes, data=accuracies_numeric)
-        
-        df_cup = pd.DataFrame(columns=columns, index=indexes, data=cups)
-        df_acc_percent.index.name = "Train label"
-        df_acc_numeric.index.name = "Train label"
-        df_cup.index.name = "Train label"
-        self.progress.increment_progress(1)
-        if return_data:
-            return df_acc_numeric, df_acc_percent, df_cup, TRAIN_CORRESPONDENCE, TEST_CORRESPONDENCE
-            # return overall_matrix, mixed_labels_matrix, TRAIN_CORRESPONDENCE, TEST_CORRESPONDENCE
-        
-        mixed_labels_matrix = np.empty((len(TRAIN_CORRESPONDENCE.keys()), len(TEST_CORRESPONDENCE.keys()))).tolist()
-        
-        acc_array = df_acc_percent.to_numpy().astype(float) if options[
-                                                                   "mode"] == 'percent' else df_acc_numeric.to_numpy().astype(
-            int)
-        
-        cup_array = df_cup.to_numpy()
-        for r in range(len(acc_array)):
-            for c in range(len(acc_array[0])):
-                case = f"{acc_array[r][c]}%\nCUP={cup_array[r][c]}" if options[
-                                                                           "mode"] == 'percent' else f"{acc_array[r][c]}\nCUP={cup_array[r][c]}"
-                mixed_labels_matrix[r][c] = case
-        plt.close()
-        
-        # plotting
-        fig, ax = plt.subplots(1, 1, figsize=(7 / 4 * len(options['testing_targets']), 6 / 4 * len(training_targets)))
-        
-        fig.suptitle("")
-        sns.heatmap(ax=ax, data=acc_array, annot=mixed_labels_matrix, fmt='', cmap="Blues", square=True, )
-        ax.xaxis.tick_top()
-        ax.xaxis.set_label_position('top')
-        ax.set_ylabel("The input is classified as")
-        ax.set_xlabel("The test input is")
-        ax.set_xticks([TEST_CORRESPONDENCE[x] + 0.5 for x in options['testing_targets']], options['testing_targets'])
-        ax.set_yticks([TRAIN_CORRESPONDENCE[x] + 0.5 for x in training_targets], training_targets)
-        plt.tight_layout()
-        
-        if options['savepath']:
-            plt.savefig(os.path.join(options['savepath'], options["title"] + ".png"))
-        if options['show']:
-            plt.show()
-        plt.close()
-    
-    def confusion_number_of_tasks(self, df):
-        data_preparation = 1
-        n_iter = self.view.vars["iterations"].get()
-        X = df.loc[:, ~df.columns.isin(['label', 'ID'])]
-        y = df["label"]
-        n_predictions = len(X.values)
-        n_targets = len(y.index)
-        building_matrix = 1 * n_iter
-        formatting_matrices = len(self.model.testing_classes) * len(self.model.training_classes) * 2
-        returning = 1
-        total_tasks = (n_iter * n_predictions + data_preparation + building_matrix +
-                       formatting_matrices + returning)
-        return total_tasks
-        
+   
     def compute_confusion(self, ):
-        if self.input_validation():
+        """
+        Computes the confusion matrix for a trained classifier based on the selected testing classes and iterations.
+
+        This function validates inputs, prepares the data, and uses the classifier to generate confusion matrices
+        (numeric, percent, and CUP values). It updates the model's confusion data and triggers the plotting process.
+
+        The process involves:
+            - Validating input parameters.
+            - Selecting the training and testing classes based on the view.
+            - Filtering the dataset according to the selected classes.
+            - Computing confusion matrices using multiple iterations.
+            - Storing the results (numeric, percentage, and CUP) in the model.
+            - Updating the visualization with the computed results.
+
+        Returns:
+            None
+        """
+        if self._input_validation():
             plt.close()
-            training_classes = tuple(list(set(list(self.model.clf.classes_))))
+            training_classes = list(set(list(self.model.clf.classes_)))
             all_testing_classes = {key: value for (key, value) in self.view.vars.items() if "test label " in key}
 
             checked_classes = {key: value for (key, value) in all_testing_classes.items() if value.get() == 1}
             checked_classes_names = {self.view.ckboxes[key].cget('text'): value for (key, value) in
                                      checked_classes.items()}.keys()
-            testing_classes = tuple(checked_classes_names)
+            testing_classes = list(checked_classes_names)
 
             self.model.training_classes = training_classes
             self.model.testing_classes = testing_classes
@@ -299,26 +162,40 @@ class ConfusionController:
             df = df[df[self.view.vars["label column"].get()].isin(testing_classes)]
             
             self.progress = ProgressBar("Confusion computation", app=self.view.app)
-            self.progress.total_tasks = self.confusion_number_of_tasks(df)
+            self.progress.total_tasks = self._confusion_number_of_tasks(df)
             self.progress.start()
             
-            overall_matrix_numeric, overall_matrix_percent, overall_matrix_cup, TRAIN_CORRESPONDENCE, TEST_CORRESPONDENCE \
-                = self.test_clf_by_confusion(df, training_targets=training_classes,
-                                           testing_targets=testing_classes, show=False,
-                                           iterations=self.view.vars["iterations"].get(),
-                                           return_data=True,
-                                           mode=self.model.plot_specific_settings["annot mode"],
-                                           progress_bar=self.progress)  # todo : update fiiireflyyy
+            overall_matrix_numeric, overall_matrix_percent, overall_matrix_cup \
+                = self._test_clf_by_confusion(df, training_targets=training_classes,
+                                              testing_targets=testing_classes,
+                                              iterations=self.view.vars["iterations"].get(),
+                                              )  # todo : update fiiireflyyy
             self.model.confusion_data["overall matrix numeric"] = overall_matrix_numeric
             self.model.confusion_data["overall matrix percent"] = overall_matrix_percent
 
             self.model.confusion_data["overall matrix cup"] = overall_matrix_cup
-            self.model.confusion_data["train correspondence"] = TRAIN_CORRESPONDENCE
-            self.model.confusion_data["test correspondence"] = TEST_CORRESPONDENCE
+            self.model.confusion_data["train correspondence"] = self.TRAIN_CORRESPONDENCE
+            self.model.confusion_data["test correspondence"] = self.TEST_CORRESPONDENCE
 
             self.update_figure()
 
     def update_figure(self):
+        """
+        Updates and displays the confusion matrix figure in the GUI.
+
+        This function generates and formats the confusion matrix based on the previously computed values,
+        and updates the figure within the GUI. It also handles the customization of labels, annotations, and axes.
+
+        It involves:
+            - Choosing the correct confusion matrix (numeric or percent) based on user settings.
+            - Applying custom annotations such as numeric values, CUP, or both.
+            - Renaming the x-axis and y-axis labels based on user preferences.
+            - Updating the plot with the new matrix and setting up the visualization in the Tkinter canvas.
+            - Updating the toolbar for the plot.
+
+        Returns:
+            None
+        """
         plt.close()
         overall_matrix = self.model.confusion_data["overall matrix percent"] \
             if self.model.plot_specific_settings["annot mode"] == 'percent' \
@@ -402,43 +279,29 @@ class ConfusionController:
         self.view.figures["confusion"] = (fig, ax)
         self.view.canvas["confusion"].draw()
 
-    def input_validation(self):
-        errors = []
-        if not self.model.clf:
-            errors.append("No classifier loaded.")
-
-        if self.model.dataset is None:
-            errors.append("No dataset loaded.")
-
-        for key, entry in self.view.entries.items():
-            if type(entry) == ErrEntry:
-                if entry.error_message.get() != '':
-                    errors.append(f"{key} : {entry.error_message.get()}")
-
-        if errors:
-            messagebox.showerror('Value Error', '\n'.join(errors))
-            return False
-
-        return True
-
-    def save_figure(self, fig):
-
-        filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
-        if filepath:
-            if self.view.entries["dpi"]:
-                fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()), bbox_inches='tight')
-
-    def export_figure_data(self, ax):  # todo : export
-        pass
 
     def save_config(self, ):
-        if self.input_validation():
+        """
+        Save the current model state as a *.*cfg file.
+        
+        Returns
+        -------
+
+        """
+        if self._input_validation():
             f = filedialog.asksaveasfilename(defaultextension=".confcfg",
                                              filetypes=[("Analysis - Confusion", "*.confcfg"), ])
             if f:
                 self.model.save_model(path=f, )
 
     def load_config(self, ):
+        """
+        Load a previously saved configuration file and update the view based on the model.
+        
+        Returns
+        -------
+
+        """
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Confusion", "*.confcfg"),))
         if f:
             if self.model.load_model(path=f):
@@ -449,7 +312,18 @@ class ConfusionController:
                 self.update_view_from_model()
 
     def update_view_from_model(self, ):
+        """
+        Update the view's variables from the model's data.
 
+        This function synchronizes the view with the model by updating the view's UI components
+        with the current values from the model's attributes.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         for key, value in self.model.plot_data.items():
             self.view.vars[key].set(value)
         for key, value in self.model.plot_legend.items():
@@ -460,6 +334,24 @@ class ConfusionController:
             self.view.vars[key].set(value)
 
     def load_dataset(self, loaded=False):
+        """
+        Load a dataset and update the corresponding view elements.
+
+        If `loaded` is True, the function updates the view with information about an already
+        loaded dataset and its associated label column. It removes any training-related
+        elements from the view and model. If `loaded` is False, it opens a file dialog to
+        allow the user to select a dataset file (CSV or TXT), loads the dataset, and updates
+        the model and view accordingly.
+
+        Parameters
+        ----------
+        loaded : bool, optional, default: False
+            If True, the function assumes the dataset is already loaded and updates the view
+            accordingly. If False, the function prompts the user to select a file to load.
+
+        Returns
+        -------
+        """
         if loaded:
             # fig, ax = self.view.figures["confusion"]
 
@@ -509,16 +401,51 @@ class ConfusionController:
                 self.view.vars["label column"].set(label_col)
 
     def deselect_all_test_targets(self):
+        """
+        Deselect all test targets checkboxes in the view.
+        
+        Returns
+        -------
+
+        """
         ckboxes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
         for key, widget in ckboxes.items():
             widget.set(0)
 
     def select_all_test_targets(self):
+        """
+        Select all test targets checkboxes in the view.
+
+        Returns
+        -------
+
+        """
         ckboxes = {key: value for (key, value) in self.view.vars.items() if "test label" in key}
         for key, widget in ckboxes.items():
             widget.set(1)
 
     def trace_testing_labels(self, *args):
+        """
+        Trace and update the testing labels in the view based on the selected label column.
+
+        This function retrieves the unique values from the selected label column in the dataset,
+        and dynamically creates checkboxes for each unique value to represent testing labels.
+        If there are more than 20 unique values in the column, the user is prompted to confirm
+        whether they want to proceed with creating checkboxes for all values.
+
+        The function clears any existing test label checkboxes, creates new ones for the possible targets,
+        and updates the associated variables and model data accordingly.
+
+        Parameters
+        ----------
+        *args : tuple
+            Variable arguments passed from the event triggering the function, typically used
+            in event handling, but not explicitly required in the function body.
+
+        Returns
+        -------
+        """
+        
         if self.view.vars["label column"].get() != 'None':
             possible_targets = list(set(list(self.model.dataset[self.view.vars["label column"].get()])))
             proceed = True
@@ -545,6 +472,20 @@ class ConfusionController:
                     target_var.trace("w", partial(self.trace_vars_to_model, f"test label {t}"))
 
     def trace_vars_to_model(self, key, *args):
+        """
+        Trace the tk or ctk variable into the corresponding model attribute.
+        
+        Parameters
+        ----------
+        key : str
+            key id of the widget
+        args :
+            required args for ctk trace. To leave empty.
+
+        Returns
+        -------
+
+        """
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()
         elif key in self.model.plot_axes.keys():
@@ -555,6 +496,14 @@ class ConfusionController:
             self.model.plot_specific_settings[key] = self.view.vars[key].get()
 
     def update_confusion_ticks(self, ):
+        """
+        Updates the ticks of the confusion matrix plot based on values in the model.
+        
+        Returns
+        -------
+
+        """
+        
         if self.model.dataset_path and self.model.clf:
             ticks_train_scrollable = self.view.scrollable_frames["ticks train"]
             ticks_test_scrollable = self.view.scrollable_frames["ticks test"]
@@ -631,7 +580,303 @@ class ConfusionController:
                                     f"x label {testing_classes.index(target)}": target_test_label_var}.items():
                     widget.trace("w", partial(self.trace_vars_to_model, key))
 
-    @staticmethod
-    def rename_dict_key(d, old_key, new_key):
-        if old_key in d:
-            d[new_key] = d.pop(old_key)
+    def _input_validation(self):
+        """
+       Validates the input data and configuration before performing actions that depend on them.
+
+       If any errors are found, an error message is displayed in a popup, and the function returns `False`.
+       If no errors are found, the function returns `True`.
+
+       Returns:
+           bool: `True` if validation passes, `False` if validation fails and errors are shown.
+       """
+        errors = []
+        if not self.model.clf:
+            errors.append("No classifier loaded.")
+
+        if self.model.dataset is None:
+            errors.append("No dataset loaded.")
+
+        for key, entry in self.view.entries.items():
+            if type(entry) == ErrEntry:
+                if entry.error_message.get() != '':
+                    errors.append(f"{key} : {entry.error_message.get()}")
+
+        if errors:
+            messagebox.showerror('Value Error', '\n'.join(errors))
+            return False
+
+        return True
+    
+    def _build_confusion_matrix(self, predictions, targets, training_targets, testing_targets):
+        """
+          Builds a confusion matrix and computes the mean probabilities of predictions for each class.
+    
+          Parameters
+          ----------
+          predictions : list of tuple
+              Each element is a tuple containing predicted label and its associated probabilities.
+    
+          targets : list[int]
+              List of true labels for the dataset.
+    
+          training_targets : list[str]
+              List of unique class labels used for training.
+    
+          testing_targets : list[str]
+              List of unique class labels used for testing.
+    
+          Returns
+          -------
+          matrix : np.ndarray
+              A confusion matrix counting the occurrences of predicted vs true labels.
+    
+          mean_probabilities : np.ndarray
+              A matrix containing the mean probabilities for each predicted vs true label combination.
+          """
+        
+        self.progress.update_task("Building matrix")
+        matrix = np.zeros((len(training_targets), len(testing_targets)))
+        
+        probabilities_matrix = np.empty((len(training_targets), len(testing_targets)), dtype=object)
+        
+        # Initializing the matrix containing the probabilities
+        for i in range(len(probabilities_matrix)):
+            for j in range(len(probabilities_matrix[i])):
+                probabilities_matrix[i][j] = []
+        
+        for i in range(len(targets)):
+            y_true = targets[i]
+            y_pred = predictions[i][0]
+            y_proba = max(predictions[i][1])
+            matrix[self.TRAIN_CORRESPONDENCE[y_pred]][self.TEST_CORRESPONDENCE[y_true]] += 1
+            
+            probabilities_matrix[self.TRAIN_CORRESPONDENCE[y_pred]][self.TEST_CORRESPONDENCE[y_true]].append(y_proba)
+        
+        mean_probabilities = np.zeros((len(training_targets), len(testing_targets)))
+        
+        for i in range(len(probabilities_matrix)):
+            for j in range(len(probabilities_matrix[i])):
+                mean_probabilities[i][j] = np.mean(probabilities_matrix[i][j])
+        
+        self.progress.increment_progress(1)
+        
+        return matrix, mean_probabilities
+    
+    def _mix_counts_and_probs(self, overall_matrix, mean_probabilities_matrix,
+                              accuracies_numeric, accuracies_percent,):
+        """
+        Combines count-based confusion matrix values with probability-based metrics (CUP).
+    
+        Parameters
+        ----------
+        overall_matrix : np.ndarray
+            Confusion matrix with raw count values.
+    
+        mean_probabilities_matrix : np.ndarray
+            Matrix containing the mean probabilities of predictions.
+    
+        accuracies_numeric : np.ndarray
+            Numeric confusion matrix (integer values).
+    
+        accuracies_percent : np.ndarray
+            Percentage-based confusion matrix.
+    
+        Returns
+        -------
+        cups : list
+            Matrix containing CUP values (rounded mean probabilities).
+        """
+        total_per_column = np.sum(overall_matrix, axis=0, where=overall_matrix != 0)  # Avoid division by zero
+        cups = [[0] * overall_matrix.shape[1] for _ in range(overall_matrix.shape[0])]
+        
+        for i in range(len(overall_matrix)):
+            for j in range(len(overall_matrix[i])):
+                count_value = np.nan_to_num(overall_matrix[i][j])  # Ensure no NaNs
+                mean_prob = np.nan_to_num(mean_probabilities_matrix[i][j])
+                
+                # Calculate CUP (mean probability), but only if count > 0
+                CUP = round(float(mean_prob), 3) if int(count_value) != 0 else 0
+                
+                # Calculate percentage accuracy, ensuring no division by zero
+                if int(count_value) != 0 and total_per_column[j] > 0:
+                    percent = round(int(count_value) / total_per_column[j] * 100, 1)
+                else:
+                    percent = "0"
+                
+                accuracies_numeric[i][j] = int(count_value)
+                accuracies_percent[i][j] = percent
+                cups[i][j] = CUP
+                
+                self.progress.increment_progress(1)
+        return accuracies_percent, accuracies_numeric, cups
+    
+    def _init_train_and_test_correspondence(self, training_targets, testing_targets):
+        """
+        Initialize TRAIN_CORRESPONDENCE and TEST_CORRESPONDENCE of the train and test targets.
+    
+        Parameters
+        ----------
+        training_targets : list[str]
+              List of unique class labels used for training.
+    
+        testing_targets : list[str]
+          List of unique class labels used for testing.
+    
+        Returns
+        -------
+    
+        """
+        self.TRAIN_CORRESPONDENCE.clear()
+        self.TEST_CORRESPONDENCE.clear()
+        
+        train_target_id = 0
+        test_target_id = 0
+        for t in training_targets:
+            if t not in self.TRAIN_CORRESPONDENCE:
+                self.TRAIN_CORRESPONDENCE[t] = train_target_id
+                train_target_id += 1
+        for t in testing_targets:
+            if t not in self.TEST_CORRESPONDENCE:
+                self.TEST_CORRESPONDENCE[t] = test_target_id
+                test_target_id += 1
+        
+        if not self.TEST_CORRESPONDENCE:
+            self.TEST_CORRESPONDENCE = self.TRAIN_CORRESPONDENCE.copy()
+    
+    def _test_clf_by_confusion(self, test_dataset: pd.DataFrame, training_targets, testing_targets, iterations=10):
+        """
+        Tests a trained Random Forest classifier model using a confusion matrix.
+    
+        This method evaluates the classifier on a test dataset, which can have different
+        target labels than those used for training. The confusion matrix and relevant
+        performance metrics are computed.
+    
+        Parameters
+        ----------
+        test_dataset : pd.DataFrame
+            Contains the test data. Each row represents an entry, while
+            the columns correspond to the features on which the model was trained.
+            The last column should be 'label', containing the target labels.
+    
+        training_targets : list[str]
+            The target labels used during model training.
+        
+        testing_targets : list[str]
+                    The target labels for testing. Can be different from `training_targets`.
+            
+        iterations : int, optional, default=10
+            Number of iterations to run the test.
+    
+        Returns
+        -------
+        tuple of pd.DataFrame
+            df_acc_numeric : pd.DataFrame
+                Confusion matrix with raw count values.
+    
+            df_acc_percent : pd.DataFrame
+                Confusion matrix with percentage-based accuracy values.
+    
+            df_cup : pd.DataFrame
+                Matrix containing mean prediction probabilities (CUP).
+    
+    
+        Notes
+        -----
+        - The function assumes a trained Random Forest classifier is already loaded in `self.model.clf`.
+        - The test dataset must contain all necessary features for inference.
+        - If `iterations` is greater than 1, the test runs multiple times for better statistical representation.
+    
+        """
+        options = {"testing_targets": [],
+                   "iterations": 10,}
+        options.update(**kwargs)
+        self.progress.update_task("Data preparation")
+        if not options["testing_targets"]:
+            options["testing_targets"] = training_targets
+        
+        
+        self._init_train_and_test_correspondence(training_targets, options["testing_targets"])
+        
+        X = test_dataset.loc[:, ~test_dataset.columns.isin(['label', 'ID'])]
+        y = test_dataset["label"]
+        
+        X.reset_index(drop=True, inplace=True)
+        
+        self.progress.increment_progress(1)
+        
+        # get predictions and probabilities
+        all_matrices = []
+        all_probability_matrices = []
+        for iters in range(options["iterations"]):
+            self.progress.update_task("Predicting")
+            predictions = self.predict_X_values(X)
+            
+            targets = []
+            for i in y.index:
+                targets.append(y.loc[i])
+            
+            matrix, mean_probabilities = self._build_confusion_matrix(predictions, targets, training_targets, options["testing_targets"])
+            
+            all_matrices.append(matrix)
+            all_probability_matrices.append(mean_probabilities)
+        
+        self.progress.update_task("Formatting matrices")
+        mean_probabilities_matrix = np.empty((len(training_targets), len(options['testing_targets'])))
+        overall_matrix = np.mean(np.array([i for i in all_matrices]), axis=0)
+        overall_probabilities = np.mean(np.array([i for i in all_probability_matrices]), axis=0)
+        accuracies_percent = np.empty((len(training_targets), len(options['testing_targets']))).tolist()
+        accuracies_numeric = np.empty((len(training_targets), len(options['testing_targets']))).tolist()
+        
+        # averaging the probabilities
+        for i in range(len(overall_probabilities)):
+            for j in range(len(overall_probabilities[i])):
+                mean_probabilities_matrix[i][j] = np.mean(overall_probabilities[i][j])
+                self.progress.increment_progress(1)
+        
+        # mixing count and probabilities for displaying
+        accuracies_percent, accuracies_numeric, cups = (
+            self._mix_counts_and_probs(overall_matrix, mean_probabilities_matrix, accuracies_numeric,accuracies_percent))
+        
+        
+        self.progress.update_task("Formatting results")
+        columns = [x for x in self.TEST_CORRESPONDENCE.keys()]
+        indexes = [x for x in self.TRAIN_CORRESPONDENCE.keys()]
+        df_acc_percent = pd.DataFrame(columns=columns, index=indexes, data=accuracies_percent)
+        df_acc_numeric = pd.DataFrame(columns=columns, index=indexes, data=accuracies_numeric)
+        
+        df_cup = pd.DataFrame(columns=columns, index=indexes, data=cups)
+        df_acc_percent.index.name = "Train label"
+        df_acc_numeric.index.name = "Train label"
+        df_cup.index.name = "Train label"
+        self.progress.increment_progress(1)
+        
+        return df_acc_numeric, df_acc_percent, df_cup,
+    
+    
+    def _confusion_number_of_tasks(self, df):
+        """
+        Calculates the total number of tasks involved in generating and formatting a confusion matrix.
+    
+        This includes tasks related to data preparation, making predictions, building the confusion matrix,
+        formatting the results, and returning the final output.
+    
+        Args:
+            df (pd.DataFrame): DataFrame containing the data, where the last column is 'label' with the target values,
+                               and the other columns represent the feature set for model predictions.
+    
+        Returns:
+            int: Total number of tasks required to complete the confusion matrix generation.
+        """
+        data_preparation = 1
+        n_iter = self.view.vars["iterations"].get()
+        X = df.loc[:, ~df.columns.isin(['label', 'ID'])]
+        y = df["label"]
+        n_predictions = len(X.values)
+        n_targets = len(y.index)
+        building_matrix = 1 * n_iter
+        formatting_matrices = len(self.model.testing_classes) * len(self.model.training_classes) * 2
+        returning = 1
+        total_tasks = (n_iter * n_predictions + data_preparation + building_matrix +
+                       formatting_matrices + returning)
+        return total_tasks

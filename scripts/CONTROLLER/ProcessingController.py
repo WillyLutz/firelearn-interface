@@ -134,8 +134,8 @@ class ProcessingController:
                     # signal select columns
                     if local_vars['signal select columns ckbox']:
                         self.processing_progress.update_task("Selecting columns")
-                        df = dpr.top_n_electrodes(df, int(local_vars['signal select columns number']),
-                                                  except_column=self.model.vars["except column"])
+                        df = dpr.top_n_columns(df, int(local_vars['signal select columns number']),
+                                               except_column=self.model.vars["except column"])
                         self.processing_progress.increment_progress(1)
                     
                     # down sampling recordings
