@@ -24,6 +24,17 @@ class FeatureImportanceController:
         self.progress = None
 
     def load_clf(self, ):
+        """
+        Load a classifier model from a file.
+    
+        Opens a file dialog to select a classifier model (with .rfc extension).
+        If a valid file is selected, the classifier is loaded into the model.
+    
+        Raises
+        ------
+        ValueError
+            If no classifier is selected or file is invalid.
+        """
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("AI model", "*.rfc"),))
         if filename:
@@ -36,6 +47,18 @@ class FeatureImportanceController:
 
 
     def draw_figure(self, ):
+        """
+        Draw the feature importance plot based on the loaded classifier.
+
+        This method validates the inputs and then generates a plot showing
+        the feature importance values from the classifier. The plot is rendered
+        on a Tkinter canvas.
+
+        Returns
+        -------
+        bool
+            True if the plot was successfully drawn, False if validation failed.
+        """
         if self.input_validation_feature_importance():
             plt.close()
             fig, ax = plt.subplots(figsize=(4, 4))
@@ -130,6 +153,14 @@ class FeatureImportanceController:
             self.view.canvas["features"].draw()
 
     def input_validation_feature_importance(self):
+        """
+        Validate the inputs before plotting the feature importance.
+
+        Returns
+        -------
+        bool
+            True if inputs are valid, False if there are validation errors.
+        """
         errors = []
         if not self.model.clf:
             errors.append("No classifier loaded.")
@@ -144,11 +175,23 @@ class FeatureImportanceController:
             return False
         return True
 
-    def save_figure(self, fig):
-        filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
-        fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()))
 
     def export_figure_data(self, ax):
+        """
+        Export the data of the current figure to a CSV file.
+
+        Extracts the X and Y data of the plotted curve and saves it as a CSV file.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            The axis object containing the plot.
+
+        Returns
+        -------
+        None
+        """
+        
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Coma Separated Value", "*.csv"),))
         line = ax.lines[0]
         x_data = line.get_xdata()
@@ -161,6 +204,15 @@ class FeatureImportanceController:
         df.to_csv(filepath+'.csv', index=False)
 
     def save_config(self, ):
+        """
+        Save the current configuration to a file.
+
+        Opens a file dialog to save the configuration settings as a .ficfg file.
+
+        Returns
+        -------
+        None
+        """
         if self.input_validation_feature_importance():
             f = filedialog.asksaveasfilename(defaultextension=".ficfg",
                                              filetypes=[("Analysis - Feature Importance", "*.ficfg"), ])
@@ -168,50 +220,92 @@ class FeatureImportanceController:
                 self.model.save_model(path=f, )
 
     def update_params(self, widgets: dict, ):
+        """
+        Update model parameters based on the values of the provided widgets.
+
+        Iterates through the widgets and updates the corresponding parameters
+        in the model.
+
+        Parameters
+        ----------
+        widgets : dict
+            A dictionary of widget names and widget objects to update model parameters.
+
+        Returns
+        -------
+        None
+        """
         local_dict = {}
-        for key, value in widgets.items():
-            if type(value) == ctk.CTkTextbox:
-                local_dict[key] = value.get('1.0', tk.END)
-            else:
-                local_dict[key] = value.get()
-        if len(list(widgets.values())) > 0 :
+        if len(widgets.items()) > 0:
+            if type(list(widgets.values())[0]) == ctk.StringVar or \
+                    type(list(widgets.values())[0]) == ctk.IntVar or \
+                    type(list(widgets.values())[0]) == ctk.DoubleVar:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
+                self.model.vars.update(local_dict)
             if type(list(widgets.values())[0]) == ctk.CTkSwitch:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
                 self.model.switches.update(local_dict)
-            if type(list(widgets.values())[0]) == ctk.CTkEntry:
+            if (type(list(widgets.values())[0]) == ctk.CTkEntry or
+                    type(list(widgets.values())[0]) == ErrEntry):
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
                 self.model.entries.update(local_dict)
             if type(list(widgets.values())[0]) == tk.ttk.Combobox:
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
                 self.model.cbboxes.update(local_dict)
             if type(list(widgets.values())[0]) == ctk.CTkTextbox:
                 local_dict = {}
                 for key, value in widgets.items():
-                    local_dict[key] = value.get('1.0', tk.END)
+                    local_dict[key] = value.get(1.0, tk.END)
                 self.model.textboxes.update(local_dict)
-            if type(list(widgets.values())[0]) == ctk.CTkSlider:
-                self.model.sliders.update(local_dict)
             if type(list(widgets.values())[0]) == ctk.CTkCheckBox:
-                self.model.checkboxes.update(local_dict)
-            if type(list(widgets.values())[0]) == tk.IntVar or \
-                    type(list(widgets.values())[0]) == tk.StringVar or \
-                    type(list(widgets.values())[0]) == tk.DoubleVar:
-                self.model.vars.update(local_dict)
+                for key, value in widgets.items():
+                    local_dict[key] = value.get()
+                self.model.ckboxes.update(local_dict)
 
     def load_config(self, ):
+        """
+        Load configuration from a file.
+
+        Opens a file dialog to load a configuration file (.ficfg extension),
+        and updates the model with the loaded settings.
+
+        Returns
+        -------
+        None
+        """
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Feature Importance", "*.ficfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model()
 
     def update_view_from_model(self, ):
-        # for key, value in self.model.plot_data.items():
-        #     self.view.vars[key].set(value)
-        # for key, value in self.model.plot_legend.items():
-        #     self.view.vars[key].set(value)
+        """
+        Update the view based on the current model settings.
+
+        Returns
+        -------
+        None
+        """
         for key, value in self.model.plot_axes.items():
             self.view.vars[key].set(value)
         for key, value in self.model.plot_general_settings.items():
             self.view.vars[key].set(value)
 
     def load_plot_dataset(self, ):
+        """
+        Load a dataset for plotting.
+
+        Opens a file dialog to load a dataset (.csv or .txt file) and updates
+        the view with the dataset's columns for the plot.
+
+        Returns
+        -------
+        None
+        """
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("Tables", "*.txt *.csv"),))
         if filename:
@@ -229,6 +323,22 @@ class FeatureImportanceController:
 
 
     def trace_vars_to_model(self, key, *args):
+        """
+        Trace changes in variables from the view to the model.
+
+        Updates the model settings whenever a variable is changed in the view.
+
+        Parameters
+        ----------
+        key : str
+            The name of the variable that was changed.
+        args : tuple
+            Additional arguments passed by the variable change event.
+
+        Returns
+        -------
+        None
+        """
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()
         elif key in self.model.plot_axes.keys():

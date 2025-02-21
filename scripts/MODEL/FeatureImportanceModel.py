@@ -14,8 +14,15 @@ class FeatureImportanceModel:
         self.plot = None
 
         self.dataset_paths = {}
-
+        
+        self.entries = {}
+        self.buttons = {}
+        self.cbboxes = {}
         self.vars = {}
+        self.switches = {}
+        self.sliders = {}
+        self.ckboxes = {}
+        self.textboxes = {}
         self.canvas = {}
         self.figures = {}
         self.targets = []
