@@ -37,270 +37,558 @@ class ProcessingController:
     
     def processing(self, ):
         if self.check_params_validity():
-            if all([value for key, value in self.view.step_check.items()]):
-                self.update_params(self.view.cbboxes)
-                self.update_params(self.view.entries)
-                self.update_params(self.view.ckboxes)
-                self.update_params(self.view.vars)
-                
+            if self._check_steps():
                 local_vars = self.model.vars
                 local_cbox = self.model.cbboxes
                 
-                all_files = []
-                if local_vars['filesorter multiple']:
-                    files = ff.get_all_files(self.model.parent_directory)
-                    for file in files:
-                        if all(i in file for i in self.model.to_include) and (
-                                not any(e in file for e in self.model.to_exclude)):
-                            all_files.append(file)
+                all_files = self._select_files()
                 
-                if local_vars['filesorter single']:
-                    all_files.append(self.model.single_file)
+                if not all_files:
+                    messagebox.showerror("Missing files", "No files have been found using"
+                                                          " your inclusion and exclusion parameters.")
+                    return
 
-                """
-                section for processing bar
-                """
-                n_files = int(len(all_files))
-                skiprow = 0
-                if local_vars['signal ckbox behead']:
-                    skiprow = int(local_vars['signal behead'])
-                
-                example_dataframe = pd.read_csv(all_files[0], index_col=False, skiprows=skiprow)
-                if local_vars['signal select columns ckbox']:
-                    n_columns = int(local_vars['signal select columns number'])
-                else:
-                    n_columns = int(len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
-                
-                self.processing_progress = ProgressBar("Processing progression", app=self.view.app)
-                self.processing_progress.total_tasks = self.update_number_of_tasks(n_files, n_columns)
-                self.processing_progress.start()
+                self._init_progress_bar(all_files)
                 
                 processed_files_to_make_dataset = []
-                """
-                end of section for processing bar
-                """
-                # preparation of filename
-                processing_basename = []
-                characters = string.ascii_letters + string.digits
-                if local_vars['filename filename']:
-                    processing_basename.append(local_vars['filename filename'])
-                else:
-                    if local_vars['signal select columns ckbox']:
-                        processing_basename.append(f"Sel{local_vars['signal select columns mode'].capitalize()}"
-                                                   f"{local_vars['signal select columns metric'].capitalize()}"
-                                                   f"{local_vars['signal select columns number']}")
-                    if local_vars['signal sampling ckbox']:
-                        processing_basename.append(f"Ds{local_vars['signal sampling']}")
-                    if local_vars['signal filter']:
-                        processing_basename.append(
-                            f"O{local_vars['signal filter order']}{local_vars['signal filter type']}"
-                            f"{local_vars['signal filter first cut']}-{local_vars['signal filter second cut']}"
-                            f"H{local_vars['signal harmonics type']}{local_vars['signal filter harmonic frequency']}-"
-                            f"{local_vars['signal filter nth harmonic']}")
-                    if local_vars['signal fft']:
-                        processing_basename.append("signal fft")
-                    if local_vars['signal average']:
-                        processing_basename.append("avg")
-                    if local_vars['signal interpolation']:
-                        processing_basename.append(f"Sm{local_vars['signal interpolation']}")
-                if local_vars['filename random key']:
-                    processing_basename.append(''.join(random.choice(characters) for _ in range(5)))
-                if local_vars['filename keyword ckbox']:
-                    processing_basename.append(local_vars['filename keyword'])
-                if local_vars['filename timestamp']:
-                    processing_basename.append(time.strftime("%Y-%m-%d-%H-%M"))
-                if not local_vars['filename random key'] and not local_vars['filename keyword ckbox'] and not \
-                local_vars['filename timestamp'] \
-                        and not local_vars['filename filename']:
-                    processing_basename.append("FL_processed")
+                processing_basename = self._basename_preparation()
                 
-                # generate harmonic frequencies
-                harmonics = []
-                if local_vars['signal harmonics type'] != "None":
-                    harmonics = MainController.generate_harmonics(int(local_vars['signal filter harmonic frequency']),
+                harmonics = MainController.generate_harmonics(int(local_vars['signal filter harmonic frequency']),
                                                                   int(local_vars['signal filter nth harmonic']),
-                                                                  local_vars['signal harmonics type'])
-                # file processing
+                                                                  local_vars['signal harmonics type'])\
+                    if local_vars['signal harmonics type'] != "None" else []
                 
                 for file in all_files:
-                    samples = []
-                    if local_vars['signal ckbox behead']:
-                        self.processing_progress.update_task("Beheading raw files")
-                        df = pd.read_csv(file, index_col=False, skiprows=skiprow)
-                        self.processing_progress.increment_progress(1)
-                    else:
-                        df = pd.read_csv(file, index_col=False)
-                    
-                    # signal select columns
-                    if local_vars['signal select columns ckbox']:
-                        self.processing_progress.update_task("Selecting columns")
-                        df = dpr.top_n_columns(df, int(local_vars['signal select columns number']),
-                                               except_column=self.model.vars["except column"])
-                        self.processing_progress.increment_progress(1)
-                    
-                    # down sampling recordings
-                    
-                    if local_vars['signal sampling ckbox']:
-                        self.processing_progress.update_task("Down sampling file")
-                        samples = fp.equal_samples(df, int(local_vars['signal sampling']))
-                        self.processing_progress.increment_progress(1)
-                    else:
-                        samples.append(df)
-                    n_sample = 0
-                    for df_s in samples:
-                        
-                        df_s_fft = pd.DataFrame()
-                        # filtering
-                        
-                        if local_vars['signal filter']:
-                            for ch in [col for col in df_s.columns if self.model.vars["except column"] not in col]:
-                                self.processing_progress.update_task("Filtering")
-                                df_s_ch = df_s[ch]
-                                if local_vars['signal filter type'] == 'Highpass' and local_vars[
-                                    'signal filter first cut']:
-                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
-                                                                btype='highpass',
-                                                                cut=int(local_vars['signal filter first cut']))
-                                elif local_vars['signal filter type'] == 'Lowpass' and local_vars[
-                                    'signal filter first cut']:
-                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
-                                                                btype='lowpass',
-                                                                cut=int(local_vars['signal filter first cut']))
-                                elif local_vars['signal filter type'] == 'Bandstop' and local_vars[
-                                    'signal filter first cut'] and \
-                                        local_vars['signal filter second cut']:
-                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
-                                                                btype='bandstop',
-                                                                lowcut=int(
-                                                                    local_vars['signal filter first cut']),
-                                                                highcut=int(
-                                                                    local_vars['signal filter second cut']))
-                                elif local_vars['signal filter type'] == 'Bandpass' and local_vars[
-                                    'signal filter first cut'] and \
-                                        local_vars['signal filter second cut']:
-                                    df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
-                                                                btype='bandpass',
-                                                                lowcut=int(
-                                                                    local_vars['signal filter first cut']),
-                                                                highcut=int(
-                                                                    local_vars['signal filter second cut']))
-                                if local_vars['signal harmonics ckbox']:
-                                    for h in harmonics:
-                                        df_s_ch = dpr.butter_filter(df_s_ch,
-                                                                    order=int(local_vars['signal filter order']),
-                                                                    btype='bandstop', lowcut=h - 2,
-                                                                    highcut=h + 2)
-                                
-                                df_s[ch] = df_s_ch  # updating the dataframe for further processing
-                                self.processing_progress.increment_progress(1)
-                        
-                        if local_vars['signal fft']:
-                            for ch in [col for col in df_s.columns if self.model.vars["except column"] not in col]:
-                                self.processing_progress.update_task("Fast Fourier Transform")
-                                df_s_ch = df_s[ch]
-                                # fast fourier
-                                
-                                clean_fft, clean_freqs = dpr.fast_fourier(df_s_ch, int(local_vars['signal fft sf']))
-                                if "Frequency [Hz]" not in df_s_fft.columns:
-                                    df_s_fft['Frequency [Hz]'] = clean_freqs
-                                df_s_fft[ch] = clean_fft
-                                self.processing_progress.increment_progress(1)
-                            df_s = df_s_fft
-                        
-                        # merge signal
-                        if local_vars['signal average']:
-                            self.processing_progress.update_task("Averaging signal")
-                            if local_vars['signal fft']:
-                                df_s = dpr.merge_all_columns_to_mean(df_s, "Frequency [Hz]").round(3)
-                            else:
-                                df_s = dpr.merge_all_columns_to_mean(df_s, self.model.vars["except column"]).round(3)
-                            self.processing_progress.increment_progress(1)
-                        
-                        # interpolation signal
-                        df_s_processed = pd.DataFrame()
-                        if local_vars['signal interpolation ckbox']:
-                            self.processing_progress.update_task("interpolation signal")
-                            for ch in df_s.columns:
-                                df_s_processed[ch] = fp.smoothing(df_s[ch], int(local_vars['signal interpolation']),
-                                                                  'mean')
-                            self.processing_progress.increment_progress(1)
-                        else:
-                            df_s_processed = df_s
-                        
-                        # saving file
-                        filename_constructor = []
-                        filename = os.path.basename(file).split(".")[0]
-                        
-                        filename_constructor.append(filename)
-                        filename_constructor.append("_".join(processing_basename))
-                        filename_constructor.append(".csv")
-                        
-                        if local_vars['filename make dataset'] == 0:
-                            df_s_processed.to_csv(
-                                os.path.join(local_vars['filename save under'], '_'.join(filename_constructor)),
-                                index=False)
-                        else:
-                            processed_files_to_make_dataset.append((df_s_processed, file))
-                        n_sample += 1
+                    processing_basename, processed_files_to_make_dataset = (
+                        self._process_file(file, harmonics, processing_basename, processed_files_to_make_dataset))
                 if local_vars['filename make dataset'] == 1:
-                    first_df = processed_files_to_make_dataset[0][0]
-                    dataset = pd.DataFrame(columns=[str(x) for x in range(len(first_df.values))])
-                    targets = pd.DataFrame(columns=['label', ])
-                    for data in processed_files_to_make_dataset:
-                        self.processing_progress.update_task("Making dataset")
-                        dataframe = data[0]
-                        file = data[1]
-                        for col in dataframe.columns:
-                            if self.model.vars["except column"] not in col and "Frequency [Hz]" not in col:
-                                signal = dataframe[col].values
-                                dataset.loc[len(dataset)] = signal
-                                for key_target, value_target in self.model.targets.items():
-                                    if key_target in file:
-                                        targets.loc[len(targets)] = value_target
-                        
-                        self.processing_progress.increment_progress(1)
-                    dataset['label'] = targets['label']
-                    
-                    # preparation of filename
-                    processing_basename = [ ]
-                    characters = string.ascii_letters + string.digits
-                    if not self.model.vars["filename filename"]:
-                        processing_basename.append('DATASET')
-                        if local_vars['signal select columns ckbox']:
-                            processing_basename.append(f"Sel{local_vars['signal select columns mode'].capitalize()}"
-                                                       f"{local_vars['signal select columns metric'].capitalize()}"
-                                                       f"{local_vars['signal select columns number']}")
-                        if local_vars['signal sampling ckbox']:
-                            processing_basename.append(f"Ds{local_vars['signal sampling']}")
-                        if local_vars['signal filter']:
-                            processing_basename.append(
-                                f"O{local_vars['signal filter order']}{local_cbox['signal filter type']}"
-                                f"{local_vars['signal filter first cut']}-{local_vars['signal filter second cut']}"
-                                f"H{local_vars['signal harmonics type']}{local_vars['signal filter harmonic frequency']}-"
-                                f"{local_vars['signal filter nth harmonic']}")
-                        if local_vars['signal fft']:
-                            processing_basename.append("signal fft")
-                        if local_vars['signal average']:
-                            processing_basename.append("avg")
-                        if local_vars['signal interpolation ckbox']:
-                            processing_basename.append(f"Sm{local_vars['signal interpolation']}")
-                    else:
-                        processing_basename.append(self.model.vars['filename filename'])
-                        
-                    if local_vars['filename random key']:
-                        processing_basename.append(''.join(random.choice(characters) for i in range(5)))
-                    if local_vars['filename keyword ckbox']:
-                        processing_basename.append(local_vars['filename keyword'])
-                    if local_vars['filename timestamp']:
-                        processing_basename.append(time.strftime("%Y-%m-%d-%H-%M"))
-                    if not local_vars['filename random key'] and not local_vars['filename keyword ckbox'] and not \
-                    local_vars['filename timestamp']:
-                        processing_basename.append("FL_processed")
-                    
-                    dataset.to_csv(
-                        os.path.join(local_vars['filename save under'], '_'.join(processing_basename) + '.csv'),
-                        index=False)
+                    self._make_dataset(processing_basename, processed_files_to_make_dataset)
     
+    def _basename_preparation(self):
+        """
+        Prepare the base name of the final file depending on UI values.
+        
+        Returns
+        -------
+        list of str that are element for teh future file name.
+        """
+        processing_basename = []
+        local_vars = self.model.vars
+        characters = string.ascii_letters + string.digits
+        if local_vars['filename filename']:
+            processing_basename.append(local_vars['filename filename'])
+        else:
+            if local_vars['signal select columns ckbox']:
+                processing_basename.append(f"Sel{local_vars['signal select columns mode'].capitalize()}"
+                                           f"{local_vars['signal select columns metric'].capitalize()}"
+                                           f"{local_vars['signal select columns number']}")
+            if local_vars['signal sampling ckbox']:
+                processing_basename.append(f"Ds{local_vars['signal sampling']}")
+            if local_vars['signal filter']:
+                processing_basename.append(
+                    f"O{local_vars['signal filter order']}{local_vars['signal filter type']}"
+                    f"{local_vars['signal filter first cut']}-{local_vars['signal filter second cut']}"
+                    f"H{local_vars['signal harmonics type']}{local_vars['signal filter harmonic frequency']}-"
+                    f"{local_vars['signal filter nth harmonic']}")
+            if local_vars['signal fft']:
+                processing_basename.append("signal fft")
+            if local_vars['signal average']:
+                processing_basename.append("avg")
+            if local_vars['signal interpolation']:
+                processing_basename.append(f"Sm{local_vars['signal interpolation']}")
+        if local_vars['filename random key']:
+            processing_basename.append(''.join(random.choice(characters) for _ in range(5)))
+        if local_vars['filename keyword ckbox']:
+            processing_basename.append(local_vars['filename keyword'])
+        if local_vars['filename timestamp']:
+            processing_basename.append(time.strftime("%Y-%m-%d-%H-%M"))
+        if not local_vars['filename random key'] and not local_vars['filename keyword ckbox'] and not \
+                local_vars['filename timestamp'] \
+                and not local_vars['filename filename']:
+            processing_basename.append("FL_processed")
+            
+        return processing_basename
+    
+    def _check_steps(self):
+        """
+        Check if there are any steps in the processing UI that contains errors.
+        
+        Returns
+        -------
+            True if all steps for processing are True
+        """
+        if all([value for key, value in self.view.step_check.items()]):
+            self.update_params(self.view.cbboxes)
+            self.update_params(self.view.entries)
+            self.update_params(self.view.ckboxes)
+            self.update_params(self.view.vars)
+            
+            return True
+        else:
+            return False
+        
+    def _process_file(self, file, harmonics, processing_basename, processed_files_to_make_dataset):
+        """
+        Processes a single file by performing several operations such as filtering,
+        downsampling, Fourier transforms, and averaging. The processed data is
+        either saved to a file or added to a list for further processing.
+
+        Parameters
+        ----------
+        file : str
+            The path to the CSV file to be processed.
+
+        harmonics : list of int
+            A list of harmonic frequencies to be used for bandstop filtering.
+
+        processing_basename : list of str
+            A list of base names used to construct the processed file's name.
+
+        processed_files_to_make_dataset : list[tuple(pd.Dataframe, str)]
+            A list that stores tuples containing processed dataframes and their corresponding filenames
+            if the processed files need to be further used for dataset creation.
+
+        Returns
+        -------
+        tuple
+            A tuple containing:
+            - processing_basename : list of str
+                The base names used in the processed file's name.
+            - processed_files_to_make_dataset : list of tuple
+                The updated list of tuples with processed dataframes and their filenames.
+
+        Notes
+        -----
+        This function applies several transformations to the raw data in the input file:
+        - Beheading: Skips rows from the file if the corresponding setting is enabled.
+        - Column Selection: Selects specific columns if requested.
+        - Down Sampling: Samples the data at a specific rate if enabled.
+        - Filtering: Applies filters (e.g., highpass, lowpass, bandstop, or bandpass) on the signals.
+        - Fast Fourier Transform (FFT): Applies FFT to the signal if enabled.
+        - Averaging: Averages the signal across selected columns if requested.
+        - Interpolation: Interpolates the signal if the setting is enabled.
+
+        After processing, the data is either saved as a CSV file or added to the
+        `processed_files_to_make_dataset` list depending on the user's settings.
+
+        """
+        local_vars = self.model.vars
+        
+        df = self._behead(file)
+        df = self._column_selection(df)
+        samples = self._down_sampling(df)
+        
+        n_sample = 0
+        for df_s in samples:
+            if local_vars['signal filter']:
+                df_s = self._filter(df_s, harmonics)
+            
+            if local_vars['signal fft']:
+                df_s = self._fast_fourier_transform(df_s)
+            
+            if local_vars['signal average']:
+                df_s = self._average_columns(df_s)
+            
+            # interpolation signal
+            df_s_processed = self._linear_interpolation(df_s)
+            
+            # saving file
+            if local_vars['filename make dataset'] == 0:
+                self._save_individual_processed_file(file, processing_basename, df_s_processed)
+            else:
+                processed_files_to_make_dataset.append((df_s_processed, file))
+            n_sample += 1
+        
+        return processing_basename, processed_files_to_make_dataset
+
+    def _behead(self, file):
+        """
+        Behead a csv file using the skiprows argument if enabled in the UI.
+        Parameters
+        ----------
+        file : str
+            The original file path that will be read and processed
+        
+        Returns
+        -------
+        df : pd.Dataframe
+            Beheaded (or not) dataframe depending on the UI values.
+        """
+        
+        if self.model.vars['signal ckbox behead']:
+            self.processing_progress.update_task("Beheading raw files")
+            df = pd.read_csv(file, index_col=False, skiprows=self._get_skiprows())
+            self.processing_progress.increment_progress(1)
+        else:
+            df = pd.read_csv(file, index_col=False)
+        return df
+        
+    def _column_selection(self, df):
+        """
+        Select the top n columns based on UI values.
+        
+        Parameters
+        ----------
+        df : pd.Dataframe
+            data to process
+        Returns
+        -------
+        df : pd.Dataframe
+            returns a dataframe whith only selected columns, or untouched dataframe depending on UI values.
+        """
+        if self.model.vars['signal select columns ckbox']:
+            self.processing_progress.update_task("Selecting columns")
+            df = dpr.top_n_columns(df, int(self.model.vars['signal select columns number']),
+                                   except_column=self.model.vars["except column"])
+            self.processing_progress.increment_progress(1)
+        
+        return df
+    
+    def _down_sampling(self, df):
+        """
+        Performs downsampling on the given dataframe based on the specified sampling rate.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            The dataframe containing the signal data to be downsampled.
+
+        Returns
+        -------
+        list of pandas.DataFrame
+            A list containing the downsampled dataframe(s). If downsampling is not
+            performed, the original dataframe is returned in the list.
+
+        Notes
+        -----
+        If downsampling is enabled (based on the `signal sampling ckbox` flag in
+        `self.model.vars`), the function applies downsampling to the dataframe using
+        the specified sampling rate. If downsampling is not enabled, the original
+        dataframe is returned without modification.
+
+        """
+        samples = []
+        if self.model.vars['signal sampling ckbox']:
+            self.processing_progress.update_task("Down sampling file")
+            samples = fp.equal_samples(df, int(self.model.vars['signal sampling']))
+            self.processing_progress.increment_progress(1)
+        else:
+            samples.append(df)
+        
+        return samples
+        
+    def _filter(self, df_s, harmonics):
+        """
+        Applies a series of filters to the signal data in the given dataframe.
+
+        Parameters
+        ----------
+        df_s : pandas.DataFrame
+            The dataframe containing signal data to be filtered.
+
+        harmonics : list of int
+            A list of harmonic frequencies to be used for bandstop filtering.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The filtered dataframe with the updated signal data after applying the
+            specified filters.
+
+        Notes
+        -----
+        This function applies a specified filter (highpass, lowpass, bandstop, or bandpass)
+        to each signal channel in the dataframe, based on the settings in `self.model.vars`.
+        If the harmonics checkbox is enabled, additional bandstop filters are applied around
+        each harmonic frequency. The dataframe is updated with the filtered signal data.
+
+        The filtering operations are performed using a Butterworth filter with configurable
+        filter order and cutoff frequencies. The filter type and parameters (e.g., first and
+        second cutoff frequencies) are dynamically selected based on the model's settings.
+
+        """
+        local_vars = self.model.vars
+        for ch in [col for col in df_s.columns if self.model.vars["except column"] not in col]:
+            self.processing_progress.update_task("Filtering")
+            df_s_ch = df_s[ch]
+            if local_vars['signal filter type'] == 'Highpass' and local_vars[
+                'signal filter first cut']:
+                df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
+                                            btype='highpass',
+                                            cut=int(local_vars['signal filter first cut']))
+            elif local_vars['signal filter type'] == 'Lowpass' and local_vars[
+                'signal filter first cut']:
+                df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
+                                            btype='lowpass',
+                                            cut=int(local_vars['signal filter first cut']))
+            elif local_vars['signal filter type'] == 'Bandstop' and local_vars[
+                'signal filter first cut'] and \
+                    local_vars['signal filter second cut']:
+                df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
+                                            btype='bandstop',
+                                            lowcut=int(
+                                                local_vars['signal filter first cut']),
+                                            highcut=int(
+                                                local_vars['signal filter second cut']))
+            elif local_vars['signal filter type'] == 'Bandpass' and local_vars[
+                'signal filter first cut'] and \
+                    local_vars['signal filter second cut']:
+                df_s_ch = dpr.butter_filter(df_s_ch, order=int(local_vars['signal filter order']),
+                                            btype='bandpass',
+                                            lowcut=int(
+                                                local_vars['signal filter first cut']),
+                                            highcut=int(
+                                                local_vars['signal filter second cut']))
+            if local_vars['signal harmonics ckbox']:
+                for h in harmonics:
+                    df_s_ch = dpr.butter_filter(df_s_ch,
+                                                order=int(local_vars['signal filter order']),
+                                                btype='bandstop', lowcut=h - 2,
+                                                highcut=h + 2)
+            
+            df_s[ch] = df_s_ch  # updating the dataframe for further processing
+            self.processing_progress.increment_progress(1)
+        return df_s
+    
+    def _fast_fourier_transform(self, df_s):
+        """
+        Applies Fast Fourier Transform (FFT) to each signal channel in the given dataframe.
+
+        Parameters
+        ----------
+        df_s : pandas.DataFrame
+            The dataframe containing signal data to be transformed using FFT.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A dataframe containing the FFT results for each signal channel. The "Frequency [Hz]"
+            column is added to the dataframe along with the transformed signal data for each channel.
+
+        Notes
+        -----
+        This function applies FFT to each signal channel in the dataframe, excluding columns that match
+        the "except column" filter. The resulting FFT values are stored in a new dataframe (`df_s_fft`),
+        with the corresponding frequency values in the "Frequency [Hz]" column.
+
+        The FFT operation is performed using the `dpr.fast_fourier` function, with the sampling frequency
+        provided by the model's configuration (`signal fft sf`).
+        """
+        df_s_fft = pd.DataFrame()
+        for ch in [col for col in df_s.columns if self.model.vars["except column"] not in col]:
+            self.processing_progress.update_task("Fast Fourier Transform")
+            df_s_ch = df_s[ch]
+            # fast fourier
+            clean_fft, clean_freqs = dpr.fast_fourier(df_s_ch, int(self.model.vars['signal fft sf']))
+            if "Frequency [Hz]" not in df_s_fft.columns:
+                df_s_fft['Frequency [Hz]'] = clean_freqs
+            df_s_fft[ch] = clean_fft
+            self.processing_progress.increment_progress(1)
+        df_s = df_s_fft
+        
+        return df_s
+    
+    def _average_columns(self, df_s):
+        """
+        Average columns except the frequency column or teh 'exception column' provided in the UI.
+        
+        Parameters
+        ----------
+        df_s : pandas.DataFrame
+            The dataframe containing signal data to be transformed using FFT.
+
+        Returns
+        -------
+
+        """
+        self.processing_progress.update_task("Averaging signal")
+        if self.model.vars['signal fft']:
+            df_s = dpr.merge_all_columns_to_mean(df_s, "Frequency [Hz]").round(3)
+        else:
+            df_s = dpr.merge_all_columns_to_mean(df_s, self.model.vars["except column"]).round(3)
+        self.processing_progress.increment_progress(1)
+        
+        return df_s
+    
+    def _linear_interpolation(self, df_s):
+        df_s_processed = pd.DataFrame()
+        if self.model.vars['signal interpolation ckbox']:
+            self.processing_progress.update_task("interpolation signal")
+            for ch in df_s.columns:
+                df_s_processed[ch] = fp.smoothing(df_s[ch], int(self.model.vars['signal interpolation']),
+                                                  'mean')
+            self.processing_progress.increment_progress(1)
+        else:
+            df_s_processed = df_s
+        
+        return df_s_processed
+    
+    def _save_individual_processed_file(self, file, processing_basename, df_s_processed):
+        """
+        Saves an individual processed dataframe to a CSV file with a constructed filename.
+
+        Parameters
+        ----------
+        file : str
+            The path to the original input file that was processed.
+
+        processing_basename : Iterable[str]
+            A list of base names used to construct the processed file's name.
+
+        df_s_processed : pandas.DataFrame
+            The processed dataframe that will be saved to a CSV file.
+
+        Returns
+        -------
+        None
+            This function does not return any value. It saves the processed dataframe
+            to a CSV file at the location specified in the model's variables.
+
+        Notes
+        -----
+        The function constructs the output file's name by combining the original file's name
+        (without extension), the `processing_basename` list, and the `.csv` extension. The
+        resulting filename is used to save the processed dataframe to the specified directory
+        (from `self.model.vars['filename save under']`).
+
+        """
+        filename_constructor = []
+        filename = os.path.basename(file).split(".")[0]
+        
+        filename_constructor.append(filename)
+        filename_constructor.append("_".join(processing_basename))
+        filename_constructor.append(".csv")
+        df_s_processed.to_csv(
+            os.path.join(self.model.vars['filename save under'], '_'.join(filename_constructor)),
+            index=False)
+        
+    def _make_dataset(self, processing_basename, processed_files_to_make_dataset):
+        """
+        Creates a dataset from the processed files by extracting signal data and
+        corresponding labels, then saves the dataset to a CSV file.
+
+        Parameters
+        ----------
+        processing_basename : list[str]
+            A list of base names used to construct the processed dataset file's name.
+
+        processed_files_to_make_dataset : list[tuple]
+            A list of tuples containing processed dataframes and their corresponding file paths.
+            Each tuple represents one processed file and is used to extract signal data and labels.
+
+        Returns
+        -------
+        None
+            This function does not return any value. It saves the created dataset to a CSV file.
+
+        Notes
+        -----
+        This function iterates over the processed files, extracts the signal data from each
+        file's dataframe, and appends it to the `dataset`. It also checks if a corresponding
+        label exists in the file name (from `self.model.targets`), and associates the label
+        with the corresponding signal data. The resulting dataset and labels are saved to a
+        CSV file whose name is constructed using the provided `processing_basename`.
+
+        """
+        local_vars = self.model.vars
+        
+        first_df = processed_files_to_make_dataset[0][0]
+        dataset = pd.DataFrame(columns=[str(x) for x in range(len(first_df.values))])
+        targets = pd.DataFrame(columns=['label', ])
+        for data in processed_files_to_make_dataset:
+            self.processing_progress.update_task("Making dataset")
+            dataframe = data[0]
+            file = data[1]
+            for col in dataframe.columns:
+                if self.model.vars["except column"] not in col and "Frequency [Hz]" not in col:
+                    signal = dataframe[col].values
+                    dataset.loc[len(dataset)] = signal
+                    for key_target, value_target in self.model.targets.items():
+                        if key_target in file:
+                            targets.loc[len(targets)] = value_target
+            
+            self.processing_progress.increment_progress(1)
+        dataset['label'] = targets['label']
+        dataset.to_csv(
+            os.path.join(local_vars['filename save under'], '_'.join(processing_basename) + '.csv'),
+            index=False)
+    
+    def _get_skiprows(self):
+        """
+        get the skiprow entry value in the UI
+        
+        Returns
+        -------
+        skiprow: int
+            the number (int) of rows to skip based on UI values
+            
+        """
+        skiprow = 0
+        if self.model.vars['signal ckbox behead']:
+            skiprow = int(self.model.vars['signal behead'])
+        return skiprow
+        
+    def _select_files(self):
+        """
+        Select files based on inclusion and exclusion parameters in the UI.
+        
+        Returns
+        -------
+            list[str]
+                list of paths (str) that correspond to the inclusion and exclusion parameters
+        """
+        all_files = []
+        if self.model.vars['filesorter multiple']:
+            files = ff.get_all_files(self.model.parent_directory)
+            for file in files:
+                if all(i in file for i in self.model.to_include) and (
+                        not any(e in file for e in self.model.to_exclude)):
+                    all_files.append(file)
+        
+        if self.model.vars['filesorter single']:
+            all_files.append(self.model.single_file)
+        return all_files
+    
+    def _init_progress_bar(self, all_files):
+        """
+        Initializes and starts a progress bar for processing files.
+
+        Parameters
+        ----------
+        all_files : list[str]
+            A list containing the file paths to be processed.
+
+        Returns
+        -------
+
+        Notes
+        -----
+        This function reads the first file in `all_files` to estimate the number of
+        columns for processing. If specific conditions are met (e.g., certain checkboxes
+        are selected), it adjusts the number of rows to skip when reading the CSV file.
+        The total number of tasks for the progress bar is calculated using the number of
+        files and columns, and the progress bar is then started.
+
+
+        """
+        local_vars = self.model.vars
+        
+        n_files = int(len(all_files))
+        skiprow = 0
+        if local_vars['signal ckbox behead']:
+            skiprow = int(local_vars['signal behead'])
+        
+        example_dataframe = pd.read_csv(all_files[0], index_col=False, skiprows=skiprow)
+        if local_vars['signal select columns ckbox']:
+            n_columns = int(local_vars['signal select columns number'])
+        else:
+            n_columns = int(
+                len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
+        
+        self.processing_progress = ProgressBar("Processing progression", app=self.view.app)
+        self.processing_progress.total_tasks = self.update_number_of_tasks(n_files, n_columns)
+        self.processing_progress.start()
+        
     def select_save_directory(self, strvar):
         dirname = filedialog.askdirectory(mustexist=True, title="select directory")
         if type(strvar) == ctk.StringVar:
@@ -321,6 +609,31 @@ class ProcessingController:
             self.model.single_file = filename
     
     def add_subtract_to_include(self, entry, textbox, mode='add'):
+        """
+        Adds or removes a value from the 'to_include' list in the model, based on user input.
+
+        This method updates the `to_include` list in the model by either adding or removing a value,
+        depending on the specified mode. If the entry is valid (does not contain forbidden characters),
+        it either appends the value to the list (if mode is 'add') or removes it (if mode is 'subtract').
+        The textbox is updated to reflect the change, and the entry field is cleared.
+
+        Parameters
+        ----------
+        entry : ctk.CTkEntry
+            The entry widget that contains the value to add or remove.
+
+        textbox : ctk.CTkTextbox
+            The textbox widget that will be updated with the new 'to_include' list.
+
+        mode : str, optional, default='add'
+            The mode to determine whether to add or subtract the value. 'add' will append the value
+            to the list, while 'subtract' will remove it.
+
+        Returns
+        -------
+        bool
+            Returns False if the entry contains forbidden characters or is empty, otherwise None.
+        """
         if ival.value_has_forbidden_character(entry.get()) is False:
             entry.delete(0, ctk.END)
             return False
@@ -339,6 +652,31 @@ class ProcessingController:
             messagebox.showerror("Missing Value", "You need te indicate a value to include.")
     
     def add_subtract_to_exclude(self, entry, textbox, mode='add'):
+        """
+        Adds or removes a value from the 'to_exclude' list in the model, based on user input.
+
+        This method updates the `to_exclude` list in the model by either adding or removing a value,
+        depending on the specified mode. If the entry is valid (does not contain forbidden characters),
+        it either appends the value to the list (if mode is 'add') or removes it (if mode is 'subtract').
+        The textbox is updated to reflect the change, and the entry field is cleared.
+
+        Parameters
+        ----------
+        entry : ctk.CTkEntry
+            The entry widget that contains the value to add or remove.
+
+        textbox : ctk.CTkTextbox
+            The textbox widget that will be updated with the new 'to_exclude' list.
+
+        mode : str, optional, default='add'
+            The mode to determine whether to add or subtract the value. 'add' will append the value
+            to the list, while 'subtract' will remove it.
+
+        Returns
+        -------
+        bool
+            Returns False if the entry contains forbidden characters or is empty, otherwise None.
+        """
         if ival.value_has_forbidden_character(entry.get()) is False:
             entry.delete(0, ctk.END)
             return False
@@ -356,6 +694,35 @@ class ProcessingController:
             messagebox.showerror("Missing Value", "You need te indicate a value to exclude.")
     
     def add_subtract_target(self, key_entry, value_entry, textbox, mode='add'):
+        """
+        Adds or removes a target key-value pair in the model's targets, based on user input.
+
+        This method updates the `targets` dictionary in the model by either adding a new key-value pair
+        (if mode is 'add') or removing an existing key (if mode is 'subtract'). It checks for forbidden
+        characters in the key and value entries and displays an error message if necessary. The textbox
+        is updated to reflect the change, and the entry fields are cleared.
+
+        Parameters
+        ----------
+        key_entry : ctk.CTkEntry
+            The entry widget that contains the key for the target.
+
+        value_entry : ctk.CTkEntry
+            The entry widget that contains the value for the target.
+
+        textbox : ctk.CTkTextbox
+            The textbox widget that will be updated with the new targets.
+
+        mode : str, optional, default='add'
+            The mode to determine whether to add or subtract the key-value pair. 'add' will add a new
+            key-value pair, while 'subtract' will remove the specified key.
+
+        Returns
+        -------
+        bool
+            Returns False if either the key or value contains forbidden characters, or if the entries
+            are empty. Otherwise, the method updates the model's targets and the textbox.
+        """
         if ival.value_has_forbidden_character(key_entry.get()) is False:
             key_entry.delete(0, ctk.END)
             value_entry.delete(0, ctk.END)
@@ -389,6 +756,33 @@ class ProcessingController:
         value_entry.delete(0, ctk.END)
     
     def update_params(self, widgets: dict, ):
+        """
+        Updates the model's variables, checkboxes, entries, comboboxes, or textboxes based on the provided widget values.
+        
+        This method iterates over the dictionary of widgets, retrieves the current values from each widget,
+        and updates the corresponding attributes in the `model.vars`, `model.ckboxes`, `model.entries`,
+        `model.cbboxes`, or `model.textboxes` based on the widget type.
+        
+        Parameters
+        ----------
+        widgets : dict
+           A dictionary of widgets where the keys are widget identifiers and the values are the widget objects.
+           The widget objects can be of various types such as `ctk.StringVar`, `ctk.IntVar`, `ctk.DoubleVar`,
+           `ctk.CTkCheckBox`, `ctk.CTkEntry`, `ErrEntry`, `tk.ttk.Combobox`, or `ctk.CTkTextbox`.
+        
+        Returns
+        -------
+        None
+           This method does not return a value. It updates the corresponding attributes in the model based on
+           the widget values.
+        
+        Notes
+        -----
+        - The method supports updating different widget types, including string variables, integer variables,
+         checkboxes, entries, comboboxes, and textboxes.
+        - It ensures that the appropriate model dictionary (`vars`, `ckboxes`, `entries`, `cbboxes`, or `textboxes`)
+         is updated based on the widget type.
+        """
         local_dict = {}
         if len(widgets.items()) > 0:
             if type(list(widgets.values())[0]) == ctk.StringVar or \
@@ -421,6 +815,26 @@ class ProcessingController:
                 self.model.ckboxes.update(local_dict)
     
     def update_number_of_tasks(self, n_file, n_col, ):
+        """
+        Calculates the total number of tasks to be processed based on the configuration and input parameters.
+
+        This method calculates the total number of tasks that need to be completed, taking into account
+        various flags and parameters set in the model. The total task count is used to drive the progress
+        bar, indicating how many tasks remain to be processed.
+
+        Parameters
+        ----------
+        n_file : int
+            The number of files to process.
+
+        n_col : int
+            The number of columns to process per file.
+
+        Returns
+        -------
+        int
+            The total number of tasks to be completed.
+        """
         local_vars = self.model.vars
         local_entry = self.model.entries
         
@@ -448,7 +862,18 @@ class ProcessingController:
         return total_tasks
     
     def update_view_from_model(self, ):
-        
+        """
+        Update the view's variables from the model's data.
+
+        This function synchronizes the view with the model by updating the view's UI components
+        with the current values from the model's attributes.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         for key, widget in self.view.cbboxes.items():
             if widget.cget('state') == "normal":
                 widget.set(self.model.cbboxes[key])
@@ -497,15 +922,82 @@ class ProcessingController:
     
     @staticmethod
     def modulate_entry_state_by_switch(switch, entry):
+        """
+        Modulates the state of an entry widget based on the state of a switch.
+
+        This method acts as a helper function to update the state (enabled/disabled) of an entry widget depending on the
+        state of a switch. It delegates the actual logic to the `modulate_entry_state_by_switch` method of the `MainController`.
+
+        Parameters
+        ----------
+        switch : ctk.CTkSwitch
+            The switch widget that determines the state of the entry.
+        entry : ctk.CTkEntry
+            The entry widget whose state (enabled/disabled) is being modified.
+
+        Returns
+        -------
+        None
+            This method does not return any value. It updates the state of the entry widget directly.
+
+        Notes
+        -----
+        - This method is static and relies on the `MainController` class for the actual state modification logic.
+        - It is intended to be used in scenarios where the state of an entry widget needs to be tied to the status of a switch.
+        """
+        
         MainController.modulate_entry_state_by_switch(switch, entry)
     
     def load_config(self, ):
+        """
+        Loads a configuration file and updates the model.
+
+        This method prompts the user to select a configuration file with the `.pcfg` extension. If a valid file is selected,
+        it attempts to load the model using the `load_model` method of the `model`. After the model is successfully loaded,
+        it updates the view to reflect the changes made to the model.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method does not return any value. It updates the model and the view based on the loaded configuration.
+
+        Notes
+        -----
+        - The method uses a file dialog to allow the user to select the configuration file.
+        - If the file is successfully loaded, the view is updated to reflect the new state of the model.
+        """
+        
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Processing config", "*.pcfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model()
     
     def save_config(self, ):
+        """
+        Saves the current configuration to a file.
+
+        This method checks the validity of the current parameters, updates the model with the values from the view widgets,
+        and then prompts the user to save the configuration to a file. If the user selects a valid location,
+        the configuration is saved using the `save_model` method of the `model`.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method does not return any value. It saves the model's configuration to a file.
+
+        Notes
+        -----
+        - The method ensures that all parameters in the view (checkboxes, entries, comboboxes, etc.) are updated before saving.
+        - The file is saved with the `.pcfg` extension by default, but the user can specify a different filename or location.
+        """
         if self.check_params_validity():
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, self.view.labels]:
@@ -518,6 +1010,14 @@ class ProcessingController:
                 self.model.save_model(path=f, )
     
     def check_params_validity(self):
+        """
+        Validates the processing parameters before starting the processing of the files.
+
+        Returns
+        -------
+        bool
+            True if parameters are valid, otherwise False with an error message.
+        """
         filesorter_errors = []
         signal_errors = []
         filename_errors = []
@@ -646,19 +1146,32 @@ class ProcessingController:
         img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_red.png")), size=self.view.image_buttons[step].get_image_size())
         self.view.image_buttons[str(step)].configure(image=img)
         self.view.step_check[step] = 0
-    
-    def update_errors(self):
-        text = ""
-        for step, errors in self.view.errors.items():
-            for error in errors:
-                text = text + f"STEP {step} - {error}\n\n"
-            if len(self.view.errors[step]) > 0:
-                self.invalidate_step(step)
-            else:
-                self.validate_step(step)
-        self.view.vars['errors'].set(text)
+
 
     def export_summary(self):
+        """
+        Generates and exports a detailed processing summary to a text file.
+
+        This method creates a formatted summary of various configuration and processing parameters, including file sorting, signal processing, and output management. The summary is displayed using a combination of separators and text, organized into different sections. After the summary is generated, the user is prompted to specify a file path to save the text summary.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method does not return any value. It saves the summary to a text file.
+
+        Exceptions
+        ----------
+        - If the user provides a file path or there is an issue while saving the file, an exception may occur.
+        - The method ensures that the file is saved with the `.txt` extension.
+
+        Notes
+        -----
+        - The summary includes details such as signal processing settings (e.g., filtering, FFT, interpolation), file sorting parameters (e.g., included/excluded files, sorting options), and output management options (e.g., file naming, random key, timestamp).
+        """
         
         def symbol_frame(symbol, text, width=40):
             text_length = len(text)

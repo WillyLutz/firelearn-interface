@@ -68,166 +68,161 @@ class PcaController:
         transformed_df[label_column] = dataframe[label_column]
         return transformed_df
     
-    def draw_figure(self, ):
+    def draw_figure(self):
+        """
+        Draws the PCA figure, setting up the plot, applying PCA, and rendering the visualization.
+        """
         if self.check_params_validity():
-            # fig, ax = self.view.figures["pca"]
-            fig, ax = plt.subplots(figsize=(4, 4))
-            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["pca frame"])
-            new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
-            self.view.canvas["pca toolbar"].destroy()
-            toolbar = NavigationToolbar2Tk(new_canvas,
-                                           self.view.frames["pca frame"], pack_toolbar=False)
-            toolbar.update()
-            toolbar.grid(row=1, column=0, sticky='we')
-            self.view.canvas["pca"].get_tk_widget().destroy()
-            self.view.canvas["pca"] = new_canvas
-            self.view.figures["pca"] = (fig, ax)
-            
-            n_labels = self.model.n_labels
-            
-            ax.clear()
-            
-            df = self.model.dataset
-            label_column = self.view.vars["label column"].get()
-            
-            n_xticks = int(self.model.plot_axes["n x ticks"])
-            n_yticks = int(self.model.plot_axes["n y ticks"])
-            
-            # ---- FIT AND APPLY PCA
-            labels_to_fit = []
-            labels_to_apply = []
-            for yi in range(self.model.n_labels + 1):
-                if self.view.vars[f"fit {yi}"].get():
-                    labels_to_fit.append(self.model.plot_data[f"label data {yi}"])
-                if self.model.plot_data[f"apply {yi}"]:
-                    labels_to_apply.append(self.model.plot_data[f"label data {yi}"])
-            
-            df_fit = df[df[label_column].isin(labels_to_fit)]
-            n_components = int(self.model.plot_data["n components"])
-            pca, pcdf_fit, ratio = self.fit_pca(df_fit, n_components=n_components, label_column=label_column)
-            df_apply = df[df[label_column].isin(labels_to_apply)]
-            pcdf_applied = self.apply_pca(pca, df_apply, label_column=label_column)
-            
-            ratio = [round(x*100, 2) for x in ratio]
-            show_ratiox = ''
-            show_ratioy = ''
-            if self.view.vars["show ratio"].get():
-                show_ratiox = f' ({ratio[0]}%)'
-                show_ratioy = f' ({ratio[1]}%)'
-            
-            # ----- PLOTTING
-            all_ymin = []  # for ticks
-            all_ymax = []
-            all_xmin = []
-            all_xmax = []
-            for yi in range(self.model.n_labels + 1):
-                current_label = self.view.cbboxes[f"label data {yi}"].get()
-                x_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[0]]
-                all_xmax.append(max(x_data))
-                all_xmin.append(min(x_data))
-                y_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label][pcdf_applied.columns[1]]
-                all_ymin.append(min(y_data))
-                all_ymax.append(max(y_data))
-                
-                if self.view.vars[f"label data legend {str(yi)}"].get():
-                    label = self.view.vars[f"label data legend {str(yi)}"].get()
-                else:
-                    label = self.view.vars[f"label data {str(yi)}"].get()
-                
-                if n_components == 2:
-                    ax.scatter(x_data, y_data,
-                               s=int(self.view.vars[f"marker size {str(yi)}"].get()),
-                               marker=p.MARKERS[self.view.vars[f"marker style {str(yi)}"].get()],
-                               color=self.view.vars[f"color {str(yi)}"].get(),
-                               alpha=self.view.vars[f"alpha {str(yi)}"].get(),
-                               label=label
-                               )
-                    if self.view.vars[f"ellipsis"].get():
-                        ax.scatter(np.mean(x_data), np.mean(y_data),
-                                   marker="+",
-                                   color=self.view.vars[f"color {str(yi)}"].get(),
-                                   linewidth=2,
-                                   s=160)
-                        confidence_ellipse(x_data, y_data, ax, n_std=1.0, alpha=self.model.plot_data["ellipsis alpha"],
-                                           color=self.view.vars[f"color {str(yi)}"].get(),
-                                           fill=False, linewidth=2)
-            
-            # ---- LABELS
-            ax.set_xlabel(self.model.plot_axes["x label"] + show_ratiox,
-                          fontdict={"font": self.model.plot_axes["axes font"],
-                                    "fontsize": self.model.plot_axes["x label size"]})
-            ax.set_ylabel(self.model.plot_axes["y label"] + show_ratioy,
-                          fontdict={"font": self.model.plot_axes["axes font"],
-                                    "fontsize": self.model.plot_axes["y label size"]})
-            ax.set_title(self.model.plot_general_settings["title"],
-                         fontdict={"font": self.model.plot_general_settings["title font"],
-                                   "fontsize": self.model.plot_general_settings["title size"]}, )
-            
-            # ---- TICKS
-            xmin = min(all_xmin)
-            xmax = max(all_xmax)
-            xstep = (xmax - xmin) / (n_xticks - 1)
-            xtick = xmin
-            xticks = []
-            for i in range(n_xticks - 1):
-                xticks.append(xtick)
-                xtick += xstep
-            xticks.append(xmax)
-            rounded_xticks = list(np.around(np.array(xticks), int(self.model.plot_axes["round x ticks"])))
-            ax.set_xticks(rounded_xticks)
-            ax.tick_params(axis='x',
-                           labelsize=self.model.plot_axes["x ticks size"],
-                           labelrotation=float(self.model.plot_axes["x ticks rotation"]))
-            
-            ymin = min(all_ymin)
-            ymax = max(all_ymax)
-            ystep = (ymax - ymin) / (n_yticks - 1)
-            ytick = ymin
-            yticks = []
-            for i in range(n_yticks - 1):
-                yticks.append(ytick)
-                ytick += ystep
-            yticks.append(ymax)
-            rounded_yticks = list(np.around(np.array(yticks), int(self.model.plot_axes["round y ticks"])))
-            ax.set_yticks(rounded_yticks)
-            ax.tick_params(axis='y',
-                           labelsize=self.model.plot_axes["y ticks size"],
-                           labelrotation=float(self.model.plot_axes["y ticks rotation"]))
-            
-            # ----- LEGEND
-            if self.model.plot_legend["show legend"]:
-                if not self.model.plot_legend["legend fontsize"] == '':
-                    if self.model.plot_legend["legend anchor"] == 'custom':
-                        ax.legend(loc='upper left',
-                                  bbox_to_anchor=(float(self.model.plot_legend["legend x pos"]),
-                                                  float(self.model.plot_legend["legend y pos"])),
-                                  draggable=bool(self.model.plot_legend["legend draggable"]),
-                                  ncols=int(self.model.plot_legend["legend ncols"]),
-                                  fontsize=int(self.model.plot_legend["legend fontsize"]),
-                                  framealpha=float(self.model.plot_legend["legend alpha"]),
-                                  )
-                    else:
-                        ax.legend(loc=self.model.plot_legend["legend anchor"],
-                                  draggable=bool(self.model.plot_legend["legend draggable"]),
-                                  ncols=int(self.model.plot_legend["legend ncols"]),
-                                  fontsize=int(self.model.plot_legend["legend fontsize"]),
-                                  framealpha=float(self.model.plot_legend["legend alpha"]),
-                                  )
-                    
-                    for t, lh in zip(ax.get_legend().texts, ax.get_legend().legendHandles):
-                        t.set_alpha(float(self.model.plot_legend["legend alpha"]))
-                        lh.set_alpha(float(self.model.plot_legend["legend alpha"]))
-            
-            elif ax.get_legend():
-                ax.get_legend().remove()
-        
-            # plt.tight_layout()
-            # plt.show()
-            
-            self.view.figures["pca"] = (fig, ax)
+            fig, ax = self._initialize_canvas()
+            pcdf_applied, ratio = self._fit_and_apply_pca()
+            self._plot_data(ax, pcdf_applied, ratio)
+            self._set_labels(ax, ratio)
+            self._set_ticks(ax)
+            self._set_legend(ax)
             self.view.canvas["pca"].draw()
     
+    def _initialize_canvas(self):
+        """
+        Initializes the Matplotlib figure and toolbar for the PCA plot.
+
+        Returns
+        -------
+        tuple
+            The figure and axis objects.
+        """
+        fig, ax = plt.subplots(figsize=(4, 4))
+        new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["pca frame"])
+        new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+        self.view.canvas["pca toolbar"].destroy()
+        toolbar = NavigationToolbar2Tk(new_canvas, self.view.frames["pca frame"], pack_toolbar=False)
+        toolbar.update()
+        toolbar.grid(row=1, column=0, sticky='we')
+        self.view.canvas["pca"] = new_canvas
+        self.view.figures["pca"] = (fig, ax)
+        return fig, ax
+    
+    def _fit_and_apply_pca(self):
+        """
+        Fits PCA on selected data and applies transformation.
+
+        Returns
+        -------
+        tuple
+            Transformed PCA dataframe and explained variance ratio.
+        """
+        df = self.model.dataset
+        label_column = self.view.vars["label column"].get()
+        labels_to_fit = [self.model.plot_data[f"label data {yi}"] for yi in range(self.model.n_labels + 1) if
+                         self.view.vars[f"fit {yi}"].get()]
+        labels_to_apply = [self.model.plot_data[f"label data {yi}"] for yi in range(self.model.n_labels + 1) if
+                           self.model.plot_data[f"apply {yi}"]]
+        
+        df_fit = df[df[label_column].isin(labels_to_fit)]
+        n_components = int(self.model.plot_data["n components"])
+        pca, pcdf_fit, ratio = self.fit_pca(df_fit, n_components=n_components, label_column=label_column)
+        df_apply = df[df[label_column].isin(labels_to_apply)]
+        pcdf_applied = self.apply_pca(pca, df_apply, label_column=label_column)
+        return pcdf_applied, [round(x * 100, 2) for x in ratio]
+    
+    def _plot_data(self, ax, pcdf_applied, ratio):
+        """
+        Plots PCA transformed data onto the provided axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            The axis to plot on.
+        pcdf_applied : pandas.DataFrame
+            The transformed PCA data.
+        ratio : list
+            Explained variance ratio in percentage.
+        """
+        label_column = self.view.vars["label column"].get()
+        n_components = int(self.model.plot_data["n components"])
+        
+        for yi in range(self.model.n_labels + 1):
+            current_label = self.view.cbboxes[f"label data {yi}"].get()
+            x_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label, pcdf_applied.columns[0]]
+            y_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label, pcdf_applied.columns[1]]
+            label = self.view.vars[f"label data legend {yi}"].get() or self.view.vars[f"label data {yi}"].get()
+            ax.scatter(x_data, y_data,
+                       s=int(self.view.vars[f"marker size {yi}"].get()),
+                       marker=p.MARKERS[self.view.vars[f"marker style {yi}"].get()],
+                       color=self.view.vars[f"color {yi}"].get(),
+                       alpha=self.view.vars[f"alpha {yi}"].get(),
+                       label=label)
+            
+            if self.view.vars["ellipsis"].get():
+                ax.scatter(np.mean(x_data), np.mean(y_data), marker="+", color=self.view.vars[f"color {yi}"].get(),
+                           linewidth=2, s=160)
+                confidence_ellipse(x_data, y_data, ax, n_std=1.0, alpha=self.model.plot_data["ellipsis alpha"],
+                                   color=self.view.vars[f"color {yi}"].get(), fill=False, linewidth=2)
+    
+    def _set_labels(self, ax, ratio):
+        """
+        Sets labels and title for the PCA plot.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            The axis to set labels on.
+        ratio : list[float]
+            Explained variance ratio in percentage.
+        """
+        show_ratiox = f' ({ratio[0]}%)' if self.view.vars["show ratio"].get() else ''
+        show_ratioy = f' ({ratio[1]}%)' if self.view.vars["show ratio"].get() else ''
+        ax.set_xlabel(self.model.plot_axes["x label"] + show_ratiox,
+                      fontdict={"font": self.model.plot_axes["axes font"],
+                                "fontsize": self.model.plot_axes["x label size"]})
+        ax.set_ylabel(self.model.plot_axes["y label"] + show_ratioy,
+                      fontdict={"font": self.model.plot_axes["axes font"],
+                                "fontsize": self.model.plot_axes["y label size"]})
+        ax.set_title(self.model.plot_general_settings["title"],
+                     fontdict={"font": self.model.plot_general_settings["title font"],
+                               "fontsize": self.model.plot_general_settings["title size"]})
+    
+    def _set_ticks(self, ax):
+        """
+        Configures the x and y ticks for the PCA plot.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            The axis to set ticks on.
+        """
+        ax.tick_params(axis='x', labelsize=self.model.plot_axes["x ticks size"],
+                       labelrotation=float(self.model.plot_axes["x ticks rotation"]))
+        ax.tick_params(axis='y', labelsize=self.model.plot_axes["y ticks size"],
+                       labelrotation=float(self.model.plot_axes["y ticks rotation"]))
+    
+    def _set_legend(self, ax):
+        """
+        Configures the legend for the PCA plot if enabled.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            The axis to set the legend on.
+        """
+        if self.model.plot_legend["show legend"]:
+            ax.legend(loc=self.model.plot_legend["legend anchor"],
+                      fontsize=int(self.model.plot_legend["legend fontsize"]),
+                      framealpha=float(self.model.plot_legend["legend alpha"]))
+        elif ax.get_legend():
+            ax.get_legend().remove()
+            
     def input_validation_plot(self):
+        """
+        Validates user input for plot settings.
+
+        Ensures that numerical inputs are valid and within appropriate ranges.
+        Displays error messages if any validation check fails.
+
+        Returns
+        -------
+        bool
+            True if all inputs are valid, otherwise False.
+        """
         plt_entries = {key: value for (key, value) in self.view.entries.items() if "plt" in key}
         # todo : input validation /!\ multiple y
         
@@ -257,11 +252,27 @@ class PcaController:
         return True
     
     def save_figure(self, fig):
+        """
+        Saves the given figure to a file selected by the user.
+
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure
+            The figure to be saved.
+        """
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
         if filepath:
             fig.savefig(filepath, dpi=int(self.view.entries["dpi"].get()))
     
     def check_params_validity(self):
+        """
+        Checks the validity of user-defined parameters.
+
+        Returns
+        -------
+        bool
+            True if all parameters are valid, otherwise False.
+        """
         errors = []
         
         for key, entry in self.view.entries.items():
@@ -278,6 +289,12 @@ class PcaController:
         return True
     
     def save_config(self, ):
+        """
+        Saves the current configuration settings to a file.
+
+        The function first checks the validity of parameters before allowing the save operation.
+        """
+        
         if self.check_params_validity():
             f = filedialog.asksaveasfilename(defaultextension=".pltcfg",
                                              filetypes=[("Analysis - pca", "*.pcacfg"), ])
@@ -285,12 +302,23 @@ class PcaController:
                 self.model.save_model(path=f, )
     
     def load_config(self, ):
+        """
+        Loads configuration settings from a selected file.
+
+        Updates the view with the loaded settings if the model is successfully loaded.
+        """
+        
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - pca", "*.pcacfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model()  # todo : does not work with multiple y :
     
     def update_view_from_model(self, ):
+        """
+        Updates the user interface view using data from the model.
+
+        Synchronizes stored values for plot settings, legend, axes, and general settings.
+        """
         for key, value in self.model.plot_data.items():
             self.view.vars[key].set(value)
         for key, value in self.model.plot_legend.items():
@@ -301,6 +329,12 @@ class PcaController:
             self.view.vars[key].set(value)
     
     def load_plot_dataset(self, ):
+        """
+        Loads a dataset for plotting.
+
+        The user selects a dataset file, which is then read into a pandas DataFrame.
+        Updates relevant UI elements with dataset information.
+        """
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("Tables", "*.txt *.csv"),))
         if filename:
@@ -325,6 +359,14 @@ class PcaController:
                 value.set(all_labels[0])
     
     def add_label_data(self, scrollable_frame):
+        """
+        Adds label-related data to the UI.
+
+        Parameters
+        ----------
+        scrollable_frame : tk.Frame
+            The frame to which the label-related data elements will be added.
+        """
         if self.model.dataset_path:
             df = self.model.dataset
             label_col = self.view.vars["label column"].get()
@@ -454,6 +496,9 @@ class PcaController:
             return False
     
     def remove_label_data(self, ):
+        """
+        Removes the last added label data entry from the UI and associated model parameters.
+        """
         n_labels = self.model.n_labels
         
         if n_labels >= 0:
@@ -479,6 +524,16 @@ class PcaController:
             self.model.n_labels -= 1
     
     def trace_vars_to_model(self, key, *args):
+        """
+        Synchronizes UI variables with the model.
+
+        Parameters
+        ----------
+        key : str
+            The key of the variable being traced.
+        *args : tuple
+            Additional arguments passed by the trace callback.
+        """
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()
         elif key in self.model.plot_axes.keys():

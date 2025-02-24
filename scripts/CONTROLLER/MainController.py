@@ -20,16 +20,56 @@ class MainController:
     # --------- STATIC METHODS ----------------
     @staticmethod
     def open_web(url):
+        """
+        Opens a given URL in the default web browser.
+
+        Parameters
+        ----------
+        url : str
+            The URL to open.
+
+        Returns
+        -------
+        None
+        """
         webbrowser.open(url, new=1)
 
     @staticmethod
     def save_object(obj, path):
+        """
+        Saves a Python object to a file using pickle serialization.
+
+        Parameters
+        ----------
+        obj : object
+            The object to be saved.
+        path : str
+            The file path where the object should be saved.
+
+        Returns
+        -------
+        None
+        """
         file = open(f'{path}', 'wb')
         pickle.dump(obj, file)
         file.close()
 
     @staticmethod
     def category_enabling_switch(switch, parent_widget):
+        """
+        Enables or disables child widgets of a parent widget based on the state of a switch.
+
+        Parameters
+        ----------
+        switch : ctk.CTkSwitch
+            The switch that controls the enabling/disabling of the widgets.
+        parent_widget : tk.Widget
+            The parent widget whose children will be modified.
+
+        Returns
+        -------
+        None
+        """
         children = parent_widget.winfo_children()
         if switch.get() == 1:
             for child in children:
@@ -58,6 +98,21 @@ class MainController:
 
     @staticmethod
     def update_textbox(textbox, elements):
+        """
+        Updates a textbox widget with a list or dictionary of elements.
+        
+        Parameters
+        ----------
+        textbox : ctk.CTkTextbox
+            The textbox widget to update.
+        elements : list or dict
+            The content to insert into the textbox. If a list, each element is added as a new line.
+            If a dictionary, keys and values are formatted as "key - value".
+        
+        Returns
+        -------
+        None
+        """
         textbox.configure(state="normal")
         textbox.delete(1.0, ctk.END)
         if type(elements) == list:
@@ -73,6 +128,20 @@ class MainController:
 
     @staticmethod
     def modulate_entry_state_by_switch(switch, entry):
+        """
+        Enables or disables an entry field based on the state of a switch.
+
+        Parameters
+        ----------
+        switch : ctk.CTkSwitch
+            The switch controlling the state of the entry field.
+        entry : ctk.CTkEntry
+            The entry field whose state is being modified.
+
+        Returns
+        -------
+        None
+        """
         if type(entry) == ctk.CTkEntry:
             if switch.get() == 1:
                 entry.configure(state="normal")
@@ -81,6 +150,26 @@ class MainController:
 
     @staticmethod
     def generate_harmonics(freq, nth, mode):
+        """
+        Generates a list of harmonic frequencies based on the given frequency, count, and mode.
+
+        Parameters
+        ----------
+        freq : float
+            The base frequency.
+        nth : int
+            The number of harmonics to generate.
+        mode : str
+            The mode of harmonics to generate. Options:
+            - "All": Generates all harmonics.
+            - "Even": Generates even harmonics only.
+            - "Odd": Generates odd harmonics only.
+
+        Returns
+        -------
+        list
+            A list of harmonic frequencies.
+        """
         harmonics = []
         step = freq
         if mode == 'All':

@@ -37,12 +37,15 @@ class SpikeController:
         self.progress = None
         self.queue = Queue()
     
-    def save_figure(self, fig):
-        filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
-        if filepath:
-            fig.savefig(filepath, dpi=int(self.model.plot_general_settings["dpi"]))
-    
     def check_params_validity(self):
+        """
+        Validates the processing parameters before starting the processing of the files and the plot of the figure.
+
+        Returns
+        -------
+        bool
+            True if parameters are valid, otherwise False with an error message.
+        """
         plot_params_errors = []
         legend_errors = []
         figname_errors = []
@@ -104,7 +107,18 @@ class SpikeController:
         return True
     
     def update_view_from_model(self, ):
-        
+        """
+        Update the view's variables from the model's data.
+
+        This function synchronizes the view with the model by updating the view's UI components
+        with the current values from the model's attributes.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         for key, widget in self.view.cbboxes.items():
             if widget.cget('state') == "normal":
                 widget.set(self.model.cbboxes[key])
@@ -150,6 +164,26 @@ class SpikeController:
             MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
     
     def update_number_of_tasks(self, n_file, n_col, ):
+        """
+        Calculates the total number of tasks to be processed based on the configuration and input parameters.
+
+        This method calculates the total number of tasks that need to be completed, taking into account
+        various flags and parameters set in the model. The total task count is used to drive the progress
+        bar, indicating how many tasks remain to be processed.
+
+        Parameters
+        ----------
+        n_file : int
+            The number of files to process.
+
+        n_col : int
+            The number of columns to process per file.
+
+        Returns
+        -------
+        int
+            The total number of tasks to be completed.
+        """
         return n_file * n_col
     
     def compute_spike_thread(self):
@@ -242,13 +276,18 @@ class SpikeController:
                 self.update_params(widgets)
             
             self.compute_spike_thread()
-            # thread = threading.Thread(name='spike', target=self.compute_spike_thread, daemon=True)
-            # thread.start()
-            # thread.join()
             self.draw_figure()
             
        
     def check_plot_params_validity(self):
+        """
+        Validates the plot parameters before plotting the figure.
+
+        Returns
+        -------
+        bool
+            True if parameters are valid, otherwise False with an error message.
+        """
         errors = []
         if not self.model.n_labels > -1:
             errors.append("You need to add data to plot.")
@@ -266,6 +305,9 @@ class SpikeController:
         return True if len(errors)==0 else False
         
     def draw_figure(self):
+        """
+        Draws the Spike figure, setting up the plot, computing spikes, and rendering the visualization.
+        """
         if self.check_plot_params_validity() and self.check_params_validity():
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, ]:
@@ -385,6 +427,16 @@ class SpikeController:
             messagebox.showerror("", "Missing data", )
             
     def trace_vars_to_model(self, key, *args):
+        """
+        Synchronizes UI variables with the model.
+
+        Parameters
+        ----------
+        key : str
+            The key of the variable being traced.
+        *args : tuple
+            Additional arguments passed by the trace callback.
+        """
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()
         elif key in self.model.plot_axes.keys():
@@ -394,24 +446,55 @@ class SpikeController:
         elif key in self.model.spike_params.keys():
             self.model.spike_params[key] = self.view.vars[key].get()
     
-    def validate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_green.png")),
-                           size=(120, 120))
-        self.view.image_buttons[step].configure(image=img)
-        self.view.step_check[step] = 1
-    
-    def invalidate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_red.png")), size=(120, 120))
-        self.view.image_buttons[str(step)].configure(image=img)
-        self.view.step_check[step] = 0
-
+   
     def select_parent_directory(self, strvar):
+        """
+        Opens a file dialog to select a parent directory and updates the model with the selected path.
+
+        This method prompts the user to select a directory using a file dialog. If the user selects a
+        valid directory, the method updates the provided `StringVar` with the directory path and stores
+        it in the model's `parent_directory` attribute.
+
+        Parameters
+        ----------
+        strvar : ctk.StringVar
+            The tkinter or customtkinter StringVar to hold the selected directory path.
+
+        Returns
+        -------
+        None
+        """
         dirname = filedialog.askdirectory(mustexist=True, title="select directory")
         if type(strvar) == ctk.StringVar:
             strvar.set(dirname)
             self.model.parent_directory = dirname
     
     def add_subtract_to_include(self, entry, textbox, mode='add'):
+        """
+        Adds or removes a value from the 'to_include' list in the model, based on user input.
+
+        This method updates the `to_include` list in the model by either adding or removing a value,
+        depending on the specified mode. If the entry is valid (does not contain forbidden characters),
+        it either appends the value to the list (if mode is 'add') or removes it (if mode is 'subtract').
+        The textbox is updated to reflect the change, and the entry field is cleared.
+
+        Parameters
+        ----------
+        entry : ctk.CTkEntry
+            The entry widget that contains the value to add or remove.
+
+        textbox : ctk.CTkTextbox
+            The textbox widget that will be updated with the new 'to_include' list.
+
+        mode : str, optional, default='add'
+            The mode to determine whether to add or subtract the value. 'add' will append the value
+            to the list, while 'subtract' will remove it.
+
+        Returns
+        -------
+        bool
+            Returns False if the entry contains forbidden characters or is empty, otherwise None.
+        """
         if ival.value_has_forbidden_character(entry.get()) is False:
             entry.delete(0, ctk.END)
             return False
@@ -430,6 +513,31 @@ class SpikeController:
             messagebox.showerror("Missing Value", "You need te indicate a value to include.")
             
     def add_subtract_to_exclude(self, entry, textbox, mode='add'):
+        """
+        Adds or removes a value from the 'to_exclude' list in the model, based on user input.
+
+        This method updates the `to_exclude` list in the model by either adding or removing a value,
+        depending on the specified mode. If the entry is valid (does not contain forbidden characters),
+        it either appends the value to the list (if mode is 'add') or removes it (if mode is 'subtract').
+        The textbox is updated to reflect the change, and the entry field is cleared.
+
+        Parameters
+        ----------
+        entry : ctk.CTkEntry
+            The entry widget that contains the value to add or remove.
+
+        textbox : ctk.CTkTextbox
+            The textbox widget that will be updated with the new 'to_exclude' list.
+
+        mode : str, optional, default='add'
+            The mode to determine whether to add or subtract the value. 'add' will append the value
+            to the list, while 'subtract' will remove it.
+
+        Returns
+        -------
+        bool
+            Returns False if the entry contains forbidden characters or is empty, otherwise None.
+        """
         if ival.value_has_forbidden_character(entry.get()) is False:
             entry.delete(0, ctk.END)
             return False
@@ -447,6 +555,35 @@ class SpikeController:
             messagebox.showerror("Missing Value", "You need te indicate a value to exclude.")
     
     def add_subtract_target(self, key_entry, value_entry, textbox, mode='add'):
+        """
+        Adds or removes a target key-value pair in the model's targets, based on user input.
+
+        This method updates the `targets` dictionary in the model by either adding a new key-value pair
+        (if mode is 'add') or removing an existing key (if mode is 'subtract'). It checks for forbidden
+        characters in the key and value entries and displays an error message if necessary. The textbox
+        is updated to reflect the change, and the entry fields are cleared.
+
+        Parameters
+        ----------
+        key_entry : ctk.CTkEntry
+            The entry widget that contains the key for the target.
+
+        value_entry : ctk.CTkEntry
+            The entry widget that contains the value for the target.
+
+        textbox : ctk.CTkTextbox
+            The textbox widget that will be updated with the new targets.
+
+        mode : str, optional, default='add'
+            The mode to determine whether to add or subtract the key-value pair. 'add' will add a new
+            key-value pair, while 'subtract' will remove the specified key.
+
+        Returns
+        -------
+        bool
+            Returns False if either the key or value contains forbidden characters, or if the entries
+            are empty. Otherwise, the method updates the model's targets and the textbox.
+        """
         if ival.value_has_forbidden_character(key_entry.get()) is False:
             key_entry.delete(0, ctk.END)
             value_entry.delete(0, ctk.END)
@@ -480,6 +617,22 @@ class SpikeController:
         value_entry.delete(0, ctk.END)
         
     def select_single_file(self, display_in):
+        """
+        Opens a file dialog to select a file and updates the model with the selected path.
+
+        This method prompts the user to select a file using a file dialog. If the user selects a
+        valid file, the method updates the provided `StringVar` with the file path and stores
+        it in the model's `single_file` attribute.
+
+        Parameters
+        ----------
+        display_in : ctk.StringVar
+            The tkinter or customtkinter StringVar to hold the selected directory path.
+
+        Returns
+        -------
+        None
+        """
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
         if type(display_in) == ctk.StringVar:
@@ -487,6 +640,33 @@ class SpikeController:
             self.model.single_file = filename
             
     def update_params(self, widgets: dict, ):
+        """
+        Updates the model's variables, checkboxes, entries, comboboxes, or textboxes based on the provided widget values.
+
+        This method iterates over the dictionary of widgets, retrieves the current values from each widget,
+        and updates the corresponding attributes in the `model.vars`, `model.ckboxes`, `model.entries`,
+        `model.cbboxes`, or `model.textboxes` based on the widget type.
+
+        Parameters
+        ----------
+        widgets : dict
+            A dictionary of widgets where the keys are widget identifiers and the values are the widget objects.
+            The widget objects can be of various types such as `ctk.StringVar`, `ctk.IntVar`, `ctk.DoubleVar`,
+            `ctk.CTkCheckBox`, `ctk.CTkEntry`, `ErrEntry`, `tk.ttk.Combobox`, or `ctk.CTkTextbox`.
+
+        Returns
+        -------
+        None
+            This method does not return a value. It updates the corresponding attributes in the model based on
+            the widget values.
+
+        Notes
+        -----
+        - The method supports updating different widget types, including string variables, integer variables,
+          checkboxes, entries, comboboxes, and textboxes.
+        - It ensures that the appropriate model dictionary (`vars`, `ckboxes`, `entries`, `cbboxes`, or `textboxes`)
+          is updated based on the widget type.
+        """
         local_dict = {}
         if len(widgets.items()) > 0:
             if type(list(widgets.values())[0]) == ctk.StringVar or \
@@ -515,6 +695,42 @@ class SpikeController:
                 self.model.textboxes.update(local_dict)
     
     def add_label_data(self, scrollable_frame):
+        """
+        Adds a new label entry to the provided scrollable frame, allowing the user to configure a label, its
+        associated properties, and display settings.
+
+        This method checks if the model has targets and if the number of labels is within the maximum allowed.
+        If so, it creates a set of UI components for label configuration such as comboboxes, color selectors,
+        and legend entries, and places them in the scrollable frame. It also updates the relevant view dictionaries
+        for managing these UI elements.
+
+        Parameters
+        ----------
+        scrollable_frame : ctk.CTkFrame
+            The frame in which the label data widgets will be added. This frame should support scrolling to accommodate
+            the added widgets.
+
+        Returns
+        -------
+        None
+            This method does not return a value. It updates the UI by adding widgets to the provided frame and storing
+            widget references in the model and view.
+
+        Raises
+        ------
+        messagebox.showinfo
+            If the maximum number of labels has been reached, an informational message will be displayed.
+        messagebox.showerror
+            If no targets have been specified in the model, an error message will be shown.
+
+        Notes
+        -----
+        - The method ensures that only a valid number of labels are added (up to the maximum allowed).
+        - A series of widgets are created, including comboboxes for selecting the label, error bars, index, and color settings.
+        - The method also manages separators in the UI for better layout.
+        - The relevant UI elements are stored in the `view` and `model` for further interaction.
+        """
+        
         if self.model.targets:
             if self.model.n_labels + 1 <= self.model.max_n_labels:
                 targets = sorted(set(list(self.model.targets.values())))
@@ -590,12 +806,55 @@ class SpikeController:
     
     @staticmethod
     def clear_column(parent, column):
+        """
+        Clears all widgets in a specific column of a parent widget's grid layout.
+
+        This method iterates through all child widgets of the provided parent widget and checks the grid placement
+        of each widget. If the widget is placed in the specified column, it will be destroyed, effectively removing
+        it from the UI.
+
+        Parameters
+        ----------
+        parent : tkinter.Widget
+            The parent widget containing the grid of widgets. This should be a widget that uses the grid layout manager.
+
+        column : int
+            The index of the column from which the widgets will be removed.
+
+        Returns
+        -------
+        None
+            This method does not return any value. It directly manipulates the UI by destroying widgets in the specified column.
+
+        Notes
+        -----
+        - Only widgets that are placed in the specified column will be removed.
+        - If no widgets are placed in the specified column, this method has no effect.
+        """
+        
         for widget in parent.winfo_children():
             grid_info = widget.grid_info()
             if grid_info and int(grid_info['column']) == column:
                 widget.destroy()
     
     def remove_label_data(self, ):
+        """
+        Removes the label data UI components and related entries from the model.
+
+        This method clears the UI components corresponding to the current label data, removes the associated widgets
+        from the grid layout, and deletes the related entries from the model and view dictionaries. It also decrements
+        the number of labels in the model.
+
+        Returns
+        -------
+        None
+            This method does not return any value. It directly modifies the UI and model by removing label-related data.
+
+        Notes
+        -----
+        - The method assumes that the number of labels is non-negative (`n_labels >= 0`).
+        - It clears widgets and updates dictionaries to ensure the UI and model remain synchronized.
+        """
         
         n_labels = self.model.n_labels
         column = n_labels + self.model.n_labels_offset
@@ -618,12 +877,55 @@ class SpikeController:
             self.model.n_labels -= 1
     
     def load_config(self, ):
+        """
+        Loads a configuration file and updates the model.
+
+        This method prompts the user to select a configuration file with the `.skcfg` extension. If a valid file is selected,
+        it attempts to load the model using the `load_model` method of the `model`. After the model is successfully loaded,
+        it updates the view to reflect the changes made to the model.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method does not return any value. It updates the model and the view based on the loaded configuration.
+
+        Notes
+        -----
+        - The method uses a file dialog to allow the user to select the configuration file.
+        - If the file is successfully loaded, the view is updated to reflect the new state of the model.
+        """
+        
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Spike analysis config", "*.skcfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model()
     
     def save_config(self, ):
+        """
+        Saves the current configuration to a file.
+
+        This method checks the validity of the current parameters, updates the model with the values from the view widgets,
+        and then prompts the user to save the configuration to a file. If the user selects a valid location,
+        the configuration is saved using the `save_model` method of the `model`.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method does not return any value. It saves the model's configuration to a file.
+
+        Notes
+        -----
+        - The method ensures that all parameters in the view (checkboxes, entries, comboboxes, etc.) are updated before saving.
+        - The file is saved with the `.skcfg` extension by default, but the user can specify a different filename or location.
+        """
         if self.check_params_validity():
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, self.view.labels, self.view.labels_subframes]:
@@ -635,6 +937,32 @@ class SpikeController:
                 self.model.save_model(path=f, )
                 
     def export_data(self):
+        """
+        Exports the spike detection data to a CSV file.
+
+        This method allows the user to save the spike detection data contained in `self.model.spike_params["all_spikes"]`
+        to a CSV file. It prompts the user to choose a file location and name, and then exports the data as a CSV file.
+        If successful, it shows a success message; otherwise, it handles exceptions and displays an error message.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method does not return any value. It saves the spike detection data to a CSV file.
+
+        Exceptions
+        ----------
+        - If an error occurs during the file-saving process, an error message is displayed, and the error is printed to the console.
+
+        Notes
+        -----
+        - The data is converted to a pandas DataFrame and exported using the `.to_csv()` method.
+        - The default filename is `spike_detection_export.csv`, but the user can specify a different name or location.
+        """
+        
         try:
             f = filedialog.asksaveasfilename(defaultextension=".csv",
                                              filetypes=[("Table", "*.csv"), ],

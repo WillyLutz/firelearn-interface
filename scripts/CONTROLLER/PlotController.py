@@ -25,11 +25,27 @@ class PlotController:
         self.progress = None
     
     def save_figure(self, fig):
+        """
+        Saves the given figure to a user-selected file.
+
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure
+            The figure object to be saved.
+        """
         filepath = filedialog.asksaveasfilename(title="Open file", filetypes=(("Image", "*.png"),))
         if filepath:
             fig.savefig(filepath, dpi=int(self.model.plot_general_settings["dpi"]))
     
     def check_params_validity(self):
+        """
+        Validates the plotting parameters before generating the plot.
+
+        Returns
+        -------
+        bool
+            True if parameters are valid, otherwise False with an error message.
+        """
         plot_params_errors = []
         legend_errors = []
         figname_errors = []
@@ -74,7 +90,13 @@ class PlotController:
             return False
         return True
     
+    
     def save_config(self, ):
+        """
+        Saves the current plot configuration to a file.
+
+        The function first checks the validity of parameters before proceeding with the save operation.
+        """
         if self.check_params_validity():
             f = filedialog.asksaveasfilename(defaultextension=".pltcfg",
                                              filetypes=[("Analysis - Simple plot", "*.pltcfg"), ])
@@ -82,6 +104,11 @@ class PlotController:
                 self.model.save_model(path=f, )
     
     def load_config(self, ):
+        """
+        Loads plot configuration settings from a user-selected file.
+
+        If successfully loaded, updates the view with the stored settings.
+        """
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Analysis - Simple plot", "*.pltcfg"),))
         if f:
             if self.model.load_model(path=f):
@@ -89,6 +116,9 @@ class PlotController:
                 # todo : does not work because widgets are not created while the top-levels are not created
     
     def update_view_from_model(self, ):
+        """
+        Synchronizes the UI elements with the model's stored plot settings.
+        """
         
         for key, value in self.model.plot_data.items():
             if key in self.view.vars.keys():
@@ -104,6 +134,11 @@ class PlotController:
                 self.view.vars[key].set(value)
     
     def load_plot_dataset(self, ):
+        """
+        Loads a dataset from a user-selected file and updates UI elements.
+
+        If a dataset is selected, it updates available columns for plotting.
+        """
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("Tables", "*.txt *.csv"),))
         if filename:
@@ -132,6 +167,14 @@ class PlotController:
                 value.set(columns[-1])
     
     def add_ydata(self, scrollable_frame):
+        """
+        Adds a new Y-axis data selection to the UI.
+
+        Parameters
+        ----------
+        scrollable_frame : tk.Frame
+            The frame where Y-data selection widgets will be added.
+        """
         if self.model.dataset_path:
             df = pd.read_csv(self.model.dataset_path, index_col=False)
             columns = list(df.columns)
@@ -238,6 +281,9 @@ class PlotController:
             return False
     
     def remove_ydata(self):
+        """
+        Removes the most recently added Y-data selection from the UI and the model.
+        """
         n_ydata = self.model.n_ydata
         if n_ydata >= 0:
             
@@ -268,6 +314,11 @@ class PlotController:
             
     
     def draw_figure(self):
+        """
+        Generates and displays the plot using the selected dataset and parameters.
+
+        If validation checks pass, updates the figure and toolbar in the UI.
+        """
         # todo: if validation
         
         if self.check_params_validity():
@@ -397,6 +448,16 @@ class PlotController:
             self.view.canvas["plot"].draw()
     
     def trace_vars_to_model(self, key, *args):
+        """
+        Updates the model whenever a UI variable changes.
+
+        Parameters
+        ----------
+        key : str
+            The key associated with the changed variable.
+        *args : tuple
+            Additional arguments passed by the trace callback.
+        """
         if key in self.model.plot_general_settings.keys():
             self.model.plot_general_settings[key] = self.view.vars[key].get()
         elif key in self.model.plot_axes.keys():
@@ -404,13 +465,6 @@ class PlotController:
         elif key in self.model.plot_legend.keys():
             self.model.plot_legend[key] = self.view.vars[key].get()
     
-    def validate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_green.png")),
-                           size=(120, 120))
-        self.view.image_buttons[step].configure(image=img)
-        self.view.step_check[step] = 1
+
     
-    def invalidate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_red.png")), size=(120, 120))
-        self.view.image_buttons[str(step)].configure(image=img)
-        self.view.step_check[step] = 0
+
