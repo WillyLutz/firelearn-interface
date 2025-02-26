@@ -1,9 +1,6 @@
 from multiprocessing import Process
 
 import numpy as np
-import pandas as pd
-
-from scripts.CONTROLLER.ProgressBar import ProgressBar
 
 
 class SpikeDetectorProcess(Process):

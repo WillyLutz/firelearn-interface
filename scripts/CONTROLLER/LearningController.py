@@ -2,6 +2,10 @@ import os
 import pickle
 import tkinter as tk
 from itertools import product
+from multiprocessing import Queue
+import multiprocessing
+from random import shuffle
+from threading import Thread
 from tkinter import ttk, filedialog, messagebox
 
 import customtkinter as ctk
@@ -12,9 +16,11 @@ from sklearn.model_selection import train_test_split, cross_val_score
 
 from scripts.CONTROLLER import input_validation as ival
 from scripts.CONTROLLER.ProgressBar import ProgressBar
+from scripts.CONTROLLER.input_validation import convert_to_type
 from scripts.MODEL.ClfTester import ClfTester
 from scripts.MODEL.LearningModel import LearningModel
 from scripts.CONTROLLER.MainController import MainController
+from scripts.PROCESSES.LearningProcess import LearningProcess
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Separator import Separator
 from sklearn.model_selection import ParameterGrid
@@ -26,8 +32,12 @@ class LearningController:
         self.view.controller = self  # set controller
 
         self.progress = None
-        
+        self.queue = Queue()
         self.scoring = 'Relative K-Fold CV accuracy' # todo : add option for optimization metric
+        
+        self.workers_alive = False
+        self.cancelled = False
+        
     
     @staticmethod
     def _convert_list_elements(lst):
@@ -82,8 +92,7 @@ class LearningController:
         
         return y
     
-    @staticmethod
-    def reload_rfc_params(rfc_params_string_var):
+    def reload_rfc_params(self, rfc_params_string_var):
         """
         Reloads the parameters of a Random Forest Classifier and sets them to the provided string variables.
 
@@ -94,11 +103,16 @@ class LearningController:
 
         Returns
         -------
-        None
+        dict
+            default random forest classifier parameters
         """
-        clf = RandomForestClassifier()
-        for name, value in clf.get_params().items():
-            rfc_params_string_var[name].set(value)
+        default_params = self.view.get_fixed_default_clf_params()
+        
+        for name, value in default_params.items():
+            value = str(value)
+            if value != rfc_params_string_var[name].get():
+                rfc_params_string_var[name].set(value)
+        return rfc_params_string_var
     
     @staticmethod
     def _extract_rfc_params(rfc_params_string_var):
@@ -222,7 +236,11 @@ class LearningController:
         self.model.targets = targets
 
         MainController.update_textbox(self.view.textboxes["targets"], self.model.targets)
-
+    
+    def clear_targets(self):
+        self.model.targets.clear()
+        MainController.update_textbox(self.view.textboxes["targets"], self.model.targets)
+    
     def savepath_rfc(self, strvar):
         """
         Opens a file dialog to select a location to save the Random Forest Classifier model.
@@ -284,7 +302,6 @@ class LearningController:
         param_grid = {}
         
         checked_hyperparams = [key for key in self.model.hyperparameters_to_tune.keys() if self.view.ckboxes[f"hyperparameter {key}"].get()]
-        print(checked_hyperparams)
         for param, values in [(param, self.view.entries[f"hyperparameter {param}"].get()) for param in checked_hyperparams]: # params to be optimized
             indiv_values = [val.strip() for val in values.split(',')]
             
@@ -297,6 +314,118 @@ class LearningController:
             if k not in param_grid.keys():
                 param_grid[k] = [v, ]
         return param_grid
+        
+    def _learning_process(self):
+        param_grid = self._get_param_grid_search()
+        num_combinations = len(list(product(*param_grid.values())))
+        
+        self.progress = ProgressBar("Learning", self.view.app)
+        self.progress.daemon = True
+        # self.progress.total_tasks = 1 + 1 + 2 * int(self.view.vars["n iter"].get())
+        # loading dataset + splitting + n_comb_opti*(train + test) + finishing
+        self.progress.total_tasks = 1 + 3 + num_combinations * 1 + 1
+        self.progress.start()
+        self.progress.update_task("Loading dataset")
+        
+        full_df = pd.read_csv(self.model.full_dataset_path, index_col=False)
+        train_df = pd.read_csv(self.model.train_dataset_path, index_col=False)
+        test_df = pd.read_csv(self.model.test_dataset_path, index_col=False)
+        
+        self.progress.increment_progress(1)
+        self.progress.update_task("Splitting")
+
+        target_column = self.model.cbboxes["target column"]
+        
+        full_df = full_df[full_df[target_column].isin(self.model.targets)]
+        full_df.reset_index(inplace=True, drop=True)
+        y_full = full_df[target_column]
+        y_full = self._label_encoding(y_full)
+        X_full = full_df.loc[:, full_df.columns != target_column]
+        self.progress.increment_progress(1)
+        
+        train_df = train_df[train_df[target_column].isin(self.model.targets)]
+        train_df.reset_index(inplace=True, drop=True)
+        y_train = train_df[target_column]
+        y_train = self._label_encoding(y_train)
+        X_train = train_df.loc[:, train_df.columns != target_column]
+        self.progress.increment_progress(1)
+        
+        test_df = test_df[test_df[target_column].isin(self.model.targets)]
+        test_df.reset_index(inplace=True, drop=True)
+        y_test = test_df[target_column]
+        y_test = self._label_encoding(y_test)
+        X_test = test_df.loc[:, test_df.columns != target_column]
+        
+        self.progress.increment_progress(1)
+        self.progress.update_task("Distributed learning")
+        all_params_grid = ParameterGrid(param_grid)
+        n_cpu = multiprocessing.cpu_count()
+        n_workers = 1
+        if  len(all_params_grid) > int(0.7*n_cpu):
+            n_workers = 1 if int(0.7*n_cpu) == 0 else int(0.7*n_cpu)
+        elif len(all_params_grid) < int(0.7*multiprocessing.cpu_count()):
+            n_workers = len(all_params_grid)
+        worker_ranges = np.linspace(0, len(all_params_grid), n_workers + 1).astype(int)
+        all_workers = []
+        manager = multiprocessing.Manager()
+        return_dict = manager.dict() # of the shape {"param combination": [cv_scores, train_score, test_score], ...}
+
+        all_params_grid_list = list(all_params_grid)
+        shuffle(all_params_grid_list)
+        for n_worker in range(n_workers):
+            low_index = worker_ranges[n_worker]
+            high_index = worker_ranges[n_worker + 1]
+            
+            worker_param_grid = all_params_grid_list[low_index:high_index]
+            if high_index > low_index:  # so no workers have params
+                for p_grid in worker_param_grid:
+                    for k, v in p_grid.items():
+                        p_grid[k] = convert_to_type(v)
+                    
+                worker = LearningProcess(worker_param_grid,
+                                         X_train, y_train,
+                                         X_test, y_test,
+                                         X_full, y_full,
+                                         self.model.enable_kfold,
+                                         self.model.kfold,
+                                         return_dict,
+                                         self.queue)
+                worker.name = f"worker_{n_worker}"
+                worker.start()
+                self.workers_alive = True
+                all_workers.append(worker)
+        
+        while any([w.is_alive()  for w in all_workers]) and self.progress.is_alive():
+            if not self.queue.empty():
+                self.progress.increment_progress(self.queue.get(timeout=1))
+                
+        self.cancelled = True if any([w.is_alive()  for w in all_workers]) and not self.progress.is_alive() else False
+        
+        self.progress.update_task("Formatting results")
+        for worker in all_workers:
+            worker.join(timeout=5)
+            if worker.is_alive():
+                worker.terminate()
+        if self.cancelled:
+            messagebox.showinfo("Cancel Learning", "All workers properly terminated.")
+            self.workers_alive = False
+            self.cancelled = False
+            
+        all_param_combinations = dict(return_dict.items())
+        best_key = self._get_best_performing_combination(all_param_combinations)
+        # MainController.update_textbox(self.model.textboxes)
+
+        metrics_text_elements = []
+        metrics_text_elements = self._learning_display_computed_metrics(best_key,
+                                                                        metrics_text_elements,
+                                                                        all_param_combinations)
+
+        self._update_metrics_textbox(metrics_text_elements)
+        if self.view.vars["save rfc"].get():
+            MainController.save_object(all_param_combinations[best_key][4], self.view.vars["save rfc"].get())
+        self.progress.increment_progress(1)
+        self.workers_alive = False
+
         
     def learning(self, ):
         """
@@ -312,155 +441,68 @@ class LearningController:
                             self.view.switches, self.view.textboxes, ]:
                 self._update_params(widgets)
             self._update_rfc_params(self.view.rfc_params_stringvar)
-
-            param_grid = self._get_param_grid_search()
-            num_combinations = len(list(product(*param_grid.values())))
             
-            self.progress = ProgressBar("Learning", self.view.app)
-            self.progress.daemon = True
-            # self.progress.total_tasks = 1 + 1 + 2 * int(self.view.vars["n iter"].get())
-            # loading dataset + splitting + n_comb_opti*(train + test)
-            self.progress.total_tasks = 1 + 1 + num_combinations*2
-            self.progress.start()
-            self.progress.update_task("Loading dataset")
-
-            full_df = pd.read_csv(self.model.full_dataset_path, index_col=False)
-            train_df = pd.read_csv(self.model.train_dataset_path, index_col=False)
-            test_df = pd.read_csv(self.model.test_dataset_path, index_col=False)
-
-
-            self.progress.increment_progress(1)
-            self.progress.update_task("Splitting")
-            target_column = self.model.cbboxes["target column"]
-            
-            full_df = full_df[full_df[target_column].isin(self.model.targets)]
-            full_df.reset_index(inplace=True, drop=True)
-            y_full = full_df[target_column]
-            y_full = self._label_encoding(y_full)
-            X_full = full_df.loc[:, full_df.columns != target_column]
+            thread = Thread(target=self._learning_process, daemon=True)
+            thread.start()
+            # self._learning_process()
             
 
-            train_df = train_df[train_df[target_column].isin(self.model.targets)]
-            train_df.reset_index(inplace=True, drop=True)
-            y_train = train_df[target_column]
-            y_train = self._label_encoding(y_train)
-            X_train = train_df.loc[:, train_df.columns != target_column]
-
-            test_df = test_df[test_df[target_column].isin(self.model.targets)]
-            test_df.reset_index(inplace=True, drop=True)
-            y_test = test_df[target_column]
-            y_test = self._label_encoding(y_test)
-            X_test = test_df.loc[:, test_df.columns != target_column]
-
             
-            all_test_scores = []
-            all_train_scores = []
-            all_train_metrics = []
-            all_test_metrics = []
-            all_cv_scores = []
-            all_param_combinations = []
-            all_classifiers = []
-            self.progress.increment_progress(1)
-            
-            iteration = 0
-            for param_combination in ParameterGrid(param_grid):
-                self.progress.update_task(f"Training iteration {iteration + 1}")
-                all_param_combinations.append(param_combination)
-                rfc = RandomForestClassifier()
-                rfc.set_params(**param_combination)
-                clf_tester = ClfTester(rfc)
-
-                clf_tester.train(X_train, y_train)
-                clf_tester.test(X_test, y_test)
-
-                if not clf_tester.trained:
-                    all_train_scores.append(clf_tester.train_acc)
-                    all_train_metrics.append(clf_tester.train_metrics)
-                all_test_scores.append(clf_tester.test_acc)
-                all_test_metrics.append(clf_tester.test_metrics)
-
-                self.progress.increment_progress(1)
-                # kfold
-                if self.model.enable_kfold:
-                    cv_scores = cross_val_score(clf_tester.clf, X_full, y_full, cv=int(self.model.kfold))
-                    all_cv_scores.append(cv_scores)
-                    
-                all_classifiers.append(rfc)
-                
-                self.progress.update_task(f"Testing iteration {iteration + 1}")
-                self.progress.increment_progress(1)
-                iteration += 1
-
-            
-            best_index = self._get_best_performing_index(all_cv_scores, all_train_scores, all_test_scores)
-            # MainController.update_textbox(self.model.textboxes)
-            
-            metrics_text_elements = []
-            metrics_text_elements = self._learning_display_computed_metrics(best_index,
-                                                                            metrics_text_elements,
-                                                                            all_train_scores,
-                                                                            all_test_scores,
-                                                                            all_cv_scores,
-                                                                            all_param_combinations)
-
-            self._update_metrics_textbox(metrics_text_elements)
-            if self.view.vars["save rfc"].get():
-                MainController.save_object(all_classifiers[best_index], self.view.vars["save rfc"].get())
         
-    def _get_best_performing_index(self, all_cv_scores, all_train_scores, all_test_scores):
+    def _get_best_performing_combination(self,all_params_combination):
         """
-        Identifies the index of the best performing model based on the selected scoring method.
+        Identifies the key of the best performing model based on the selected scoring method.
 
         Parameters
         ----------
-        all_cv_scores : list[list[float]]
-            List of k-fold cross-validation scores for each iteration.
-        all_train_scores : list[float]
-            List of training accuracies for each iteration.
-        all_test_scores : list[float]
-            List of testing accuracies for each iteration.
+        all_params_combination : dict
+            Contains all the tested combinations in the format
+            {random_key: (combination, all_cv_scores, train_score, test_score, clf), ...}
 
         Returns
         -------
-        best_index : int
-            The index of the best performing model.
+        best_key : str
+            The key of the best performing model.
         """
-        best_index = 0
+        best_key = ''
         if self.scoring == 'Relative K-Fold CV accuracy':
             best_rel_cv = 100
-            for i, kcv_iters in enumerate(all_cv_scores):
-                kcv = np.mean(kcv_iters)
-                acc = all_train_scores[i]
-                kfold_acc_diff = round(acc - kcv, 3)
-                kfold_acc_relative_diff = round(kfold_acc_diff / acc * 100, 2)
+            for random_key, metrics in all_params_combination.items():
+                all_cv_scores = metrics[1]
+                train_score = metrics[2]
                 
-                best_index = i if kfold_acc_relative_diff < best_rel_cv else best_index
+                kcv = np.mean(all_cv_scores)
+                kfold_acc_diff = round(train_score - kcv, 3)
+                kfold_acc_relative_diff = round(kfold_acc_diff / train_score * 100, 2)
+                
+                best_key = random_key if kfold_acc_relative_diff < best_rel_cv else best_key
         
         if self.scoring == 'K-Fold CV accuracy':
             best_cv = 0
-            for i, kcv_iters in enumerate(all_cv_scores):
-                kcv = np.mean(kcv_iters)
-                best_index = i if kcv > best_cv else best_index
+            for random_key, metrics in all_params_combination.items():
+                all_cv_scores = metrics[1]
+                kcv = np.mean(all_cv_scores)
+                best_key = random_key if kcv > best_cv else best_key
                 
         if self.scoring == 'Training accuracy':
             best_acc = 0
-            for i, acc in enumerate(all_train_scores):
-                best_index = i if acc > best_acc else best_index
+            for random_key, metrics in all_params_combination.items():
+                train_score = metrics[2]
+                best_key = random_key if train_score > best_acc else best_key
         if self.scoring == 'Testing accuracy':
             best_acc = 0
-            for i, acc in enumerate(all_test_scores):
-                best_index = i if acc > best_acc else best_index
+            for random_key, metrics in all_params_combination.items():
+                test_score = metrics[3]
+                best_key = random_key if test_score > best_acc else best_key
         
-        return best_index
+        return best_key
+    
     
 
 
     def _learning_display_computed_metrics(self,
-                                           best_index,
+                                           best_key,
                                            metrics_text_elements,
-                                           all_train_scores,
-                                           all_test_scores,
-                                           all_cv_scores,
                                            all_param_combinations):
         """
         Displays the computed classification metrics including accuracy, cross-validation score, and the
@@ -468,18 +510,12 @@ class LearningController:
 
         Parameters
         ----------
-        best_index : int
-            The index of the best performing model.
+        best_key : str
+            The key of the best performing model.
         metrics_text_elements : list[str]
             A list of text elements to be displayed in the metrics section.
-        all_train_scores : list[float]
-            List of training accuracies for each iteration.
-        all_test_scores : list[float]
-            List of testing accuracies for each iteration.
-        all_cv_scores : list[list[float]]
-            List of k-fold cross-validation scores for each iteration.
-        all_param_combinations : list[dict]
-            List of parameter combinations used during training.
+        all_param_combinations : dict
+            All combinations of parameters alongside the computed metrics used during training.
 
         Returns
         -------
@@ -491,16 +527,16 @@ class LearningController:
         metrics_text_elements.append("")
 
         pm = u"\u00B1"
-        metrics_text_elements.append(f"Number of parameters combination : {len(all_param_combinations)}", )
+        metrics_text_elements.append(f"Number of parameters combination : {len(all_param_combinations.keys())}", )
         
         metrics_text_elements.append("-"*25)
         metrics_text_elements.append(f"Scoring function: {self.scoring}")
         metrics_text_elements.append("Best performing model metrics:")
-        metrics_text_elements.append(f"Training accuracy: {all_train_scores[best_index]}")
-        metrics_text_elements.append(f"Testing accuracy: {all_test_scores[best_index]}")
+        metrics_text_elements.append(f"Training accuracy: {all_param_combinations[best_key][2]}")
+        metrics_text_elements.append(f"Testing accuracy: {all_param_combinations[best_key][3]}")
         if self.model.enable_kfold:
-            acc = all_train_scores[best_index]
-            kcv = round(np.array(all_cv_scores[best_index]).mean(), 3)
+            acc = all_param_combinations[best_key][2]
+            kcv = round(np.array(all_param_combinations[best_key][1]).mean(), 3)
             kcv_acc_diff = round(acc - kcv, 3)
             kcv_acc_relative_diff = round(kcv_acc_diff / acc * 100, 2)
             metrics_text_elements.append(f"{self.model.kfold}-fold Cross Validation: {kcv}")
@@ -508,12 +544,15 @@ class LearningController:
             metrics_text_elements.append(f"KFold-Accuracy relative difference: {kcv_acc_relative_diff} %\n")
         
         metrics_text_elements.append("")
-        for param, value in all_param_combinations[best_index].items():
+        for param, value in all_param_combinations[best_key][0].items():
             metrics_text_elements.append(f"{param} : {value}")
         
         metrics_text_elements.append("")
         metrics_text_elements.append("-"*30)
         metrics_text_elements.append("Average metrics across all iterations: ")
+        all_train_scores = [all_param_combinations[key][2] for key in all_param_combinations.keys()]
+        all_test_scores = [all_param_combinations[key][3] for key in all_param_combinations.keys()]
+        all_cv_scores = [all_param_combinations[key][1] for key in all_param_combinations.keys()]
         mean_accuracy = np.mean(all_train_scores).round(3)
         metrics_text_elements.append(
                 f"Training accuracy: {str(mean_accuracy)} {pm} {str(np.std(all_train_scores).round(3))}", )
@@ -562,6 +601,16 @@ class LearningController:
         bool
             True if parameters are valid, False otherwise.
         """
+        if self.workers_alive:
+            if self.cancelled:
+                messagebox.showerror("Workers alive", "Workers from previous learning are still alive and being terminated."
+                                                      "Please wait a bit before starting a new learning")
+                return False
+            else:
+                messagebox.showerror("Workers alive", "Workers are currently alive."
+                                                      "To start a new learning, please either cancel the current one "
+                                                      "or wait for it to finish.")
+                return False
         
         if self.view.entries["save rfc"].get() == "":
             proceed = messagebox.askokcancel("No save directory", "You will run a training without"
@@ -587,6 +636,9 @@ class LearningController:
         if not self.model.targets:
             messagebox.showerror("Missing value", "Targets are needed to train a Random Forest Classifier.")
             return False
+        
+        
+        
         return True
     
     def _update_rfc_params(self, rfc_params):
@@ -819,7 +871,7 @@ class LearningController:
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Learning configuration", "*.lcfg"),))
         if f:
             if self.model.load_model(path=f):
-                self.reload_rfc_params(self.view.rfc_params_stringvar)
+                self.view.rfc_params_stringvar = self.reload_rfc_params(self.view.rfc_params_stringvar)
                 self._update_view_from_model()
     
 

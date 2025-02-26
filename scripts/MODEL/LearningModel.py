@@ -43,7 +43,7 @@ class LearningModel:
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
-            if Version(attr_dict["version"]) >= Version(params.last_version_compatible):
+            if Version(attr_dict["version"]) >= Version(params.last_version_compatible_learning):
                 # Preserve missing keys in nested dictionaries
                 for key, value in self.__dict__.items():
                     if isinstance(value, dict) and key in attr_dict:

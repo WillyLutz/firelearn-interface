@@ -233,7 +233,6 @@ class SpikeController:
             n_workers = 8 if 8 < len(df.columns)/2 else int(len(df.columns)/2)
             worker_ranges = np.linspace(0, len(columns_with_exception), n_workers + 1).astype(int)
             
-            params_list = []
             all_workers = []
             manager = multiprocessing.Manager()
             return_dict = manager.dict()

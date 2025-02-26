@@ -1,3 +1,4 @@
+import time
 import tkinter
 import customtkinter as ctk
 import threading
@@ -31,17 +32,38 @@ class ProgressBar(threading.Thread, ):
         self.app = app
         self._stop_event = threading.Event()
 
-        progress_window = ctk.CTkToplevel(master=self.app)
-        progress_window.title(self.name)
-        progress_window.geometry("400x200")
-        progress_window.attributes("-topmost", 1)
-        self.progress_bar = ctk.CTkProgressBar(progress_window, orientation='horizontal', mode='determinate')
-        self.progress_bar.place(relx=0.05, rely=0.3, relwidth=0.9)
+        self.progress_window = ctk.CTkToplevel(master=self.app)
+        self.progress_window.title(self.name)
+        self.progress_window.geometry("400x200")
+        self.progress_window.attributes("-topmost", 1)
+        self.progress_bar = ctk.CTkProgressBar(self.progress_window, orientation='horizontal', mode='determinate')
+        self.progress_bar.place(relx=0.05, rely=0.1, relwidth=0.9)
         self.update_progress_stringvar("Processing")
-        self.progress_label = ctk.CTkLabel(progress_window, textvariable=self.progress_stringvar)
-        self.progress_label.place(anchor=tkinter.CENTER, relx=0.5, rely=0.7)
+        self.progress_label = ctk.CTkLabel(self.progress_window, textvariable=self.progress_stringvar)
+        self.progress_label.place(anchor=tkinter.CENTER, relx=0.5, rely=0.5)
+        
+        self.cancel_button = ctk.CTkButton(master=self.progress_window, text="Cancel", fg_color='tomato', command=self._on_cancel)
+        self.cancel_button.place(anchor=tkinter.CENTER, rely=0.9, relx=0.5)
+        self.progress_window.focus_force()
+    
+    def run(self):
+        """ Keeps the progress window active and updates it periodically. """
+        while not self.stopped():
+            self.app.update_idletasks()  # Keeps the Tkinter app responsive
+            time.sleep(0.1)
+    
+    def _on_cancel(self):
+        """
+        Cancel the processing, close the toplevel and stop the threads.
+        
+        Returns
+        -------
 
-        progress_window.focus_force()
+        """
+        self.stop()
+        if self.stopped():
+            self.progress_window.destroy()
+        
     
     def stop(self):
         """

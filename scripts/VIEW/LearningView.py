@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 import scripts.VIEW.graphic_params as gp
 from scripts.CONTROLLER.LearningController import LearningController
+from scripts.CONTROLLER.MainController import MainController
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Helper import Helper
 from scripts.WIDGETS.Separator import Separator
@@ -43,6 +44,18 @@ class LearningView(ctk.CTkFrame):
     def set_controller(self, controller):
         self.controller = controller
 
+    @staticmethod
+    def get_fixed_default_clf_params():
+        clf = RandomForestClassifier()
+        params = dict(clf.get_params().items())
+        fixed_params = {}
+        to_fix = {'bootstrap': True, 'class_weight': 'balanced'}
+        for k, v in params.items():
+            fixed_params[k] = params[k] if k not in to_fix.keys() else to_fix[k]
+
+            
+        return fixed_params
+        
     def manage_params_frame(self, params_frame):
         # params_frame.grid_rowconfigure(2, weight=1)
         params_frame.grid_rowconfigure(5, weight=20)
@@ -58,15 +71,13 @@ class LearningView(ctk.CTkFrame):
         # row separator 3
         # row separator 4
         params_scrollable_frame = ctk.CTkScrollableFrame(master=params_frame, corner_radius=10, fg_color='transparent' )
-        clf = RandomForestClassifier()
         params_scrollable_frame.grid_columnconfigure(0, weight=20)
         params_scrollable_frame.grid_columnconfigure(1, weight=1)
         params_scrollable_frame.grid_columnconfigure(2, weight=20)
         
         n_param = 0
-        for name, value in clf.get_params().items() :
-            if name == 'class_weight':
-                value = 'balanced'
+        for name, value in  self.get_fixed_default_clf_params().items():
+            value = str(value)
             param_label = ctk.CTkLabel(master=params_scrollable_frame, text=name, justify='left')
             param_label.grid(row=n_param, column=0, pady=5, padx=0, sticky='w')
             
@@ -83,7 +94,7 @@ class LearningView(ctk.CTkFrame):
             n_param += 2
             
             self.rfc_params_stringvar[name] = param_stringvar
-            self.entries[f"params {param_stringvar.get()}"] = param_entry
+            self.entries[f"params {name}"] = param_entry
         
         sep1 = Separator(master=params_scrollable_frame, orient='v')
         sep1.grid(row=0, column=1, rowspan=n_param, sticky='ns')
@@ -420,7 +431,7 @@ class LearningView(ctk.CTkFrame):
 
     def reload_rfc_params(self):
         if self.controller:
-            self.controller.reload_rfc_params(self.rfc_params_stringvar)
+            self.rfc_params_stringvar = self.controller.reload_rfc_params(self.rfc_params_stringvar)
 
 
 
@@ -430,7 +441,9 @@ class LearningView(ctk.CTkFrame):
 
         if filename:
             self.vars["split dataset path"].set(filename)
+            self.controller.clear_targets()
             self.auto_load_train_test_dataset()
+            
             
     def auto_load_train_test_dataset(self):
         dataset_path = self.vars["split dataset path"].get()
