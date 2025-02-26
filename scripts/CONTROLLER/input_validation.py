@@ -1,3 +1,6 @@
+import ast
+
+
 def value_has_forbidden_character(value):
     """
     Checks if a given string contains any forbidden characters.
@@ -178,3 +181,24 @@ def widget_value_is_positive_int_or_empty(widget):
             return True
     except ValueError:
         return False
+
+
+def convert_to_type(value: str):
+    """
+    Converts a string representation of a variable into its corresponding Python type.
+
+    Examples:
+    '1' -> int(1)
+    'True' -> bool(True)
+    'None' -> None
+    '0.5' -> float(0.5)
+    '[1, 2, 3]' -> list([1, 2, 3])
+
+    :param value: str - The string representation of the variable
+    :return: The value converted to its corresponding type
+    """
+    try:
+        return ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        # If literal_eval fails, return the original string
+        return value
