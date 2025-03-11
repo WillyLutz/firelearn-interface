@@ -377,7 +377,7 @@ class LearningController:
             high_index = worker_ranges[n_worker + 1]
             
             worker_param_grid = all_params_grid_list[low_index:high_index]
-            if high_index > low_index:  # so no workers have params
+            if high_index > low_index:  # so no workers have empty params
                 for p_grid in worker_param_grid:
                     for k, v in p_grid.items():
                         p_grid[k] = convert_to_type(v)
@@ -604,7 +604,7 @@ class LearningController:
         if self.workers_alive:
             if self.cancelled:
                 messagebox.showerror("Workers alive", "Workers from previous learning are still alive and being terminated."
-                                                      "Please wait a bit before starting a new learning")
+                                                      " Please wait a bit before starting a new learning")
                 return False
             else:
                 messagebox.showerror("Workers alive", "Workers are currently alive."

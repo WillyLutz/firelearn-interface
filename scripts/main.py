@@ -33,6 +33,7 @@ class App(ctk.CTk):
         self.iconname('FireLearn')
         view = MainView(self)
         splash.destroy()
+        del splash
         loading_time_end = datetime.now()
         print("Loading time:", loading_time_end - loading_time_start)
         
@@ -44,15 +45,18 @@ class App(ctk.CTk):
     def onClosure(self):
         usage_end_time = datetime.now()
         print("Usage time:", usage_end_time - usage_start_time)
+        print("Closing app and cleaning...")
         start_closing = datetime.now()
         self.withdraw()
         plt.close('all')
         self.quit()
         self.destroy()
         end_closing = datetime.now()
-        print("Closing time:", end_closing - start_closing)
         
-        # sys.exit()
+        del self
+        print("Closing time:", end_closing - start_closing)
+
+        sys.exit()
         
 
 

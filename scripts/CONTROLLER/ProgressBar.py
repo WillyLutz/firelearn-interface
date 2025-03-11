@@ -124,8 +124,8 @@ class ProgressBar(threading.Thread, ):
         -------
         None
         """
-        percent = round(self.progress_bar.get() * 100, 1)
-        if percent >= 100:
+        percent = round(self.progress_bar.get() * 100, 2)
+        if self.completed_tasks == self.total_tasks:
             self.progress_stringvar.set(f"Processing finished. {percent}% "
                                         f"({int(self.completed_tasks)}/{int(self.total_tasks)})\nYou can close this window.")
         else:
