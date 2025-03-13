@@ -118,6 +118,7 @@ class ProcessingController:
                             pass
                         try:
                             # Check result queue
+                            print("result queue size: ", self.result_queue.qsize())
                             filename, processed_files_to_make_dataset = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                             results[filename] = processed_files_to_make_dataset  # Store results dynamically
                         except Empty:

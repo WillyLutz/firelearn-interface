@@ -45,9 +45,14 @@ class SpikeDetectorProcess(Process):
                         i += 1  # Move to the next index
                 
                 if len(detected_indices) > 0:
-                    self.detected_spikes[self.columns[i_col]] = len(detected_indices)
+                    for d in detected_indices:
+                        print(d)
+                        print(self.columns)
+                        print(self.detected_spikes)
+                        self.detected_spikes[self.columns[i_col]].append(d)
                 else:
-                    self.detected_spikes[self.columns[i_col]] = 0
+                    pass
+                    # self.detected_spikes[self.columns[i_col]].append(0)
             
             self.queue.put(1)
 

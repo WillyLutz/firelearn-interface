@@ -14,7 +14,7 @@ from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.MODEL.ConfusionModel import ConfusionModel
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 from scripts import params as p
 
 import fiiireflyyy.learn as fl
@@ -73,12 +73,19 @@ class ConfusionController:
             for child in self.view.scrollable_frames["training"].winfo_children():
                 child.destroy()
             for t in range(len(training_classes)):
+                target_index_var = ctk.StringVar(value=str(t))
+                target_cbbox = ttk.Combobox(master=self.view.scrollable_frames["training"],
+                                            textvariable=target_index_var,
+                                            values=[str(x) for x in range(len(training_classes))],
+                                            state='readonly')
                 target_radio = ctk.CTkRadioButton(master=self.view.scrollable_frames["training"],
                                                   text=training_classes[t],
                                                   state='disabled', text_color_disabled='white'
                                                   )
                 target_radio.select()
                 target_radio.grid(row=t, column=0, padx=10, pady=10, sticky='w')
+                target_cbbox.grid(row=t, column=1, padx=10, pady=10, sticky='w')
+                self.view.vars[f"train label {t} index"] = target_index_var
         else:
             filename = filedialog.askopenfilename(title="Open file",
                                                   filetypes=(("AI model", "*.rfc"),))
@@ -94,12 +101,20 @@ class ConfusionController:
                 for child in self.view.scrollable_frames["training"].winfo_children():
                     child.destroy()
                 for t in range(len(training_classes)):
+                    target_index_var = ctk.StringVar(value=str(t))
+                    target_cbbox = ttk.Combobox(master=self.view.scrollable_frames["training"],
+                                                textvariable=target_index_var,
+                                                values=[str(x) for x in range(len(training_classes))],
+                                                state='readonly')
                     target_radio = ctk.CTkRadioButton(master=self.view.scrollable_frames["training"],
                                                       text=training_classes[t],
                                                       state='disabled', text_color_disabled='white'
                                                       )
                     target_radio.select()
                     target_radio.grid(row=t, column=0, padx=10, pady=10, sticky='w')
+                    target_cbbox.grid(row=t, column=1, padx=10, pady=10, sticky='w')
+                    
+                    self.view.vars[f"train label {t} index"] = target_index_var
     
     def predict_X_values(self, X):
         """
@@ -208,6 +223,45 @@ class ConfusionController:
             int)
         cup_array = overall_matrix_cup.to_numpy()
         mixed_labels_matrix = np.empty((len(TRAIN_CORRESPONDENCE.keys()), len(TEST_CORRESPONDENCE.keys()))).tolist()
+        
+        compute_train_index_to_plot_index = {}
+        compute_test_index_to_plot_index = {}
+
+        def has_unique_second_elements(dct):
+            second_elements = {v for k, v in dct.items()}  # Extract all second elements into a set
+            return len(second_elements) == len(dct.values())  # If set size matches list size, they are unique
+        
+        for t in range(len(self.model.training_classes)):
+            plot_index = int(self.view.vars[f"train label {t} index"].get())
+            compute_index = t
+            compute_train_index_to_plot_index[compute_index] = plot_index
+            
+        for t in range(len(self.model.testing_classes)):
+            plot_index = int(self.view.vars[f"test label {t} index"].get())
+            compute_index = t
+            compute_test_index_to_plot_index[compute_index] = plot_index
+        
+        print(compute_train_index_to_plot_index)
+        print(compute_test_index_to_plot_index)
+        print(self.TRAIN_CORRESPONDENCE, self.TEST_CORRESPONDENCE)
+
+        if not has_unique_second_elements(compute_train_index_to_plot_index) or not has_unique_second_elements(self.TRAIN_CORRESPONDENCE):
+            messagebox.showerror('Unique Values', 'You can not have multiple training targets having the same index.')
+            return
+        if not has_unique_second_elements(compute_test_index_to_plot_index) or not has_unique_second_elements(self.TEST_CORRESPONDENCE):
+            messagebox.showerror('Unique Values', 'You can not have multiple testing targets having the same index.')
+            return
+        
+        translated_train_correspondence = {v: k for k,v in self.TRAIN_CORRESPONDENCE.items()}
+        translated_test_correspondence = {v: k for k,v in self.TEST_CORRESPONDENCE.items()}
+
+        translated_acc_array = acc_array.copy()
+        for r in range(len(acc_array)):
+            for c in range(len(acc_array[0])):
+                translated_r = compute_train_index_to_plot_index[r]
+                translated_c = compute_test_index_to_plot_index[c]
+                translated_acc_array[translated_r][translated_c] = acc_array[r][c]
+                
         for r in range(len(acc_array)):
             for c in range(len(acc_array[0])):
                 if self.model.plot_specific_settings["annot only cup"]:
@@ -219,6 +273,13 @@ class ConfusionController:
                         else f"{acc_array[r][c]}\nCUP={cup_array[r][c]}"
                     mixed_labels_matrix[r][c] = case
                     
+        translated_mixed_labels_matrix = [row.copy() for row in mixed_labels_matrix]
+        for r in range(len(acc_array)):
+            for c in range(len(acc_array[0])):
+                translated_r = compute_train_index_to_plot_index[r]
+                translated_c = compute_test_index_to_plot_index[c]
+                translated_mixed_labels_matrix[translated_r][translated_c] = mixed_labels_matrix[r][c]
+        
         fig, ax = plt.subplots(figsize=(4, 4))
         new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
         new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
@@ -233,7 +294,9 @@ class ConfusionController:
         
         annot_kws = {"font": self.model.plot_specific_settings["annot font"],
                      "size": self.model.plot_specific_settings["annot size"]}
-        sns.heatmap(ax=ax, data=acc_array, annot=mixed_labels_matrix, annot_kws=annot_kws, fmt='', cmap="Blues",
+        
+        
+        sns.heatmap(ax=ax, data=translated_acc_array, annot=translated_mixed_labels_matrix, annot_kws=annot_kws, fmt='', cmap="Blues",
                     square=True, cbar_kws={'shrink': 0.5, 'location': 'right'},)
         ax.xaxis.tick_top()
         ax.xaxis.set_label_position('top')
@@ -263,7 +326,7 @@ class ConfusionController:
 
             self.view.vars[label].set(new_key)
 
-        ax.set_xticks([TEST_CORRESPONDENCE[x] + 0.5 for x in self.model.testing_classes], self.model.testing_classes,
+        ax.set_xticks([compute_test_index_to_plot_index[TEST_CORRESPONDENCE[x]] + 0.5 for x in self.model.testing_classes], self.model.testing_classes,
                       fontsize=self.model.plot_axes["x ticks size"],)
         ax.tick_params(axis='x', labelrotation=self.model.plot_axes["x ticks rotation"],
                        labelsize=self.model.plot_axes["x ticks size"],
@@ -275,7 +338,7 @@ class ConfusionController:
         ax.set_title(self.model.plot_general_settings["title"],
                      fontdict={"font": self.model.plot_general_settings["title font"],
                                "fontsize": self.model.plot_general_settings["title size"]}, )
-        ax.set_yticks([TRAIN_CORRESPONDENCE[x] + 0.5 for x in self.model.training_classes], self.model.training_classes, fontsize = self.model.plot_axes["y ticks size"])
+        ax.set_yticks([compute_train_index_to_plot_index[TRAIN_CORRESPONDENCE[x]] + 0.5 for x in self.model.training_classes], self.model.training_classes, fontsize = self.model.plot_axes["y ticks size"])
         self.view.figures["confusion"] = (fig, ax)
         self.view.canvas["confusion"].draw()
 
@@ -462,11 +525,20 @@ class ConfusionController:
 
                 for t in range(len(possible_targets)):
                     target_var = tk.IntVar(value=1)
+                    target_index_var = ctk.StringVar(value=str(t))
+                    
                     target_checkbox = ctk.CTkCheckBox(master=self.view.scrollable_frames["testing"],
                                                       variable=target_var,
                                                       text=possible_targets[t])
+                    
+                    target_cbbox = ttk.Combobox(master=self.view.scrollable_frames["testing"],
+                                                textvariable=target_index_var,
+                                                values=[str(x) for x in range(len(possible_targets))],
+                                                state='readonly')
                     target_checkbox.grid(row=t, column=0, padx=10, pady=10, sticky='w')
+                    target_cbbox.grid(row=t, column=1, padx=10, pady=10, sticky='w')
                     self.view.vars[f"test label {t}"] = target_var
+                    self.view.vars[f"test label {t} index"] = target_index_var
                     self.view.ckboxes[f"test label {t}"] = target_checkbox
                     self.model.plot_data[f"test label {t}"] = target_var.get()
                     target_var.trace("w", partial(self.trace_vars_to_model, f"test label {t}"))
@@ -645,6 +717,7 @@ class ConfusionController:
             for j in range(len(probabilities_matrix[i])):
                 probabilities_matrix[i][j] = []
         
+    
         for i in range(len(targets)):
             y_true = targets[i]
             y_pred = predictions[i][0]
@@ -744,7 +817,7 @@ class ConfusionController:
         if not self.TEST_CORRESPONDENCE:
             self.TEST_CORRESPONDENCE = self.TRAIN_CORRESPONDENCE.copy()
     
-    def _test_clf_by_confusion(self, test_dataset: pd.DataFrame, training_targets, testing_targets, iterations=10):
+    def _test_clf_by_confusion(self, test_dataset: pd.DataFrame, training_targets, testing_targets, iterations=1, **kwargs):
         """
         Tests a trained Random Forest classifier model using a confusion matrix.
     
@@ -788,15 +861,12 @@ class ConfusionController:
         - If `iterations` is greater than 1, the test runs multiple times for better statistical representation.
     
         """
-        options = {"testing_targets": [],
-                   "iterations": 10,}
-        options.update(**kwargs)
         self.progress.update_task("Data preparation")
-        if not options["testing_targets"]:
-            options["testing_targets"] = training_targets
+        if not testing_targets:
+            testing_targets = training_targets
         
         
-        self._init_train_and_test_correspondence(training_targets, options["testing_targets"])
+        self._init_train_and_test_correspondence(training_targets, testing_targets)
         
         X = test_dataset.loc[:, ~test_dataset.columns.isin(['label', 'ID'])]
         y = test_dataset["label"]
@@ -808,7 +878,7 @@ class ConfusionController:
         # get predictions and probabilities
         all_matrices = []
         all_probability_matrices = []
-        for iters in range(options["iterations"]):
+        for iters in range(iterations):
             self.progress.update_task("Predicting")
             predictions = self.predict_X_values(X)
             
@@ -816,17 +886,17 @@ class ConfusionController:
             for i in y.index:
                 targets.append(y.loc[i])
             
-            matrix, mean_probabilities = self._build_confusion_matrix(predictions, targets, training_targets, options["testing_targets"])
+            matrix, mean_probabilities = self._build_confusion_matrix(predictions, targets, training_targets, testing_targets)
             
             all_matrices.append(matrix)
             all_probability_matrices.append(mean_probabilities)
         
         self.progress.update_task("Formatting matrices")
-        mean_probabilities_matrix = np.empty((len(training_targets), len(options['testing_targets'])))
+        mean_probabilities_matrix = np.empty((len(training_targets), len(testing_targets)))
         overall_matrix = np.mean(np.array([i for i in all_matrices]), axis=0)
         overall_probabilities = np.mean(np.array([i for i in all_probability_matrices]), axis=0)
-        accuracies_percent = np.empty((len(training_targets), len(options['testing_targets']))).tolist()
-        accuracies_numeric = np.empty((len(training_targets), len(options['testing_targets']))).tolist()
+        accuracies_percent = np.empty((len(training_targets), len(testing_targets))).tolist()
+        accuracies_numeric = np.empty((len(training_targets), len(testing_targets))).tolist()
         
         # averaging the probabilities
         for i in range(len(overall_probabilities)):

@@ -13,7 +13,7 @@ def resource_path(relative_path):
 
 
 name = 'FireLearn GUI'
-version = "0.7.2-alpha"
+version = "0.7.3-alpha"
 last_version_compatible = "0.7.0-alpha"
 last_version_compatible_spike = "0.7.0-alpha"
 last_version_compatible_learning = "0.7.0-alpha"

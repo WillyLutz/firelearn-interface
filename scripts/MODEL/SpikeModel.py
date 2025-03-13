@@ -55,11 +55,12 @@ class SpikeModel:
                           'label column': 'None',
                           'type': ['bar', 'violin']}
         
-        self.spike_params = {'dead window': 0.1, 'std threshold': 5.5, 'sampling frequency': 10000, 'all_spikes': {},
-                             }
+        self.spike_params = {'dead window': 0.1, 'std threshold': 5.5, 'sampling frequency': 10000, 'all_spikes_count': {},
+                             'all_spikes_indices': {},}
     def load_model(self, path):
         try:
             attr_dict = pickle.load(open(path, "rb"))
+            befor_load = self.n_labels
             if version.parse(attr_dict["version"]) >= version.parse(p.last_version_compatible_spike):
                 # Preserve missing keys in nested dictionaries
                 for key, value in self.__dict__.items():
@@ -67,6 +68,8 @@ class SpikeModel:
                         for sub_key, sub_value in value.items():
                             attr_dict[key].setdefault(sub_key, sub_value)
                 self.__dict__.update(attr_dict)
+                
+                self.n_labels = befor_load
                 messagebox.showinfo("Info", f"Analysis configuration correctly loaded.\nVersion {self.version}")
                 return True
             else:

@@ -371,52 +371,57 @@ class ConfusionView(ctk.CTkFrame):
                                              state='readonly')
         # row separator 10
         training_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Training")
-        training_frame = ctk.CTkScrollableFrame(master=specific_params_scrollable_frame, )
-        training_frame.grid_columnconfigure(0, weight=1)
-        training_frame.grid_columnconfigure(1, weight=1)
-        training_frame.grid_columnconfigure(2, weight=1)
+        training_index_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Training indices")
         # row separator 12
-        testing_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Testing")
-        testing_frame = ctk.CTkScrollableFrame(master=specific_params_scrollable_frame)
-        testing_frame.grid_columnconfigure(0, weight=1)
-        testing_frame.grid_columnconfigure(1, weight=1)
-        testing_frame.grid_columnconfigure(2, weight=1)
+        training_frame = ctk.CTkScrollableFrame(master=specific_params_scrollable_frame, )
+        training_frame.grid_columnconfigure(0, weight=10)
+        training_frame.grid_columnconfigure(1, weight=1)
+        training_frame.grid_columnconfigure(2, weight=10)
         # row separator 14
+        testing_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Testing")
+        testing_index_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Testing indices")
+
+        # row separator 16
+        testing_frame = ctk.CTkScrollableFrame(master=specific_params_scrollable_frame)
+        testing_frame.grid_columnconfigure(0, weight=10)
+        testing_frame.grid_columnconfigure(1, weight=1)
+        testing_frame.grid_columnconfigure(2, weight=10)
+        # row separator 18
         iteration_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text='iterations: ')
         iteration_var = tk.IntVar(value=1)
         iteration_value_label = ctk.CTkLabel(master=specific_params_scrollable_frame, textvariable=iteration_var)
         iteration_slider = ctk.CTkSlider(master=specific_params_scrollable_frame, variable=iteration_var, from_=1, to=10, number_of_steps=10)
 
-        # separator row 16
+        # separator row 20
         select_all_button = ctk.CTkButton(master=specific_params_scrollable_frame, text="Select all",
                                           command=self.controller.select_all_test_targets)
         deselect_all_button = ctk.CTkButton(master=specific_params_scrollable_frame, text="Deselect all",
                                             command=self.controller.deselect_all_test_targets)
         
-        # separator row 18
+        # separator row 22
         annot_mode_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Annotation mode:")
         annot_mode_var = ctk.StringVar(value=self.controller.model.plot_specific_settings["annot mode"])
         annot_mode_cbbox = tk.ttk.Combobox(master=specific_params_scrollable_frame, textvariable=annot_mode_var,
                                            values=["percent", "numeric"], state='readonly',)
-        # separator row 20
+        # separator row 24
         annot_size_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Annotation size:")
         annot_size_var = ctk.IntVar(value=12)
         annot_size_slider = ctk.CTkSlider(master=specific_params_scrollable_frame, variable=annot_size_var,
                                           from_=8, to=32, number_of_steps=24,)
         annot_size_label_value = ctk.CTkLabel(master=specific_params_scrollable_frame, textvariable=annot_size_var)
-        # separator row 22
+        # separator row 26
         annot_font_label = ctk.CTkLabel(master=specific_params_scrollable_frame, text="Annotation font:")
         annot_font_var = ctk.StringVar(value=p.DEFAULT_FONT)
         annot_font_cbbox = tk.ttk.Combobox(master=specific_params_scrollable_frame, values=p.FONTS,
                                            textvariable=annot_font_var, state='readonly')
-        #separator row 24
+        #separator row 28
         only_cup_var = ctk.IntVar(value=0)
         only_cup_checkbox = ctk.CTkCheckBox(master=specific_params_scrollable_frame, variable=only_cup_var,
                                             text="Only CUP" )
-        #separator row 26
+        #separator row 30
         # --------------- MANAGE SEPARATORS
-        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]
-        general_params_vertical_separator_ranges = [(5, 17), (18, 25)]
+        general_params_separators_indices = [0, 1, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
+        general_params_vertical_separator_ranges = [(5, 9), (18, 25)]
         for r in range(general_params_separators_indices[-1] + 2):
             if r in general_params_separators_indices:
                 sep = Separator(master=specific_params_scrollable_frame, orient='h')
@@ -436,22 +441,24 @@ class ConfusionView(ctk.CTkFrame):
         label_column_label.grid(row=9, column=0, sticky='w')
         label_column_cbbox.grid(row=9, column=2, sticky='we')
         training_label.grid(row=11, column=0, sticky='w')
-        training_frame.grid(row=11, column=2, sticky='nsew')
-        testing_label.grid(row=13, column=0, sticky='w')
-        testing_frame.grid(row=13, column=2, sticky='nsew')
-        iteration_label.grid(row=15, column=0, sticky='w')
-        iteration_value_label.grid(row=15, column=0, sticky='e')
-        iteration_slider.grid(row=15, column=2, sticky='we')
-        select_all_button.grid(row=17, column=0, sticky='w')
-        deselect_all_button.grid(row=17, column=2, sticky='e')
-        annot_mode_label.grid(row=19, column=0, sticky='w')
-        annot_mode_cbbox.grid(row=19, column=2, sticky='we')
-        annot_size_label.grid(row=21, column=0, sticky='w')
-        annot_size_label_value.grid(row=21, column=0, sticky='e')
-        annot_size_slider.grid(row=21, column=2, sticky='we')
-        annot_font_label.grid(row=23, column=0, sticky='w')
-        annot_font_cbbox.grid(row=23, column=2, sticky='we')
-        only_cup_checkbox.grid(row=25, column=0, sticky='w', columnspan=2)
+        training_frame.grid(row=13, column=0, columnspan=3, sticky='nsew')
+        training_index_label.grid(row=13, column=2, sticky='ew')
+        testing_label.grid(row=15, column=0, sticky='w')
+        testing_index_label.grid(row=15, column=2, sticky='ew')
+        testing_frame.grid(row=17, column=0, columnspan=3, sticky='nsew')
+        iteration_label.grid(row=19, column=0, sticky='w')
+        iteration_value_label.grid(row=19, column=0, sticky='e')
+        iteration_slider.grid(row=19, column=2, sticky='we')
+        select_all_button.grid(row=21, column=0, sticky='w')
+        deselect_all_button.grid(row=21, column=2, sticky='e')
+        annot_mode_label.grid(row=23, column=0, sticky='w')
+        annot_mode_cbbox.grid(row=23, column=2, sticky='we')
+        annot_size_label.grid(row=25, column=0, sticky='w')
+        annot_size_label_value.grid(row=25, column=0, sticky='e')
+        annot_size_slider.grid(row=25, column=2, sticky='we')
+        annot_font_label.grid(row=27, column=0, sticky='w')
+        annot_font_cbbox.grid(row=27, column=2, sticky='we')
+        only_cup_checkbox.grid(row=27, column=0, sticky='w', columnspan=2)
         
         
         # --------- STORE WIDGETS

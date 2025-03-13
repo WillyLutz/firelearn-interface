@@ -197,7 +197,8 @@ class SpikeController:
         elif self.view.vars["multiple"].get():
             files = ff.get_all_files(self.model.parent_directory, to_include=self.model.to_include,
                                      to_exclude=self.model.to_exclude)
-        all_spikes = {value: [] for target, value in self.model.targets.items()}
+        all_spikes_count = {value: [] for target, value in self.model.targets.items()}
+        all_spikes_indices = {value: [] for target, value in self.model.targets.items()}
         samples_per_target = {value: 0 for target, value in self.model.targets.items()}
         skiprow = 0
         if self.model.vars['behead ckbox']:
@@ -236,6 +237,8 @@ class SpikeController:
             all_workers = []
             manager = multiprocessing.Manager()
             return_dict = manager.dict()
+            for c in columns_with_exception:
+                return_dict[c] = []
             
             for n_worker in range(n_workers):
                 low_index = worker_ranges[n_worker]
@@ -262,9 +265,15 @@ class SpikeController:
                 worker.join(timeout=10)
                 if worker.is_alive():
                     worker.terminate()
-            detected_spikes = dict(return_dict.items())
-            all_spikes[value].append(np.sum(list(detected_spikes.values())))
-        self.model.spike_params["all_spikes"] = all_spikes
+                    
+            detected_spikes_indices = dict(return_dict.items())
+            detected_spikes_count = {k: len(v) for k, v in detected_spikes_indices.items()}
+            all_spikes_count[value].append(np.sum(list(detected_spikes_count.values())))
+            for v in detected_spikes_indices.values():
+                all_spikes_indices[value].append(v)
+            
+        self.model.spike_params["all_spikes_count"] = all_spikes_count
+        self.model.spike_params["all_spikes_index"] = all_spikes_indices
         self.model.spike_params["samples_per_target"] = samples_per_target
         
     
@@ -327,7 +336,7 @@ class SpikeController:
             
             x_ticks = []
             x_ticks_label = []
-            all_spikes = self.model.spike_params["all_spikes"]
+            all_spikes = self.model.spike_params["all_spikes_count"]
             ymin = 0
             ymax = -math.inf
             
@@ -337,7 +346,7 @@ class SpikeController:
             label_order = [inverted_new_indices[key] for key in sorted(inverted_new_indices, key=int)]
             color_dict = {self.model.vars[f"label data {n_label}"]:self.model.vars[f"color {n_label}"]
                           for n_label in range(self.model.n_labels+1)}
-            
+
             for n_label in range(self.model.n_labels+1):
                 label = self.model.vars[f"label data {n_label}"]
                 label_legend = self.model.vars[f"label data legend {n_label}"]
@@ -357,7 +366,11 @@ class SpikeController:
                            color=self.model.vars[f"color {n_label}"],)
 
                 elif self.model.cbboxes[f"plot type"] == "violin":
-                    sns.violinplot(all_spikes, order=label_order, ax=ax, palette=color_dict)
+                    print(all_spikes)
+                    print(label_order)
+                    print(color_dict)
+                    print(n_label)
+                    sns.violinplot({k: v for k, v in all_spikes.items() if k in label_order}, order=label_order, ax=ax, palette=color_dict)
                 
             for n_label in range(self.model.n_labels + 1):
                 label = self.model.vars[f"label data {n_label}"]
@@ -939,8 +952,8 @@ class SpikeController:
         """
         Exports the spike detection data to a CSV file.
 
-        This method allows the user to save the spike detection data contained in `self.model.spike_params["all_spikes"]`
-        to a CSV file. It prompts the user to choose a file location and name, and then exports the data as a CSV file.
+        This method allows the user to save the spike detection data contained in `self.model.spike_params["all_spikes_count"]` and
+        `self.model.spike_params["all_spikes_index"]` to a CSV file. It prompts the user to choose a file location and name, and then exports the data as a CSV file.
         If successful, it shows a success message; otherwise, it handles exceptions and displays an error message.
 
         Parameters
@@ -961,18 +974,37 @@ class SpikeController:
         - The data is converted to a pandas DataFrame and exported using the `.to_csv()` method.
         - The default filename is `spike_detection_export.csv`, but the user can specify a different name or location.
         """
-        
+        is_error = False
+        f = ''
         try:
             f = filedialog.asksaveasfilename(defaultextension=".csv",
                                              filetypes=[("Table", "*.csv"), ],
-                                             initialfile="spike_detection_export.csv")
-            df = pd.DataFrame.from_dict(self.model.spike_params["all_spikes"], orient="index").transpose()
+                                             initialfile="spike_detection_export")
+            df_count = pd.DataFrame.from_dict(self.model.spike_params["all_spikes_count"], orient="index").transpose()
             
-            df.to_csv(f, index=False)
+            if '.csv' not in f:
+                f += '_count.csv'
+            else:
+                f = f.replace('.csv', '_count.csv')
+            df_count.to_csv(f, index=False)
             
-            messagebox.showinfo("", "File correctly saved")
         except Exception as e:
-            messagebox.showerror("", "An error has occurred while saving.")
+            messagebox.showerror("", "An error has occurred while saving count.")
             print(e)
+            is_error = True
+        
+        try:
+            df_index = pd.DataFrame.from_dict(self.model.spike_params["all_spikes_index"], orient="index").transpose()
+            
+            f = f.replace('_count.csv', '_index.csv')
+            df_index.to_csv(f+"_index", index=False)
+            
+        except Exception as e:
+            messagebox.showerror("", "An error has occurred while saving count.")
+            print(e)
+            is_error = True
+            
+        if not is_error:
+            messagebox.showinfo("", "Files correctly saved")
         
         
