@@ -1,4 +1,5 @@
 import concurrent.futures
+import datetime
 import multiprocessing
 import os
 import random
@@ -29,6 +30,8 @@ from scripts.WIDGETS.ErrEntry import ErrEntry
 
 from scripts.params import resource_path
 
+from scripts.PROCESSES.FileProcessor import FileProcess
+
 pd.options.mode.chained_assignment = None
 
 
@@ -52,6 +55,7 @@ class ProcessingController:
     def processing(self, ):
         if self.check_params_validity():
             if self._check_steps():
+                processing_time_start = datetime.datetime.now()
                 local_vars = self.model.vars
                 local_cbox = self.model.cbboxes
                 
@@ -73,68 +77,82 @@ class ProcessingController:
                 
                 self.processing_progress.update_task("Distributed processing...")
                 n_cpu = multiprocessing.cpu_count()
-                n_workers = 1
+                # n_workers = 1
                 if len(self.files_to_process) > int(0.7 * n_cpu):
                     n_workers = 1 if int(0.7 * n_cpu) == 0 else int(0.7 * n_cpu)
                 elif len(self.files_to_process) < int(0.7 * n_cpu):
                     
                     n_workers = len(self.files_to_process)
-                
-                # worker_ranges = np.linspace(0, len(self.files_to_process), n_workers + 1).astype(int)
-                
-                processed_files_to_make_dataset = []
+
+                print("Using n workers for processing: ", n_workers)
                 self.processing_progress.update_task("Distributed processing...")
                 
                 with multiprocessing.Manager() as manager:
-                    self.files_queue = manager.Queue()
-                    self.progress_queue = manager.Queue()
-                    self.result_queue = manager.Queue()
+                    self.files_queue = multiprocessing.Queue()
+                    self.progress_queue = multiprocessing.Queue()
+                    self.result_queue = multiprocessing.Queue()
                     
                     # Populate the queue with files
                     for file in self.files_to_process:
                         self.files_queue.put(file)
                     
-                    all_processes = [multiprocessing.Process(target=self.process_file_for_worker,
-                                                             args=(f"worker_{_}",
-                                                                   harmonics, processing_basename,
-                                                                   ))
-                                     for _ in range(n_workers)]
+                    # Add sentinel values (one per worker)
+                    for _ in range(n_workers):
+                        self.files_queue.put(None)
+                        
+                    all_processes = [FileProcess(self.files_queue,
+                                                 self.result_queue,
+                                                 self.progress_queue,
+                                                 harmonics,
+                                                 processing_basename,
+                                                 self.model.vars) for _ in range(n_workers)]
+                    # all_processes = [multiprocessing.Process(target=self.process_file_for_worker,
+                    #                                          args=(f"worker_{_}",
+                    #                                                harmonics, processing_basename,
+                    #                                                ))
+                    #                  for _ in range(n_workers)]
                     
                     for p in all_processes:
                         print(p)
                         p.start()
                         
-                    workers_files_to_make_dataset = [(), ]
-                    workers_files_to_make_dataset.clear()
                     results = {}
-                    while any([w.is_alive() for w in all_processes]) and self.processing_progress.is_alive():
+                    finished_workers = 0
+                    while finished_workers != len(all_processes) and self.processing_progress.progress_window.winfo_exists():
+                        are_alive = []
+                        for w in all_processes:
+                            if w.is_alive():
+                                are_alive.append(w)
+                        print("Workers alive: ", [w.name for w in are_alive])
+                        
                         try:
-                            # Try to get an item with a shorter timeout to prevent long blocks.
-                            progress_item = self.progress_queue.get(timeout=1)
-                            self.processing_progress.increment_progress(progress_item)
-                            
+                            result = self.result_queue.get()# Use get_nowait() to avoid blocking
+                            if type(result) == str: # A Worker finished ! joining it
+                                finished_workers += 1
+                                print("Worker finishing", result, "finished workers:", finished_workers)
+
+                            else:
+                                progress_item = self.progress_queue.get()
+                                self.processing_progress.increment_progress(progress_item)
+                                filename, processed_files_to_make_dataset = result
+                                results[filename] = processed_files_to_make_dataset  # Store results dynamically
                         except Empty:
                             # No progress item was available; just continue looping.
                             pass
-                        try:
-                            # Check result queue
-                            print("result queue size: ", self.result_queue.qsize())
-                            filename, processed_files_to_make_dataset = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
-                            results[filename] = processed_files_to_make_dataset  # Store results dynamically
-                        except Empty:
-                            pass
                         
+                    self.processing_progress.update_task("Finishing distributed processing...")
+
                     while not self.progress_queue.empty():
-                        self.processing_progress.increment_progress(self.progress_queue.get(timeout=10))
+                        self.processing_progress.increment_progress(self.progress_queue.get_nowait())
                     
                     while not self.result_queue.empty():
-                        filename, processed_files_to_make_dataset = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+                        processed_files_to_make_dataset, filename  = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                         results[filename] = processed_files_to_make_dataset  # Store results dynamically
                         
                     self.cancelled = True if any(
                         [w.is_alive() for w in all_processes]) and not self.processing_progress.is_alive() else False
                 
-                    self.processing_progress.update_task("Terminating workers")
+                    self.processing_progress.update_task("Terminating workers...")
                     for worker in all_processes:
                         print("joining ", worker.name)
                         worker.join(timeout=5)
@@ -149,371 +167,12 @@ class ProcessingController:
                     self.workers_alive = False
                     self.cancelled = False
                     if local_vars['filename make dataset'] == 1:
-                        if local_vars['filename make dataset'] == 1:
-                            self.processing_progress.update_task("Concatenating results from workers...")
-                            print("progress", self.processing_progress.completed_tasks)
-                            print("result len", len(results))
-                            for k, processed_files_to_make_dataset in results.items():  # self.iter_large_dict(results):
-                                print("processed_files_to_make_dataset", k, len(processed_files_to_make_dataset))
-                                for p in processed_files_to_make_dataset:
-                                    workers_files_to_make_dataset.append(p)
-                                    gc.collect()
-                                    self.processing_progress.increment_progress(1)
-                            del results
-                            gc.collect()
-                        print("workers_files_to_make_dataset ", len(workers_files_to_make_dataset))
-                        self._make_dataset(processing_basename, workers_files_to_make_dataset)
+                        
+                        self._make_dataset(processing_basename, results)
+                processing_time_end = datetime.datetime.now()
+                print("Processing time: ", processing_time_end-processing_time_start)
     
-    def process_file_for_worker(self, worker_name, harmonics, processing_basename, ):
-        """Processes a single file and updates the progress queue."""
-        while not self.files_queue.empty():
-            try:
-                file = self.files_queue.get_nowait()  # Get a file from the queue
-                
-                result = self._process_file(file, harmonics, processing_basename)
-                self.result_queue.put((file, result))
-                print(worker_name, file, len(result))
-                
-                del result
-                del file
-            except self.files_queue.Empty:
-                break  # Exit if queue is empty
-            except Exception as e:
-                print(f"Worker {worker_name} encountered an error: {e}")
-    
- 
-        
-    
-    
-    def _process_file(self, file, harmonics, processing_basename):
-        """
-        Processes a single file by performing several operations such as filtering,
-        downsampling, Fourier transforms, and averaging. The processed data is
-        either saved to a file or added to a list for further processing.
 
-        Parameters
-        ----------
-        file : str
-            The path to the CSV file to be processed.
-        Returns
-        -------
-        tuple
-            A tuple containing:
-            - processing_basename : list of str
-                The base names used in the processed file's name.
-            - processed_files_to_make_dataset : list of tuple
-                The updated list of tuples with processed dataframes and their filenames.
-
-        Notes
-        -----
-        This function applies several transformations to the raw data in the input file:
-        - Beheading: Skips rows from the file if the corresponding setting is enabled.
-        - Column Selection: Selects specific columns if requested.
-        - Down Sampling: Samples the data at a specific rate if enabled.
-        - Filtering: Applies filters (e.g., highpass, lowpass, bandstop, or bandpass) on the signals.
-        - Fast Fourier Transform (FFT): Applies FFT to the signal if enabled.
-        - Averaging: Averages the signal across selected columns if requested.
-        - Interpolation: Interpolates the signal if the setting is enabled.
-
-        After processing, the data is either saved as a CSV file or added to the
-        `processed_files_to_make_dataset` list depending on the user's settings.
-
-        """
-        df = self._behead(file)
-        df = self._column_selection(df)
-        samples = self._down_sampling(df)
-        print("process_file samples", file, len(samples))
-        processed_files_to_make_dataset = []
-        for df_s in samples:
-            if self.model.vars['signal filter']:
-                df_s = self._filter(df_s, harmonics=harmonics)
-            
-            if self.model.vars['signal fft']:
-                df_s = self._fast_fourier_transform(df_s)
-            
-            if self.model.vars['signal average']:
-                df_s = self._average_columns(df_s)
-            
-            # interpolation signal
-            df_s_processed = self._linear_interpolation(df_s)
-            
-            # saving file
-            if self.model.vars['filename make dataset'] == 0:
-                self._save_individual_processed_file(file, df_s_processed, processing_basename)
-            else:
-                processed_files_to_make_dataset.append((df_s_processed, file))
-            # n_sample += 1
-        
-        return processed_files_to_make_dataset
-    
-    def _get_skiprows(self):
-        """
-        get the skiprow entry value in the UI
-
-        Returns
-        -------
-        skiprow: int
-            the number (int) of rows to skip based on UI values
-
-        """
-        skiprow = 0
-        if self.model.vars['signal ckbox behead']:
-            skiprow = int(self.model.vars['signal behead'])
-        return skiprow
-    
-    def _behead(self, file):
-        """
-        Behead a csv file using the skiprows argument if enabled in the UI.
-        Parameters
-        ----------
-        file : str
-            The original file path that will be read and processed
-
-        Returns
-        -------
-        df : pd.Dataframe
-            Beheaded (or not) dataframe depending on the UI values.
-        """
-        
-        if self.model.vars['signal ckbox behead']:
-            df = pd.read_csv(file, index_col=False, skiprows=self._get_skiprows())
-            self.progress_queue.put(1)
-        else:
-            df = pd.read_csv(file, index_col=False)
-        return df
-    
-    def _column_selection(self, df):
-        """
-        Select the top n columns based on UI values.
-
-        Parameters
-        ----------
-        df : pd.Dataframe
-            data to process
-        Returns
-        -------
-        df : pd.Dataframe
-            returns a dataframe whith only selected columns, or untouched dataframe depending on UI values.
-        """
-        if self.model.vars['signal select columns ckbox']:
-            df = dpr.top_n_columns(df, int(self.model.vars['signal select columns number']),
-                                   except_column=self.model.vars["except column"])
-            self.progress_queue.put(1)
-        
-        return df
-    
-    def _down_sampling(self, df):
-        """
-        Performs downsampling on the given dataframe based on the specified sampling rate.
-
-        Parameters
-        ----------
-        df : pandas.DataFrame
-            The dataframe containing the signal data to be downsampled.
-
-        Returns
-        -------
-        list of pandas.DataFrame
-            A list containing the downsampled dataframe(s). If downsampling is not
-            performed, the original dataframe is returned in the list.
-
-        Notes
-        -----
-        If downsampling is enabled (based on the `signal sampling ckbox` flag in
-        `self.model.vars`), the function applies downsampling to the dataframe using
-        the specified sampling rate. If downsampling is not enabled, the original
-        dataframe is returned without modification.
-
-        """
-        samples = []
-        if self.model.vars['signal sampling ckbox']:
-            samples = fp.equal_samples(df, int(self.model.vars['signal sampling']))
-            self.progress_queue.put(1)
-
-        else:
-            # self.progress_queue.put(1)
-            samples.append(df)
-        
-        return samples
-    
-    def _filter(self, df_s, harmonics):
-        """
-        Applies a series of filters to the signal data in the given dataframe.
-
-        Parameters
-        ----------
-        df_s : pandas.DataFrame
-            The dataframe containing signal data to be filtered.
-
-        Returns
-        -------
-        pandas.DataFrame
-            The filtered dataframe with the updated signal data after applying the
-            specified filters.
-
-        Notes
-        -----
-        This function applies a specified filter (highpass, lowpass, bandstop, or bandpass)
-        to each signal channel in the dataframe, based on the settings in `self.model.vars`.
-        If the harmonics checkbox is enabled, additional bandstop filters are applied around
-        each harmonic frequency. The dataframe is updated with the filtered signal data.
-
-        The filtering operations are performed using a Butterworth filter with configurable
-        filter order and cutoff frequencies. The filter type and parameters (e.g., first and
-        second cutoff frequencies) are dynamically selected based on the model's settings.
-
-        """
-        for ch in [col for col in df_s.columns if self.model.vars["except column"] not in col]:
-            df_s_ch = df_s[ch]
-            if self.model.vars['signal filter type'] == 'Highpass' and self.model.vars[
-                'signal filter first cut']:
-                df_s_ch = dpr.butter_filter(df_s_ch, order=int(self.model.vars['signal filter order']),
-                                            btype='highpass',
-                                            cut=int(self.model.vars['signal filter first cut']))
-            elif self.model.vars['signal filter type'] == 'Lowpass' and self.model.vars[
-                'signal filter first cut']:
-                df_s_ch = dpr.butter_filter(df_s_ch, order=int(self.model.vars['signal filter order']),
-                                            btype='lowpass',
-                                            cut=int(self.model.vars['signal filter first cut']))
-            elif self.model.vars['signal filter type'] == 'Bandstop' and self.model.vars[
-                'signal filter first cut'] and \
-                    self.model.vars['signal filter second cut']:
-                df_s_ch = dpr.butter_filter(df_s_ch, order=int(self.model.vars['signal filter order']),
-                                            btype='bandstop',
-                                            lowcut=int(
-                                                self.model.vars['signal filter first cut']),
-                                            highcut=int(
-                                                self.model.vars['signal filter second cut']))
-            elif self.model.vars['signal filter type'] == 'Bandpass' and self.model.vars[
-                'signal filter first cut'] and \
-                    self.model.vars['signal filter second cut']:
-                df_s_ch = dpr.butter_filter(df_s_ch, order=int(self.model.vars['signal filter order']),
-                                            btype='bandpass',
-                                            lowcut=int(
-                                                self.model.vars['signal filter first cut']),
-                                            highcut=int(
-                                                self.model.vars['signal filter second cut']))
-            if self.model.vars['signal harmonics ckbox']:
-                for h in harmonics:
-                    df_s_ch = dpr.butter_filter(df_s_ch,
-                                                order=int(self.model.vars['signal filter order']),
-                                                btype='bandstop', lowcut=h - 2,
-                                                highcut=h + 2)
-            
-            df_s[ch] = df_s_ch  # updating the dataframe for further processing
-
-            self.progress_queue.put(1)
-        return df_s
-    
-    def _fast_fourier_transform(self, df_s):
-        """
-        Applies Fast Fourier Transform (FFT) to each signal channel in the given dataframe.
-
-        Parameters
-        ----------
-        df_s : pandas.DataFrame
-            The dataframe containing signal data to be transformed using FFT.
-
-        Returns
-        -------
-        pandas.DataFrame
-            A dataframe containing the FFT results for each signal channel. The "Frequency [Hz]"
-            column is added to the dataframe along with the transformed signal data for each channel.
-
-        Notes
-        -----
-        This function applies FFT to each signal channel in the dataframe, excluding columns that match
-        the "except column" filter. The resulting FFT values are stored in a new dataframe (`df_s_fft`),
-        with the corresponding frequency values in the "Frequency [Hz]" column.
-
-        The FFT operation is performed using the `dpr.fast_fourier` function, with the sampling frequency
-        provided by the model's configuration (`signal fft sf`).
-        """
-        df_s_fft = pd.DataFrame()
-        for ch in [col for col in df_s.columns if self.model.vars["except column"] not in col]:
-            df_s_ch = df_s[ch]
-            # fast fourier
-            clean_fft, clean_freqs = dpr.fast_fourier(df_s_ch, int(self.model.vars['signal fft sf']))
-            if "Frequency [Hz]" not in df_s_fft.columns:
-                df_s_fft['Frequency [Hz]'] = clean_freqs
-            df_s_fft[ch] = clean_fft
-
-            self.progress_queue.put(1)
-        df_s = df_s_fft
-        
-        return df_s
-    
-    def _average_columns(self, df_s):
-        """
-        Average columns except the frequency column or teh 'exception column' provided in the UI.
-
-        Parameters
-        ----------
-        df_s : pandas.DataFrame
-            The dataframe containing signal data to be transformed using FFT.
-
-        Returns
-        -------
-
-        """
-        
-        if self.model.vars['signal fft']:
-            df_s = dpr.merge_all_columns_to_mean(df_s, "Frequency [Hz]").round(3)
-        else:
-            df_s = dpr.merge_all_columns_to_mean(df_s, self.model.vars["except column"]).round(3)
-        
-        self.progress_queue.put(1)
-        
-        return df_s
-    
-    def _linear_interpolation(self, df_s):
-        df_s_processed = pd.DataFrame()
-        if self.model.vars['signal interpolation ckbox']:
-            for ch in df_s.columns:
-                df_s_processed[ch] = fp.smoothing(df_s[ch], int(self.model.vars['signal interpolation']),
-                                                  'mean')
-            self.progress_queue.put(1)
-        else:
-            df_s_processed = df_s
-        
-        return df_s_processed
-    
-    def _save_individual_processed_file(self, file, df_s_processed, processing_basename):
-        """
-        Saves an individual processed dataframe to a CSV file with a constructed filename.
-
-        Parameters
-        ----------
-        file : str
-            The path to the original input file that was processed.
-
-        df_s_processed : pandas.DataFrame
-            The processed dataframe that will be saved to a CSV file.
-
-        Returns
-        -------
-        None
-            This function does not return any value. It saves the processed dataframe
-            to a CSV file at the location specified in the model's variables.
-
-        Notes
-        -----
-        The function constructs the output file's name by combining the original file's name
-        (without extension), the `processing_basename` list, and the `.csv` extension. The
-        resulting filename is used to save the processed dataframe to the specified directory
-        (from `self.model.vars['filename save under']`).
-
-        """
-        filename_constructor = []
-        filename = os.path.basename(file).split(".")[0]
-        
-        filename_constructor.append(filename)
-        filename_constructor.append("_".join(processing_basename))
-        filename_constructor.append(".csv")
-        df_s_processed.to_csv(
-            os.path.join(self.model.vars['filename save under'], '_'.join(filename_constructor)),
-            index=False)
-    
     def _basename_preparation(self):
         """
         Prepare the base name of the final file depending on UI values.
@@ -587,15 +246,15 @@ class ProcessingController:
             del value  # Free memory after yielding the list
             gc.collect()  # Force garbage collection
     
-    def _make_dataset(self, processing_basename, processed_files_to_make_dataset):
+    def _make_dataset(self, processing_basename, results):
         """
         Creates a dataset from the processed files by extracting signal data and
         corresponding labels, then saves the dataset to a CSV file.
 
         Parameters
         ----------
-        processing_basename : list[str]
-            A list of base names used to construct the processed dataset file's name.
+        results : dict
+            A dict of with base names used to construct the processed dataset file's name.
 
         processed_files_to_make_dataset : list[tuple]
             A list of tuples containing processed dataframes and their corresponding file paths.
@@ -615,30 +274,46 @@ class ProcessingController:
         CSV file whose name is constructed using the provided `processing_basename`.
 
         """
+        self.processing_progress.update_task("Making dataset...")
         local_vars = self.model.vars
+        # Get a sample dataframe to determine number of columns
+        first_df = next(iter(results.values()))[0][0]
+        num_cols = len(first_df.values)
         
-        first_df = processed_files_to_make_dataset[0][0]
-        dataset = pd.DataFrame(columns=[str(x) for x in range(len(first_df.values))])
-        targets = pd.DataFrame(columns=['label', ])
-        self.processing_progress.update_task("Making dataset")
-        for data in processed_files_to_make_dataset:
-            dataframe = data[0]
-            file = data[1]
-            for col in dataframe.columns:
-                if self.model.vars["except column"] not in col and "Frequency [Hz]" not in col:
+        # Prepare lists to accumulate dataset rows and target labels
+        dataset_rows = []
+        target_rows = []
+        for k, processed_files in results.items():
+            for data in processed_files:
+                dataframe, file = data[0], data[1]
+                # Filter the columns once for each dataframe iteration
+                valid_columns = [
+                    col for col in dataframe.columns
+                    if self.model.vars["except column"] not in col and "Frequency [Hz]" not in col
+                ]
+                for col in valid_columns:
                     signal = dataframe[col].values
-                    dataset.loc[len(dataset)] = signal
+                    dataset_rows.append(signal)
+                    # Iterate through targets and append a label if the key is found in file.
+                    # If only one target should be matched, consider breaking after a match.
                     for key_target, value_target in self.model.targets.items():
                         if key_target in file:
-                            targets.loc[len(targets)] = value_target
-            
+                            target_rows.append(value_target)
+                            break  # Uncomment this line if only one match is expected per signal
+                
             self.processing_progress.increment_progress(1)
-            del data
-            gc.collect()
+        self.processing_progress.update_task("Saving dataset...")
+        # Create DataFrames from the accumulated lists
+        dataset = pd.DataFrame(dataset_rows, columns=[str(x) for x in range(num_cols)])
+        # Assuming each row in dataset has a corresponding target
+        targets = pd.DataFrame(target_rows, columns=['label'])
         dataset['label'] = targets['label']
+        
         dataset.to_csv(
             os.path.join(local_vars['filename save under'], '_'.join(processing_basename) + '.csv'),
             index=False)
+        
+        self.processing_progress.increment_progress(1)
         messagebox.showinfo("Processing finished", "Processing finished")
     
 
@@ -964,19 +639,21 @@ class ProcessingController:
         filtering = int(local_vars['signal filter'])
         fft = int(local_vars['signal fft'])
         
-        concat_result = n_file * n_sample
+        concat_result = n_file #* n_sample
         
+        saving_dataset = 1
         
         file_level_tasks = mea + electrodes + sampling # performed only once per file
         sample_level_tasks = merge + interpolation # performed only once per sample (multiple times per file)
         column_level_tasks = filtering * n_col + fft * n_col # performed once per column (multiple times per sample)
         
         total_tasks = n_file * (file_level_tasks + n_sample * (sample_level_tasks + column_level_tasks))
-        print(make_dataset)
         print(total_tasks)
+        total_tasks = n_file
+        
         if make_dataset:
             
-            total_tasks += n_file * n_sample * 2
+            total_tasks += n_file + saving_dataset#  * n_sample  + concat_result
         
         # total_tasks = n_file if not make_dataset else n_file + 1
         print(n_file , "*(", file_level_tasks, "+", n_sample, "*(", sample_level_tasks, "+", column_level_tasks, ")) +", n_file, "*" , n_sample, "+", n_file, "= ",  total_tasks )

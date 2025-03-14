@@ -335,7 +335,7 @@ class LearningController:
         self.progress.update_task("Splitting")
 
         target_column = self.model.cbboxes["target column"]
-        
+        full_df[target_column] = full_df[target_column].astype(str)
         full_df = full_df[full_df[target_column].isin(self.model.targets)]
         full_df.reset_index(inplace=True, drop=True)
         y_full = full_df[target_column]
@@ -343,6 +343,7 @@ class LearningController:
         X_full = full_df.loc[:, full_df.columns != target_column]
         self.progress.increment_progress(1)
         
+        train_df[target_column] = train_df[target_column].astype(str)
         train_df = train_df[train_df[target_column].isin(self.model.targets)]
         train_df.reset_index(inplace=True, drop=True)
         y_train = train_df[target_column]
@@ -350,6 +351,7 @@ class LearningController:
         X_train = train_df.loc[:, train_df.columns != target_column]
         self.progress.increment_progress(1)
         
+        test_df[target_column] = test_df[target_column].astype(str)
         test_df = test_df[test_df[target_column].isin(self.model.targets)]
         test_df.reset_index(inplace=True, drop=True)
         y_test = test_df[target_column]
@@ -390,12 +392,11 @@ class LearningController:
                                          self.model.kfold,
                                          return_dict,
                                          self.queue)
-                worker.name = f"worker_{n_worker}"
                 worker.start()
                 self.workers_alive = True
                 all_workers.append(worker)
         
-        while any([w.is_alive()  for w in all_workers]) and self.progress.is_alive():
+        while any([w.is_alive()  for w in all_workers]) and self.progress.progress_window.winfo_exists():
             if not self.queue.empty():
                 self.progress.increment_progress(self.queue.get(timeout=1))
                 
@@ -474,7 +475,7 @@ class LearningController:
                 kcv = np.mean(all_cv_scores)
                 kfold_acc_diff = round(train_score - kcv, 3)
                 kfold_acc_relative_diff = round(kfold_acc_diff / train_score * 100, 2)
-                
+                print(kfold_acc_relative_diff, best_rel_cv, random_key, best_key)
                 best_key = random_key if kfold_acc_relative_diff < best_rel_cv else best_key
         
         if self.scoring == 'K-Fold CV accuracy':

@@ -42,6 +42,7 @@ class ProgressBar(threading.Thread, ):
         self.progress_label = ctk.CTkLabel(self.progress_window, textvariable=self.progress_stringvar)
         self.progress_label.place(anchor=tkinter.CENTER, relx=0.5, rely=0.5)
         
+        self.progress_window.protocol("WM_DELETE_WINDOW", self._on_cancel)
         self.cancel_button = ctk.CTkButton(master=self.progress_window, text="Cancel", fg_color='tomato', command=self._on_cancel)
         self.cancel_button.place(anchor=tkinter.CENTER, rely=0.9, relx=0.5)
         self.progress_window.focus_force()

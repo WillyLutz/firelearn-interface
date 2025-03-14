@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.signal import butter, freqz, filtfilt
 
 
-def butter_filter(signal, order, btype, lowcut=None, highcut=None, cut=None, fs=10000 ):
+def butter_filter(signal, order, btype, lowcut=None, highcut=None, cut=None, fs=None ):
     """
     Applies a Butterworth filter to a signal.
 
@@ -29,7 +29,7 @@ def butter_filter(signal, order, btype, lowcut=None, highcut=None, cut=None, fs=
     np.ndarray
         The filtered signal.
     """
-    
+    fs = int(fs)
     nyq = 0.5 * fs
     if cut:
         midcut = cut / nyq

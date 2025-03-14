@@ -40,7 +40,6 @@ class App(ctk.CTk):
         global usage_start_time
         usage_start_time = datetime.now()
         self.deiconify()
-        #
 
     def onClosure(self):
         usage_end_time = datetime.now()
