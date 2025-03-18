@@ -648,7 +648,6 @@ class ProcessingController:
         column_level_tasks = filtering * n_col + fft * n_col # performed once per column (multiple times per sample)
         
         total_tasks = n_file * (file_level_tasks + n_sample * (sample_level_tasks + column_level_tasks))
-        print(total_tasks)
         total_tasks = n_file
         
         if make_dataset:
@@ -656,7 +655,6 @@ class ProcessingController:
             total_tasks += n_file + saving_dataset#  * n_sample  + concat_result
         
         # total_tasks = n_file if not make_dataset else n_file + 1
-        print(n_file , "*(", file_level_tasks, "+", n_sample, "*(", sample_level_tasks, "+", column_level_tasks, ")) +", n_file, "*" , n_sample, "+", n_file, "= ",  total_tasks )
         return total_tasks
     
     def update_view_from_model(self, ):

@@ -1,4 +1,4 @@
-# FireLearn GUI v0.6.0-alpha: Walkthrough tutorial
+# FireLearn GUI v0.8.0-alpha: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 
 This README file will use the firelearnGUI_demo data set as example. The archive being too big to host on github,
@@ -6,23 +6,27 @@ the dataset can be sent via filesender link upon request by e-mail (at willy.lut
 in the object "Firelearn GUI demo dataset" . A filesender link to download the demo dataset 
 will then be sent to you.
 
-# v0.6.0 - What's new ?
+For more information on the features that have been developed, go to the [Versioning](#versioning) section. The latest 
+update is right below and not in the versioning section.
 
-* Spike detection
-  * **addition of spike detection feature**
-  * Enables load / save configs
-  * Enables multiprocessing
-  * Add violin plot
-  * Add random offset when plotting data points
-  * Add column selection for spikes
-  * Removing legend from spikes params
-  * Reworking add label for spikes
-  * Rework of spike detection GUI
-  * Autofill for index and label when adding data labels for spike detection
+# v0.8.0-alpha - What's new ?
+* File Processing
+  * CRITIC - bug fix where sampling frequency was not taken in account, and was always 10000 Hz.
+  * Fixing multiprocessing, where the last worker would get stuck without finishing and blocking progress.
+  
+* Learning
+  * Fixing cases where the targets are numbers (representation of numbers).
+  * Remove the use of ClfTester.
+  * Bug fix where the parameters in entries where considered as strings instead of their type
+  representation for RFC parameters.
+  * Update number of tasks.
+  * Use of multiprocessing along with queues (as for FileProcessing).
 * General
-  * Enlarging version compatibility when loading models
-  * Optimizing the closing of the app
-  * Add opening / usage / closing timers
+  * Cleaning requirements.txt
+
+* Known issues:
+  * The 'Cancel' button in the multiple progress bars is mostly broken.
+
 
 # Processing
 
@@ -362,13 +366,10 @@ For the demonstration, we split our previously computed dataset with a 0.7 ratio
 After loading the train and test datasets, it is needed to select the target/label column. In the next field, 
 add the targets you wish to train your RFC instance on.
 
-Tre `Train/test iteration` option allows to train the model multiple times, and return average metrics in the right
-panel 'METRICS', and save le last trained.
+The `scoring function` option allows to train the model multiple times, and return average metrics in the right
+panel 'METRICS', and save the best performing trained model according to the specified metrics. `Relative 
+K-Fold CV accuracy` is used as default.
 
-> <img src="data/help/yellow_warning.png" width="30" height="30">
-> 
-> In future versions, it will actually keep only the best performing model out of the n iterations,
-> instead of averaging results and returning the last trained.
 
 In our demonstration case, our label column is `label`, and we want to train our model on targets `targetA` 
 and `targetB`. 
@@ -412,8 +413,23 @@ In the demonstration case, we have the following metrics after fitting:
 at last, you can choose to save your trained RFC instance in order to use it later, such as when computing confusion 
 matrices. 
 
-
 For the demonstration purpose we save it as `MODELS/demo_classifier.rfc`
+
+#### Hyperparameter tuning
+On the bottom part of the middle panel, you will be able to check some parameters extracted from the classifier.
+You can specify whichever valid value in the entries by separating them by a coma. To know what kind a value a parameter
+can accept, please refer to the Random Forest documentation. 
+
+When some hyperparameters to tune are checked and specified, a training/testing cycle will be done for each parameter
+combination through an exhaustive parameter grid. 
+Also, the parameters that are not available on the automation will be taken from the classifier parameters on the
+left panel.
+
+> <img src="data/help/yellow_warning.png" width="30" height="30">
+>
+> Note that the more values you add, the longer the training will be.
+> Special Note : the n_estimator parameter can increase significantly the training time, the bigger is it.
+
 
 # Analysis
 > <img src="data/help/tip.png" width="30" height="30">
@@ -527,11 +543,11 @@ on all three of our targets A, B and C. After computing, we obtained a result si
 
 <img src="data/help/confusion_demo.png" width="300" >
 
-> <img src="data/help/red_warning.png" width="30" height="30">
+> <img src="data/help/tip.png" width="30" height="30">
 >
-> As of now, you can not choose the position of the columns and rows, and they will appear on
-> a basis of "first-encountered in the dataset, first-drawn" which can be highly inconvenient for readability purpose.
-> Note that this issue is in our priority list to fix for future versions.
+> As of version 0.8.0-alpha, you can now choose the position of the columns and rows, using a combobox text to the said 
+> targets. Note that two different targets can not have the same index. Also, if you wish to not show some targets 
+> (to uncheck some checkboxes), a new confusion computation will be required.
 
 ## Spike detection
 Allow the user to compute the number of spikes. 
@@ -563,8 +579,10 @@ You can then obtain figures as the following:
 <img src="data/help/spike_detection_bar_demo.png" width="300" >
 
 > <img src="data/help/tip.png" width="30" height="30">
->
-> Clicking the 'export' button allow you to export the computed data into a csv file.
+>  [BROKEN]
+> Clicking the 'export' button allow you to export the computed data into a csv file. 
+
+
 
 # Miscellaneous
 ## Plot customization toolbar
@@ -602,3 +620,63 @@ of the GitHub repository, and to use the in-place tags system to specify your po
 | Question         | Further information is requested           |
 | Wontfix          | This will not be worked on                 |
 
+
+# Versioning
+
+### v0.7.3-alpha
+* Analysis
+  * Enabling the index choice for confusion
+  * Change of spike detection return values, as now it returns also the indices of the detected spikes 
+  (export is modified accordingly).
+* Processing
+  * Change in queue behaviour for results and processing. Need fix for large processing
+### v0.7.2-alpha
+* File Processing
+  * Enabling multiprocessing for the ProcessingController.
+* General
+  * Better cleaning after closing app.
+  * Change threshold in progress bar for a 'finished' state from percentage to number of tasks completed.
+
+### v0.7.1-alpha
+* Separation of compatible version checking depending on the config type.
+
+# v0.7.0-alpha - What's new ?
+* Learning
+  * Fixing issues wit rfc params treated as str instead of type representation.
+  * Fixing version issues when reloading rfc default params.
+  * Fixing an issue when loading a new dataset in learning did not correctly clear the widgets causing a 
+  need to restart the application.
+  * Putting Learning as a separated thread.
+  * Enabling multiprocessing while learning.
+  * Adding the possibility to Cancel Processing safely (only for learning now) on the progress bar top level [broken].
+### v0.6.2-alpha
+* Learning
+  * Allow learning without specifying a save path (the model is then not saved on the system).
+  * Add scoring options.
+  * Add more hyperparameters to optimize.
+  * Refactoring and docstring updates.
+### v0.6.1-alpha
+* Learning
+  * **Add hyperparameters optimization through exhaustive grid search**.
+  * Set class_weight in RFC to 'balanced' by default.
+  * When loading a full dataset or after splitting, autofill the train/test dataset based on file name if they are 
+  found in the same folder or as children.
+  * Disabling export function (broken).
+
+## v0.6.0-alpha - What's new ?
+
+* Spike detection
+  * **addition of spike detection feature**
+  * Enables load / save configs
+  * Enables multiprocessing
+  * Add violin plot
+  * Add random offset when plotting data points
+  * Add column selection for spikes
+  * Removing legend from spikes params
+  * Reworking add label for spikes
+  * Rework of spike detection GUI
+  * Autofill for index and label when adding data labels for spike detection
+* General
+  * Enlarging version compatibility when loading models
+  * Optimizing the closing of the app
+  * Add opening / usage / closing timers

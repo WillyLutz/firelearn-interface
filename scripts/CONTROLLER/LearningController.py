@@ -403,19 +403,15 @@ class LearningController:
                              ]
 
             for p in all_processes:
-                print("creating ", p)
+                print("Creating ", p)
                 p.start()
 
-            for p in all_processes:
-                print("starting", p)
             results = {}
             finished_workers = 0
-            print("entering while loop")
             # while not self.progress_queue.empty():
             #     self.learning_progress.increment_progress(self.progress_queue.get_nowait())
 
             while finished_workers != len(all_processes) and self.learning_progress.progress_window.winfo_exists():
-                print("while loop iteration")
                 are_alive = []
                 for w in all_processes:
                     if w.is_alive():
@@ -423,15 +419,12 @@ class LearningController:
                 print("Workers alive: ", [w.name for w in are_alive])
 
                 try:
-                    print('in loop')
                     while not self.progress_queue.empty():
                         self.learning_progress.increment_progress(self.progress_queue.get())
                 except Empty:
-                    print("controller learning queue is empty")
                     pass
 
                 try:
-                    print("learning controller progress queue size", self.progress_queue.qsize())
                     result = self.result_queue.get()  # Use get_nowait() to avoid blocking
                     if type(result) == str:  # A Worker finished ! joining it
                         finished_workers += 1
@@ -443,7 +436,6 @@ class LearningController:
                         results[random_key] = formatted_metrics  # Store results dynamically
                 except Empty:
                     # No progress item was available; just continue looping.
-                    print("controller result queue is empty")
                     pass
 
             self.learning_progress.update_task("Finishing distributed learning...")
@@ -542,7 +534,6 @@ class LearningController:
                 kcv = np.mean(all_cv_scores)
                 kfold_acc_diff = round(train_score - kcv, 3)
                 kfold_acc_relative_diff = round(kfold_acc_diff / train_score * 100, 2)
-                print(kfold_acc_relative_diff, best_rel_cv, random_key, best_key)
                 best_key = random_key if kfold_acc_relative_diff < best_rel_cv else best_key
                 best_rel_cv = kfold_acc_relative_diff if kfold_acc_relative_diff < best_rel_cv else best_rel_cv
         

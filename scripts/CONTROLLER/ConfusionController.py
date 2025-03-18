@@ -240,10 +240,7 @@ class ConfusionController:
             plot_index = int(self.view.vars[f"test label {t} index"].get())
             compute_index = t
             compute_test_index_to_plot_index[compute_index] = plot_index
-        
-        print(compute_train_index_to_plot_index)
-        print(compute_test_index_to_plot_index)
-        print(self.TRAIN_CORRESPONDENCE, self.TEST_CORRESPONDENCE)
+
 
         if not has_unique_second_elements(compute_train_index_to_plot_index) or not has_unique_second_elements(self.TRAIN_CORRESPONDENCE):
             messagebox.showerror('Unique Values', 'You can not have multiple training targets having the same index.')

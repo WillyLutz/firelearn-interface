@@ -275,17 +275,25 @@ class SpikeController:
         self.model.spike_params["all_spikes_count"] = all_spikes_count
         self.model.spike_params["all_spikes_index"] = all_spikes_indices
         self.model.spike_params["samples_per_target"] = samples_per_target
-        
-    
+
+        self.draw_figure()
+
+    def check_thread_status(self, thread):
+        if thread.is_alive():
+            self.view.app.after(500, self.check_thread_status, thread)  # Check again after 500ms
+        else:
+            print("Thread finished!")  # Do any post-processing here
+
     def compute_spikes(self):
+        # thread = threading.Thread(target=self.compute_spike_thread, daemon=True)
         if self.check_params_validity():
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, ]:
                 self.update_params(widgets)
-            
             self.compute_spike_thread()
-            self.draw_figure()
-            
+            # thread.start()
+            # self.view.app.after(500, self.check_thread_status, thread)  # Check if thread is done
+
        
     def check_plot_params_validity(self):
         """
@@ -366,10 +374,6 @@ class SpikeController:
                            color=self.model.vars[f"color {n_label}"],)
 
                 elif self.model.cbboxes[f"plot type"] == "violin":
-                    print(all_spikes)
-                    print(label_order)
-                    print(color_dict)
-                    print(n_label)
                     sns.violinplot({k: v for k, v in all_spikes.items() if k in label_order}, order=label_order, ax=ax, palette=color_dict)
                 
             for n_label in range(self.model.n_labels + 1):
@@ -950,7 +954,7 @@ class SpikeController:
                 
     def export_data(self):
         """
-        Exports the spike detection data to a CSV file.
+        Exports the spike detection data to two CSV file.
 
         This method allows the user to save the spike detection data contained in `self.model.spike_params["all_spikes_count"]` and
         `self.model.spike_params["all_spikes_index"]` to a CSV file. It prompts the user to choose a file location and name, and then exports the data as a CSV file.
@@ -981,7 +985,7 @@ class SpikeController:
                                              filetypes=[("Table", "*.csv"), ],
                                              initialfile="spike_detection_export")
             df_count = pd.DataFrame.from_dict(self.model.spike_params["all_spikes_count"], orient="index").transpose()
-            
+
             if '.csv' not in f:
                 f += '_count.csv'
             else:
@@ -995,12 +999,12 @@ class SpikeController:
         
         try:
             df_index = pd.DataFrame.from_dict(self.model.spike_params["all_spikes_index"], orient="index").transpose()
-            
+
             f = f.replace('_count.csv', '_index.csv')
-            df_index.to_csv(f+"_index", index=False)
+            df_index.to_csv(f, index=False)
             
         except Exception as e:
-            messagebox.showerror("", "An error has occurred while saving count.")
+            messagebox.showerror("", "An error has occurred while saving index.")
             print(e)
             is_error = True
             

@@ -46,9 +46,6 @@ class SpikeDetectorProcess(Process):
                 
                 if len(detected_indices) > 0:
                     for d in detected_indices:
-                        print(d)
-                        print(self.columns)
-                        print(self.detected_spikes)
                         self.detected_spikes[self.columns[i_col]].append(d)
                 else:
                     pass
