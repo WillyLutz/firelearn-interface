@@ -4,6 +4,7 @@ import tkinter as tk
 from itertools import product
 from multiprocessing import Queue
 import multiprocessing
+from queue import Empty
 from random import shuffle
 from threading import Thread
 from tkinter import ttk, filedialog, messagebox
@@ -17,7 +18,6 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from scripts.CONTROLLER import input_validation as ival
 from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.CONTROLLER.input_validation import convert_to_type
-from scripts.MODEL.ClfTester import ClfTester
 from scripts.MODEL.LearningModel import LearningModel
 from scripts.CONTROLLER.MainController import MainController
 from scripts.PROCESSES.LearningProcess import LearningProcess
@@ -31,42 +31,18 @@ class LearningController:
         self.view = view
         self.view.controller = self  # set controller
 
-        self.progress = None
-        self.queue = Queue()
+        self.params_combination_queue = None
+        self.learning_progress = None
+        self.progress_queue = None
+        self.result_queue = None
+
         self.scoring = 'Relative K-Fold CV accuracy' # todo : add option for optimization metric
         
         self.workers_alive = False
         self.cancelled = False
         
     
-    @staticmethod
-    def _convert_list_elements(lst):
-        """
-        Converts a list of string elements into their appropriate types (e.g., None, int, float, or string).
 
-        Parameters
-        ----------
-        lst : list
-            List of elements to be converted.
-
-        Returns
-        -------
-        list
-            List of converted elements.
-        """
-        
-        def convert(value):
-            if value.lower() == "none":
-                return None
-            elif value.isdigit():
-                return int(value)
-            try:
-                return float(value)
-            except ValueError:
-                return value  # Return as string if not None, int, or float
-        
-        return [convert(item) for item in lst]
-    
     @staticmethod
     def _label_encoding(y):
         """
@@ -164,6 +140,8 @@ class LearningController:
             filename = autoload
         strvar = self.view.vars["load train dataset"]
         label_cbbox = self.view.cbboxes["target column"]
+
+
         if filename:
             strvar.set(filename)
             self.model.train_dataset_path = filename
@@ -306,33 +284,55 @@ class LearningController:
             indiv_values = [val.strip() for val in values.split(',')]
             
             # check for 'None' values as string and replace them by actual None
-            indiv_values = self._convert_list_elements(indiv_values)
-                    
-            param_grid[param] = indiv_values
+            # indiv_values = self._convert_list_elements(indiv_values)
+            converted_indiv_values = [ival.convert_to_type(value) for value in indiv_values]
+
+            param_grid[param] = converted_indiv_values
             
         for k, v in rfc_params.items():  # params with a single value
             if k not in param_grid.keys():
                 param_grid[k] = [v, ]
         return param_grid
-        
+
+    def update_total_tasks(self, num_combinations):
+        loading = 1
+        splitting = 3
+
+        training = 3
+        testing = 2
+        params_done = 1
+        k_fold = 1
+        format_metrics = 1
+        per_worker = training + testing + k_fold + format_metrics + params_done
+
+        learning = num_combinations  # per_worker*num_combinations
+
+        terminate_workers = 1
+        best_perf = 1
+        finishing_display = 1
+        saving_model = 1 if self.view.vars["save rfc"].get() else 0
+        post_learning = terminate_workers + best_perf + finishing_display + saving_model
+
+        total_tasks = loading + splitting + learning + post_learning
+
+        return total_tasks
+
     def _learning_process(self):
         param_grid = self._get_param_grid_search()
         num_combinations = len(list(product(*param_grid.values())))
-        
-        self.progress = ProgressBar("Learning", self.view.app)
-        self.progress.daemon = True
-        # self.progress.total_tasks = 1 + 1 + 2 * int(self.view.vars["n iter"].get())
-        # loading dataset + splitting + n_comb_opti*(train + test) + finishing
-        self.progress.total_tasks = 1 + 3 + num_combinations * 1 + 1
-        self.progress.start()
-        self.progress.update_task("Loading dataset")
+
+        self.learning_progress = ProgressBar("Learning", self.view.app)
+        self.learning_progress.daemon = True
+        self.learning_progress.total_tasks = self.update_total_tasks(num_combinations)
+        self.learning_progress.start()
+        self.learning_progress.update_task("Loading dataset")
         
         full_df = pd.read_csv(self.model.full_dataset_path, index_col=False)
         train_df = pd.read_csv(self.model.train_dataset_path, index_col=False)
         test_df = pd.read_csv(self.model.test_dataset_path, index_col=False)
         
-        self.progress.increment_progress(1)
-        self.progress.update_task("Splitting")
+        self.learning_progress.increment_progress(1)
+        self.learning_progress.update_task("Splitting")
 
         target_column = self.model.cbboxes["target column"]
         full_df[target_column] = full_df[target_column].astype(str)
@@ -341,7 +341,7 @@ class LearningController:
         y_full = full_df[target_column]
         y_full = self._label_encoding(y_full)
         X_full = full_df.loc[:, full_df.columns != target_column]
-        self.progress.increment_progress(1)
+        self.learning_progress.increment_progress(1)
         
         train_df[target_column] = train_df[target_column].astype(str)
         train_df = train_df[train_df[target_column].isin(self.model.targets)]
@@ -349,7 +349,7 @@ class LearningController:
         y_train = train_df[target_column]
         y_train = self._label_encoding(y_train)
         X_train = train_df.loc[:, train_df.columns != target_column]
-        self.progress.increment_progress(1)
+        self.learning_progress.increment_progress(1)
         
         test_df[target_column] = test_df[target_column].astype(str)
         test_df = test_df[test_df[target_column].isin(self.model.targets)]
@@ -358,73 +358,140 @@ class LearningController:
         y_test = self._label_encoding(y_test)
         X_test = test_df.loc[:, test_df.columns != target_column]
         
-        self.progress.increment_progress(1)
-        self.progress.update_task("Distributed learning")
+        self.learning_progress.increment_progress(1)
+        self.learning_progress.update_task("Distributed learning")
+
         all_params_grid = ParameterGrid(param_grid)
+        converted_all_params_grid = []
+        for p_grid in all_params_grid:
+            converted_p_grid = ival.convert_dict_values_from_str(p_grid)
+            converted_all_params_grid.append(converted_p_grid)
+
+        all_params_grid_list = converted_all_params_grid
         n_cpu = multiprocessing.cpu_count()
         n_workers = 1
-        if  len(all_params_grid) > int(0.7*n_cpu):
+        if len(all_params_grid) > int(0.7*n_cpu):
             n_workers = 1 if int(0.7*n_cpu) == 0 else int(0.7*n_cpu)
         elif len(all_params_grid) < int(0.7*multiprocessing.cpu_count()):
             n_workers = len(all_params_grid)
-        worker_ranges = np.linspace(0, len(all_params_grid), n_workers + 1).astype(int)
-        all_workers = []
-        manager = multiprocessing.Manager()
-        return_dict = manager.dict() # of the shape {"param combination": [cv_scores, train_score, test_score], ...}
 
-        all_params_grid_list = list(all_params_grid)
+
         shuffle(all_params_grid_list)
-        for n_worker in range(n_workers):
-            low_index = worker_ranges[n_worker]
-            high_index = worker_ranges[n_worker + 1]
-            
-            worker_param_grid = all_params_grid_list[low_index:high_index]
-            if high_index > low_index:  # so no workers have empty params
-                for p_grid in worker_param_grid:
-                    for k, v in p_grid.items():
-                        p_grid[k] = convert_to_type(v)
-                    
-                worker = LearningProcess(worker_param_grid,
-                                         X_train, y_train,
-                                         X_test, y_test,
-                                         X_full, y_full,
-                                         self.model.enable_kfold,
-                                         self.model.kfold,
-                                         return_dict,
-                                         self.queue)
-                worker.start()
-                self.workers_alive = True
-                all_workers.append(worker)
-        
-        while any([w.is_alive()  for w in all_workers]) and self.progress.progress_window.winfo_exists():
-            if not self.queue.empty():
-                self.progress.increment_progress(self.queue.get(timeout=1))
-                
-        self.cancelled = True if any([w.is_alive()  for w in all_workers]) and not self.progress.is_alive() else False
-        
-        self.progress.update_task("Formatting results")
-        for worker in all_workers:
-            worker.join(timeout=5)
-            if worker.is_alive():
-                worker.terminate()
-        if self.cancelled:
-            messagebox.showinfo("Cancel Learning", "All workers properly terminated.")
+        with multiprocessing.Manager() as manager:
+            self.params_combination_queue = multiprocessing.Queue()
+            self.progress_queue = multiprocessing.Queue()
+            self.result_queue = multiprocessing.Queue()
+
+            # populate the queue with parameters combinations to test
+            for combination in all_params_grid_list:
+                self.params_combination_queue.put(combination)
+
+                # add sentinel values
+            for _ in range(n_workers):
+                self.params_combination_queue.put(None)
+
+            all_processes = [LearningProcess(self.params_combination_queue,
+                                             self.result_queue,
+                                             self.progress_queue,
+                                             X_train, y_train,
+                                             X_test, y_test,
+                                             X_full, y_full,
+                                             self.model.enable_kfold,
+                                             self.model.kfold,
+                                             )
+                             for _ in range(n_workers)
+                             ]
+
+            for p in all_processes:
+                print("creating ", p)
+                p.start()
+
+            for p in all_processes:
+                print("starting", p)
+            results = {}
+            finished_workers = 0
+            print("entering while loop")
+            # while not self.progress_queue.empty():
+            #     self.learning_progress.increment_progress(self.progress_queue.get_nowait())
+
+            while finished_workers != len(all_processes) and self.learning_progress.progress_window.winfo_exists():
+                print("while loop iteration")
+                are_alive = []
+                for w in all_processes:
+                    if w.is_alive():
+                        are_alive.append(w)
+                print("Workers alive: ", [w.name for w in are_alive])
+
+                try:
+                    print('in loop')
+                    while not self.progress_queue.empty():
+                        self.learning_progress.increment_progress(self.progress_queue.get())
+                except Empty:
+                    print("controller learning queue is empty")
+                    pass
+
+                try:
+                    print("learning controller progress queue size", self.progress_queue.qsize())
+                    result = self.result_queue.get()  # Use get_nowait() to avoid blocking
+                    if type(result) == str:  # A Worker finished ! joining it
+                        finished_workers += 1
+                        print("Worker finishing", result, "finished workers:", finished_workers)
+
+                    else:
+
+                        random_key, formatted_metrics = result
+                        results[random_key] = formatted_metrics  # Store results dynamically
+                except Empty:
+                    # No progress item was available; just continue looping.
+                    print("controller result queue is empty")
+                    pass
+
+            self.learning_progress.update_task("Finishing distributed learning...")
+
+            while not self.progress_queue.empty():
+                self.learning_progress.increment_progress(self.progress_queue.get_nowait())
+
+            while not self.result_queue.empty():
+                random_key, formatted_metrics = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+                results[random_key] = formatted_metrics  # Store results dynamically
+
+            self.cancelled = True if any(
+                [w.is_alive() for w in all_processes]) and not self.learning_progress.is_alive() else False
+
+            self.learning_progress.update_task("Terminating workers...")
+            for worker in all_processes:
+                print("joining ", worker.name)
+                worker.join(timeout=5)
+                if worker.is_alive():
+                    worker.terminate()
+
+            if self.cancelled:
+                messagebox.showinfo("Cancel Learning", "All workers properly terminated.")
+            else:
+                print("All workers properly terminated.")
+
             self.workers_alive = False
             self.cancelled = False
-            
-        all_param_combinations = dict(return_dict.items())
-        best_key = self._get_best_performing_combination(all_param_combinations)
+
+        self.learning_progress.increment_progress(1)
+
+        self.learning_progress.update_task("Getting best performing combination...")
+        best_key = self._get_best_performing_combination(results)
+        self.learning_progress.increment_progress(1)
         # MainController.update_textbox(self.model.textboxes)
 
         metrics_text_elements = []
         metrics_text_elements = self._learning_display_computed_metrics(best_key,
                                                                         metrics_text_elements,
-                                                                        all_param_combinations)
+                                                                        results)
 
         self._update_metrics_textbox(metrics_text_elements)
         if self.view.vars["save rfc"].get():
-            MainController.save_object(all_param_combinations[best_key][4], self.view.vars["save rfc"].get())
-        self.progress.increment_progress(1)
+            self.learning_progress.update_task("Saving best performing model...")
+
+            MainController.save_object(results[best_key][4], self.view.vars["save rfc"].get())
+            self.learning_progress.increment_progress(1)
+        self.learning_progress.increment_progress(1)
         self.workers_alive = False
 
         
@@ -477,6 +544,7 @@ class LearningController:
                 kfold_acc_relative_diff = round(kfold_acc_diff / train_score * 100, 2)
                 print(kfold_acc_relative_diff, best_rel_cv, random_key, best_key)
                 best_key = random_key if kfold_acc_relative_diff < best_rel_cv else best_key
+                best_rel_cv = kfold_acc_relative_diff if kfold_acc_relative_diff < best_rel_cv else best_rel_cv
         
         if self.scoring == 'K-Fold CV accuracy':
             best_cv = 0
@@ -484,17 +552,21 @@ class LearningController:
                 all_cv_scores = metrics[1]
                 kcv = np.mean(all_cv_scores)
                 best_key = random_key if kcv > best_cv else best_key
+                best_cv = kcv if kcv > best_cv else best_cv
                 
         if self.scoring == 'Training accuracy':
             best_acc = 0
             for random_key, metrics in all_params_combination.items():
                 train_score = metrics[2]
                 best_key = random_key if train_score > best_acc else best_key
+                best_acc = train_score if train_score > best_acc else best_acc
         if self.scoring == 'Testing accuracy':
             best_acc = 0
             for random_key, metrics in all_params_combination.items():
                 test_score = metrics[3]
                 best_key = random_key if test_score > best_acc else best_key
+                best_acc = test_score if test_score > best_acc else best_acc
+
         
         return best_key
     

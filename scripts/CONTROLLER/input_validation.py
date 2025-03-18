@@ -202,3 +202,13 @@ def convert_to_type(value: str):
     except (ValueError, SyntaxError):
         # If literal_eval fails, return the original string
         return value
+
+
+def convert_dict_values_from_str(dct: dict):
+    converted = {}
+    for k, v in dct.items():
+        if isinstance(v, str):
+            converted[k] = convert_to_type(v)
+        else:
+            converted[k] = v
+    return converted

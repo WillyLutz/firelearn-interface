@@ -47,7 +47,7 @@ class ClfTester:
         self.test_metrics = self.test_classifier(X_test, y_test)
         self.test_acc = self.accuracy_computation(self.test_metrics)
 
-    def train(self, X, y):
+    def train(self, X, y, progress_queue):
         labels = list(set(list(y)))
 
         for label in labels:
@@ -55,16 +55,31 @@ class ClfTester:
 
         if not self.trained:
             self.clf.fit(np.array(X), np.array(y))
-            self.train_metrics = self.test_classifier(X, y)
-            self.train_acc = self.accuracy_computation(self.train_metrics)
+            progress_queue.put(1, timeout=1)
+            print("clf tester put item in queue", progress_queue.qsize())
 
-    def test(self, X, y):
+            self.train_metrics = self.test_classifier(X, y)
+            progress_queue.put(1, timeout=1)
+            print("clf tester put item in queue", progress_queue.qsize())
+
+
+            self.train_acc = self.accuracy_computation(self.train_metrics)
+            progress_queue.put(1, timeout=1)
+            print("clf tester put item in queue", progress_queue.qsize())
+
+
+    def test(self, X, y, progress_queue):
         labels = list(set(list(y)))
         for label in labels:
             self.test_metrics[label] = {"true": [], "false": []}
 
         self.test_metrics = self.test_classifier(X, y)
+        progress_queue.put(1, timeout=1)
+        print("clf tester put item in queue", progress_queue.qsize())
+
         self.test_acc = self.accuracy_computation(self.test_metrics)
+        progress_queue.put(1)
+        print("clf tester put item in queue", progress_queue.qsize())
 
     def test_classifier(self, X, y):
         labels = list(set(list(y)))
@@ -84,6 +99,7 @@ class ClfTester:
                 metrics[y_true][0].append(y_proba)
             else:
                 metrics[y_pred][1].append(y_proba)
+            # self.progress_queue.put(1, timeout=1)
 
         return metrics
 
