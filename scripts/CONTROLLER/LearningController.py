@@ -1,3 +1,4 @@
+import datetime
 import os
 import pickle
 import tkinter as tk
@@ -416,7 +417,7 @@ class LearningController:
                 for w in all_processes:
                     if w.is_alive():
                         are_alive.append(w)
-                print("Workers alive: ", [w.name for w in are_alive])
+                print(datetime.datetime.now(), "Workers alive: ", [w.name for w in are_alive])
 
                 try:
                     while not self.progress_queue.empty():
@@ -496,18 +497,26 @@ class LearningController:
         -------
         None
         """
+        start_learning = datetime.datetime.now()
         if self._check_params_validity():
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, ]:
                 self._update_params(widgets)
             self._update_rfc_params(self.view.rfc_params_stringvar)
             
-            thread = Thread(target=self._learning_process, daemon=True)
-            thread.start()
-            # self._learning_process()
+            # thread = Thread(target=self._learning_process, daemon=True)
+            # thread.start()
+            self._learning_process()
+            end_learning = datetime.datetime.now()
+            print("Learning time: ", end_learning-start_learning)
             
-
-            
+    @staticmethod
+    def _compute_trust_score(train_score, test_score, all_cv_scores):
+        kcv = np.mean(all_cv_scores)
+        kcv_std = np.std(all_cv_scores)
+        kfold_acc_diff = round(train_score - kcv, 3)
+        kfold_acc_relative_diff = round(kfold_acc_diff / train_score * 100, 2)
+        return (test_score*kfold_acc_relative_diff)/(1+np.abs(train_score-test_score)+kcv_std)
         
     def _get_best_performing_combination(self,all_params_combination):
         """
@@ -525,6 +534,22 @@ class LearningController:
             The key of the best performing model.
         """
         best_key = ''
+        
+        if self.scoring == "Trust score":
+            best_trust = 0
+            for random_key, metrics in all_params_combination.items():
+                all_cv_scores = metrics[1]
+                train_score = metrics[2]
+                test_score = metrics[3]
+                trust = self._compute_trust_score(train_score=train_score,
+                                                  test_score=test_score,
+                                                  all_cv_scores=all_cv_scores)
+                
+                best_key = random_key if trust > best_trust else best_key
+                best_trust = max(trust, best_trust)
+                
+                print(trust, metrics)
+                
         if self.scoring == 'Relative K-Fold CV accuracy':
             best_rel_cv = 100
             for random_key, metrics in all_params_combination.items():
@@ -606,6 +631,12 @@ class LearningController:
             metrics_text_elements.append(f"{self.model.kfold}-fold Cross Validation: {kcv}")
             metrics_text_elements.append(f"KFold-Accuracy difference = {acc}-{kcv} = {kcv_acc_diff}\n")
             metrics_text_elements.append(f"KFold-Accuracy relative difference: {kcv_acc_relative_diff} %\n")
+            
+            all_cv_scores = all_param_combinations[best_key][1]
+            train_score = all_param_combinations[best_key][2]
+            test_score = all_param_combinations[best_key][3]
+            trust_score = self._compute_trust_score(train_score=train_score,test_score=test_score,all_cv_scores=all_cv_scores)
+            metrics_text_elements.append(f"Trust score: {round(trust_score, 3)}")
         
         metrics_text_elements.append("")
         for param, value in all_param_combinations[best_key][0].items():

@@ -172,9 +172,9 @@ class LearningView(ctk.CTkFrame):
 
         # row separator 24
         scoring_label = ctk.CTkLabel(master=dataset_frame, text="Scoring function:")
-        scoring_sv = tk.StringVar(value="Relative K-Fold CV accuracy")
+        scoring_sv = tk.StringVar(value="Trust score")
         scoring_cbbox = tk.ttk.Combobox(master=dataset_frame, textvariable=scoring_sv,
-                                        values=["Relative K-Fold CV accuracy", "K-Fold CV accuracy",
+                                        values=["Trust score", "Relative K-Fold CV accuracy", "K-Fold CV accuracy",
                                                 "Training accuracy", "Testing accuracy"],
                                         state='readonly')
         # row separator 26

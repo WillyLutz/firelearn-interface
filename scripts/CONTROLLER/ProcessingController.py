@@ -915,17 +915,23 @@ class ProcessingController:
         if self.view.vars['filename save under'].get() == '':
             filename_errors.append('You have to select a directory where to save your file.')
         elif os.path.isdir(self.view.vars['filename save under'].get()) is False:
-            filename_errors.append(f"The selected path {self.view.vars['filename save under'].get()} does not exist.")
+            filename_errors.append(f"The selected path {self.view.vars['filename save under'].get()} is not a directory.")
         
         if self.view.vars['filename keyword ckbox'].get():
             if not self.view.vars['filename keyword'].get():
                 filename_errors.append("Keyword needed.")
         
-        for key, entry in self.view.entries.items():
-            if type(entry) == ErrEntry:
-                if entry.error_message.get() != '':
-                    filename_errors.append(f"{key} : {entry.error_message.get()}")
-                    
+        # for key, entry in self.view.entries.items():
+        #     if type(entry) == ErrEntry:
+        #         if entry.error_message.get() != '':
+        #             filename_errors.append(f"{key} : {entry.error_message.get()}")
+        
+        # forbidden characters
+        for entry in ["filename keyword", ]:
+            fc = self.view.parent_view.has_forbidden_characters(self.view.entries[entry])
+            if not fc:
+                filename_errors.append(f"entry {entry} (\"{self.view.entries[entry].get()}\") contains forbidden characters")
+            
         if self.view.vars['filename make dataset'].get():
             if not gates.AND(
                     [self.view.vars['signal average'].get(), self.view.vars['filesorter multiple'].get()]):

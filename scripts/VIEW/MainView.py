@@ -32,13 +32,13 @@ class MainView(ttk.Frame):
 
         # ------------ MENU ----------------------------
         self.menu_bar = tk.Menu(self.app)
-        self.load_config_menu = tk.Menu(self.app)
-        self.save_config_menu = tk.Menu(self.app)
+        self.load_config_menu = tk.Menu(self.app, tearoff=0)
+        self.save_config_menu = tk.Menu(self.app, tearoff=0)
 
-        self.load_learning_menu = tk.Menu(self.app)
-        self.load_analysis_menu = tk.Menu(self.app)
-        self.save_learning_menu = tk.Menu(self.app)
-        self.save_analysis_menu = tk.Menu(self.app)
+        self.load_learning_menu = tk.Menu(self.app, tearoff=0)
+        self.load_analysis_menu = tk.Menu(self.app, tearoff=0)
+        self.save_learning_menu = tk.Menu(self.app, tearoff=0)
+        self.save_analysis_menu = tk.Menu(self.app, tearoff=0)
         
         self.menu_file = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_file.add_cascade(label="Open configuration", menu=self.load_config_menu)
@@ -222,9 +222,10 @@ class MainView(ttk.Frame):
         forbidden_characters = "<>:\"|?*[]\\/§"
         found_forbidden = []
         value = widget.get()
-        for fc in forbidden_characters:
-            if fc in value:
-                found_forbidden.append(fc)
+        if value != '':
+            for fc in forbidden_characters:
+                if fc in value:
+                    found_forbidden.append(fc)
         if found_forbidden:
             self.change_entry_color(widget, 'tomato')
             widget.set_error(f'Value can not contain forbidden characters {forbidden_characters}')
@@ -238,7 +239,6 @@ class MainView(ttk.Frame):
         
     def is_valid_directory(self, widget, *args):
         value = widget.get()
-
         if pathlib.Path.exists(pathlib.Path(value)):
             self.change_entry_color(widget, self.theme["CTkEntry"]["text_color"])
             widget.set_error('')

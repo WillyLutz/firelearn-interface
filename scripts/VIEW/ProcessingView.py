@@ -1150,17 +1150,17 @@ class ProcessingView(ctk.CTkFrame):
         save_exec_button.configure(command=partial(self.select_save_directory, save_exec_sv))
         
         # ---- ENTRY VALIDATION
-        save_entry.configure(validate='focus',
-                             validatecommand=(
-                                 self.register(partial(self.parent_view.is_valid_directory, save_entry)), '%P'))
-        keyword_entry.configure(validate='focus',
-                                validatecommand=(
-                                    self.register(partial(self.parent_view.has_forbidden_characters, keyword_entry)),
-                                    '%P'))
-        filename_entry.configure(validate='focus',
-                                 validatecommand=(
-                                     self.register(partial(self.parent_view.has_forbidden_characters, filename_entry)),
-                                     '%P'))
+        # save_entry.configure(validate='all',
+        #                      validatecommand=(
+        #                          self.register(partial(self.parent_view.is_valid_directory, save_entry)), '%P'))
+        # keyword_entry.configure(validate='all',
+        #                         validatecommand=(
+        #                             self.register(partial(self.parent_view.has_forbidden_characters, keyword_entry)),
+        #                             '%P'))
+        # filename_entry.configure(validate='all',
+        #                          validatecommand=(
+        #                              self.register(partial(self.parent_view.has_forbidden_characters, filename_entry)),
+        #                              '%P'))
     
     def show_filesorter_frame(self, *args):
         self.select_check_processing_step("filesorter")

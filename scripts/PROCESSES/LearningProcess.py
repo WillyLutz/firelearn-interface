@@ -56,7 +56,6 @@ class LearningProcess(Process):
 
                 self.result_queue.put((random_key, result), timeout=10)
                 self.progress_queue.put(1)
-                print("process put item in queue", self.progress_queue.qsize())
                 print(f"Worker {self.name} DONE - params queue size: {self.params_queue.qsize()}")
             except Exception as e:
                 print(f"Worker {self.name} encountered an error. Terminating. {e}")
@@ -83,7 +82,6 @@ class LearningProcess(Process):
         if self.enable_kfold:
             cv_scores = cross_val_score(rfc, self.X_full, self.y_full, cv=int(self.kfold))
         # self.progress_queue.put(1)
-        print("process put item in queue", self.progress_queue.qsize())
 
         formatted_metrics = (param_combination, cv_scores, self.train_acc, self.test_acc, rfc)
 
@@ -91,7 +89,6 @@ class LearningProcess(Process):
         key_str = f"{self.name}-{self.iter}-{random_str}"
         self.iter += 1
         # self.progress_queue.put(1)
-        print("process put item in queue", self.progress_queue.qsize())
 
         return key_str, formatted_metrics
 
@@ -103,15 +100,12 @@ class LearningProcess(Process):
 
         clf.fit(np.array(X), np.array(y))
         # self.progress_queue.put(1)
-        print("clf tester put item in queue", self.progress_queue.qsize())
 
         self.train_metrics = self.test_classifier(X, y, clf)
         # self.progress_queue.put(1)
-        print("clf tester put item in queue", self.progress_queue.qsize())
 
         self.train_acc = self.accuracy_computation(self.train_metrics)
         # self.progress_queue.put(1)
-        print("clf tester put item in queue", self.progress_queue.qsize())
 
         return clf
 
@@ -122,11 +116,9 @@ class LearningProcess(Process):
 
         self.test_metrics = self.test_classifier(X, y, clf)
         # self.progress_queue.put(1)
-        print("clf tester put item in queue", self.progress_queue.qsize())
 
         self.test_acc = self.accuracy_computation(self.test_metrics)
         # self.progress_queue.put(1)
-        print("clf tester put item in queue", self.progress_queue.qsize())
 
     def test_classifier(self, X, y, clf):
         labels = list(set(list(y)))

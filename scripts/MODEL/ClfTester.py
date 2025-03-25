@@ -56,16 +56,13 @@ class ClfTester:
         if not self.trained:
             self.clf.fit(np.array(X), np.array(y))
             progress_queue.put(1, timeout=1)
-            print("clf tester put item in queue", progress_queue.qsize())
 
             self.train_metrics = self.test_classifier(X, y)
             progress_queue.put(1, timeout=1)
-            print("clf tester put item in queue", progress_queue.qsize())
 
 
             self.train_acc = self.accuracy_computation(self.train_metrics)
             progress_queue.put(1, timeout=1)
-            print("clf tester put item in queue", progress_queue.qsize())
 
 
     def test(self, X, y, progress_queue):
@@ -75,11 +72,9 @@ class ClfTester:
 
         self.test_metrics = self.test_classifier(X, y)
         progress_queue.put(1, timeout=1)
-        print("clf tester put item in queue", progress_queue.qsize())
 
         self.test_acc = self.accuracy_computation(self.test_metrics)
         progress_queue.put(1)
-        print("clf tester put item in queue", progress_queue.qsize())
 
     def test_classifier(self, X, y):
         labels = list(set(list(y)))
