@@ -21,7 +21,7 @@ class ProgressBar(threading.Thread, ):
         The parent Tkinter application that the progress bar window will belong to.
     """
     
-    def __init__(self, name, app):
+    def __init__(self, name, app, controller):
         super().__init__()
         self.daemon = True
         self.task = ""
@@ -46,6 +46,8 @@ class ProgressBar(threading.Thread, ):
         self.cancel_button = ctk.CTkButton(master=self.progress_window, text="Cancel", fg_color='tomato', command=self._on_cancel)
         self.cancel_button.place(anchor=tkinter.CENTER, rely=0.9, relx=0.5)
         self.progress_window.focus_force()
+        
+        self.controller = controller
     
     def run(self):
         """ Keeps the progress window active and updates it periodically. """
@@ -61,6 +63,7 @@ class ProgressBar(threading.Thread, ):
         -------
 
         """
+        self.controller.cancelled = True
         self.stop()
         if self.stopped():
             self.progress_window.destroy()

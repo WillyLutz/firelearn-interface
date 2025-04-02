@@ -7,11 +7,13 @@ import pandas as pd
 from fiiireflyyy import process as fp
 
 from scripts.CONTROLLER import data_processing as dpr
+import threading
 
-
-class FileProcess(Process):
+class FileProcess(threading.Thread):
     
-    def __init__(self, files_queue, result_queue, progress_queue, harmonics, processing_basename, model_vars, **kwargs):
+    def __init__(self, files_queue, result_queue, progress_queue,
+                 harmonics, processing_basename, model_vars,
+                 lock, **kwargs):
         super().__init__(**kwargs)
         self.files_queue = files_queue
         self.result_queue = result_queue
@@ -19,7 +21,19 @@ class FileProcess(Process):
         self.harmonics = harmonics
         self.processing_basename = processing_basename
         self.model_vars = model_vars
+        self.daemon = True
+        self.lock = lock
         
+        # super(FileProcess, self).__init__(**kwargs)
+        self._stop_event = threading.Event()
+        
+    
+    def stop(self):
+        self._stop_event.set()
+        
+    def stopped(self):
+        return self._stop_event.is_set()
+    
     def run(self):
         self.process_file_for_worker(self.files_queue, self.harmonics, self.processing_basename, )
         self.result_queue.put(self.name, timeout=10)
@@ -29,6 +43,10 @@ class FileProcess(Process):
         """Processes files from the queue and updates the progress queue until a sentinel is received."""
         while True:
             try:
+                if self.stopped():
+                    print(self.name, "cancelled")
+                    break
+                    
                 file = files_queue.get(timeout=1)
         
                 # Check for the sentinel value to trigger shutdown
@@ -41,11 +59,16 @@ class FileProcess(Process):
                 # print(self.name, f"Attempting to put result of size {sys.getsizeof(result)} in queue with size",
                 #       self.result_queue.qsize())
                 
+                if self.stopped():
+                    print(self.name, "cancelled")
+                    break
+                    
                 if self.result_queue.full():
                     print(f"Worker {self.name} encountered an error adding results of {file}:")
                     
                 self.result_queue.put((file, result), timeout=10)
-                self.progress_queue.put(1)
+                with self.lock:
+                    self.progress_queue.put(1)
                 print(f"Worker {self.name} DONE - file queue size: {files_queue.qsize()}, file: {file}")
             except Exception as e:
                 print(f"Worker {self.name} encountered an error. Terminating. {e}")
@@ -93,18 +116,28 @@ class FileProcess(Process):
         samples = self._down_sampling(df)
         processed_files_to_make_dataset = []
         for df_s in samples:
+            if self.stopped():
+                break
             if self.model_vars['signal filter']:
                 df_s = self._filter(df_s, harmonics=harmonics)
             
+            if self.stopped():
+                break
             if self.model_vars['signal fft']:
                 df_s = self._fast_fourier_transform(df_s)
             
+            if self.stopped():
+                break
             if self.model_vars['signal average']:
                 df_s = self._average_columns(df_s)
             
+            if self.stopped():
+                break
             # interpolation signal
             df_s_processed = self._linear_interpolation(df_s)
             
+            if self.stopped():
+                break
             # saving file
             if self.model_vars['filename make dataset'] == 0:
                 self._save_individual_processed_file(file, df_s_processed, processing_basename)
@@ -129,7 +162,8 @@ class FileProcess(Process):
         
         if self.model_vars['signal ckbox behead']:
             df = pd.read_csv(file, index_col=False, skiprows=self._get_skiprows())
-            # self.progress_queue.put(1)
+            # with self.lock:
+            #     self.progress_queue.put(1)
         else:
             df = pd.read_csv(file, index_col=False)
         return df
@@ -165,7 +199,8 @@ class FileProcess(Process):
         if self.model_vars['signal select columns ckbox']:
             df = dpr.top_n_columns(df, int(self.model_vars['signal select columns number']),
                                    except_column=self.model_vars["except column"])
-            # self.progress_queue.put(1)
+            # with self.lock:
+            #     self.progress_queue.put(1)
         
         return df
     
@@ -195,10 +230,12 @@ class FileProcess(Process):
         samples = []
         if self.model_vars['signal sampling ckbox']:
             samples = fp.equal_samples(df, int(self.model_vars['signal sampling']))
-            # self.progress_queue.put(1)
+            # with self.lock:
+            #     self.progress_queue.put(1)
         
         else:
-            # # self.progress_queue.put(1)
+            # with self.lock:
+            #     self.progress_queue.put(1)
             samples.append(df)
         
         return samples
@@ -274,7 +311,8 @@ class FileProcess(Process):
             
             df_s[ch] = df_s_ch  # updating the dataframe for further processing
             
-            # self.progress_queue.put(1)
+            # with self.lock:
+            #     self.progress_queue.put(1)
         return df_s
     
     def _fast_fourier_transform(self, df_s):
@@ -310,7 +348,8 @@ class FileProcess(Process):
                 df_s_fft['Frequency [Hz]'] = clean_freqs
             df_s_fft[ch] = clean_fft
             
-            # self.progress_queue.put(1)
+            # with self.lock:
+            #     self.progress_queue.put(1)
         df_s = df_s_fft
         
         return df_s
@@ -334,7 +373,8 @@ class FileProcess(Process):
         else:
             df_s = dpr.merge_all_columns_to_mean(df_s, self.model_vars["except column"]).round(3)
         
-        # self.progress_queue.put(1)
+        # with self.lock:
+        #     self.progress_queue.put(1)
         
         return df_s
     
@@ -344,7 +384,8 @@ class FileProcess(Process):
             for ch in df_s.columns:
                 df_s_processed[ch] = fp.smoothing(df_s[ch], int(self.model_vars['signal interpolation']),
                                                   'mean')
-            # self.progress_queue.put(1)
+            # with self.lock:
+            #     self.progress_queue.put(1)
         else:
             df_s_processed = df_s
         

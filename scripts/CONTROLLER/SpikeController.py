@@ -1,41 +1,42 @@
 import math
 import multiprocessing
 import random
-import threading
-from multiprocessing import Queue
+import tkinter as tk
 from datetime import datetime
 from functools import partial
+from queue import Empty
+from tkinter import ttk, filedialog, messagebox
 
+import customtkinter as ctk
 import numpy as np
 import pandas as pd
-from PIL import Image
+import seaborn as sns
+from fiiireflyyy import files as ff
 from matplotlib import pyplot as plt
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+import scripts.CONTROLLER.input_validation as ival
 from scripts.CONTROLLER import data_processing
 from scripts.CONTROLLER.MainController import MainController
 from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.MODEL.SpikeModel import SpikeModel
-import customtkinter as ctk
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-from scripts import params as p
 from scripts.PROCESSES.SpikeDetector import SpikeDetectorProcess
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Separator import Separator
-from scripts.params import resource_path
-from fiiireflyyy import files as ff
-import scripts.CONTROLLER.input_validation as ival
-import seaborn as sns
+
 
 class SpikeController:
     def __init__(self, view, ):
         self.model = SpikeModel()
         self.view = view
         self.view.controller = self  # set controller
-        self.progress = None
-        self.queue = Queue()
+        
+        self.files_queue = None
+        self.detection_progress = None
+        self.progress_queue = None
+        self.result_queue = None
+        
     
     def check_params_validity(self):
         """
@@ -197,8 +198,6 @@ class SpikeController:
         elif self.view.vars["multiple"].get():
             files = ff.get_all_files(self.model.parent_directory, to_include=self.model.to_include,
                                      to_exclude=self.model.to_exclude)
-        all_spikes_count = {value: [] for target, value in self.model.targets.items()}
-        all_spikes_indices = {value: [] for target, value in self.model.targets.items()}
         samples_per_target = {value: 0 for target, value in self.model.targets.items()}
         skiprow = 0
         if self.model.vars['behead ckbox']:
@@ -210,71 +209,91 @@ class SpikeController:
         else:
             n_cols = int(
                 len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
-        self.progress = ProgressBar("Processing progression", app=self.view.app)
-        self.progress.total_tasks = self.update_number_of_tasks(len(files), n_cols)
-        self.progress.start()
-        self.progress.update_task("Spike detection...")
-        for file in files:
-            target, value = [(k, v) for k, v in self.model.targets.items() if k in file][0]
-            samples_per_target[value] += 1
-            if not target:
-                messagebox.showerror("Missing Value", "No corresponding target has been found in the "
-                                                      "file name.")
-                break
-            if self.model.vars["behead ckbox"]:
-                df = pd.read_csv(file, skiprows=int(self.model.vars["behead"]), dtype=float, index_col=False)
-            else:
-                df = pd.read_csv(file, dtype=float, index_col=False)
+        self.detection_progress = ProgressBar("Processing progression", app=self.view.app)
+        self.detection_progress.total_tasks = self.update_number_of_tasks(len(files), n_cols)
+        self.detection_progress.start()
+        self.detection_progress.update_task("Spike detection...")
+        
+        n_cpu = multiprocessing.cpu_count()
+        # n_workers = 1
+        if len(files) > int(0.7 * n_cpu): n_workers = 1 if int(0.7 * n_cpu) == 0 else int(0.7 * n_cpu)
+        elif len(files) < int(0.7 * n_cpu): n_workers = len(files)
+        else: n_workers = 1
+        
+        print("Using n workers for processing: ", n_workers)
+        
+        with multiprocessing.Manager() as manager:
+            self.files_queue = multiprocessing.Queue()
+            self.progress_queue = multiprocessing.Queue()
+            self.result_queue = multiprocessing.Queue()
+            
+            # populate the queue with parameters combinations to test
+            for file in files:
+                self.files_queue.put(file)
                 
-            if self.model.vars["select columns ckbox"]:
-                df = data_processing.top_n_columns(df, n_cols, self.model.vars["except column"])
+                # add sentinel values
+            for _ in range(n_workers):
+                self.files_queue.put(None)
                 
-            columns_with_exception = [col for col in df.columns if self.model.vars["except column"] not in col]
+            all_processes = [SpikeDetectorProcess(self.model.vars,
+                                                  self.model.targets,
+                                                  n_cols,
+                                                  self.result_queue,
+                                                  self.files_queue,
+                                                  self.progress_queue, )
+                             for _ in range(n_workers)]
             
-            n_workers = 8 if 8 < len(df.columns)/2 else int(len(df.columns)/2)
-            worker_ranges = np.linspace(0, len(columns_with_exception), n_workers + 1).astype(int)
-            
-            all_workers = []
-            manager = multiprocessing.Manager()
-            return_dict = manager.dict()
-            for c in columns_with_exception:
-                return_dict[c] = []
-            
-            for n_worker in range(n_workers):
-                low_index = worker_ranges[n_worker]
-                high_index = worker_ranges[n_worker + 1]
-                # sub_array = df_array[:, low_index:high_index]
+            for p in all_processes:
+                print(p)
+                p.start()
                 
-                if high_index > low_index: # so no workers have empty datasets
-                    worker = SpikeDetectorProcess(df.loc[:, columns_with_exception[low_index:high_index]].values,
-                                                  columns_with_exception[low_index:high_index],
-                                                  float(self.model.vars["std threshold"]),
-                                                  int(self.model.vars["sampling frequency"]),
-                                                  float(self.model.vars["dead window"]),
-                                                  return_dict,
-                                                  self.queue,)
-                    worker.name = f"worker_{n_worker}"
-                    worker.start()
-                    all_workers.append(worker)
-            
-            while any([w.is_alive() for w in all_workers]):
-                if not self.queue.empty():
-                    self.progress.increment_progress(self.queue.get(timeout=1))
-            
-            for worker in all_workers:
-                worker.join(timeout=10)
-                if worker.is_alive():
-                    worker.terminate()
+            columns_with_exception = [col for col in example_dataframe.columns if self.model.vars["except column"] not in col]
+            results = {value: {col: [] for col in columns_with_exception} for target, value in self.model.targets.items()}
+            finished_workers = 0
+            while finished_workers != len(all_processes) and self.detection_progress.progress_window.winfo_exists():
+                are_alive = []
+                for w in all_processes:
+                    if w.is_alive():
+                        are_alive.append(w)
+                print("Workers alive: ", [w.name for w in are_alive])
+                
+                try:
+                    detected_spikes, target = self.result_queue.get()  # Use get_nowait() to avoid blocking
+                    if type(detected_spikes) == str:  # A Worker finished ! joining it
+                        finished_workers += 1
+                        print("Worker finishing", detected_spikes, "finished workers:", finished_workers)
                     
-            detected_spikes_indices = dict(return_dict.items())
-            detected_spikes_count = {k: len(v) for k, v in detected_spikes_indices.items()}
-            all_spikes_count[value].append(np.sum(list(detected_spikes_count.values())))
-            for v in detected_spikes_indices.values():
-                all_spikes_indices[value].append(v)
-            
-        self.model.spike_params["all_spikes_count"] = all_spikes_count
-        self.model.spike_params["all_spikes_index"] = all_spikes_indices
-        self.model.spike_params["samples_per_target"] = samples_per_target
+                    else:
+                        progress_item = self.progress_queue.get()
+                        
+                        for col in detected_spikes.keys():
+                            results[target][col] += detected_spikes[col]
+                        samples_per_target[target] += 1
+                        
+                        self.detection_progress.increment_progress(progress_item)
+
+                except Empty:
+                    # No progress item was available; just continue looping.
+                    pass
+        
+        # ensuring to empty queues
+        while not self.result_queue.empty():
+            detected_spikes, target = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+            if type(detected_spikes) == str:  # A Worker finished ! joining it
+                finished_workers += 1
+                print("Worker finishing", detected_spikes, "finished workers:", finished_workers)
+            else:
+                for col in detected_spikes.keys():
+                    results[target][col] += detected_spikes[col]
+                samples_per_target[target] += 1
+        
+        while not self.progress_queue.empty():
+            progress_item = self.progress_queue.get()
+            self.detection_progress.increment_progress(progress_item)
+        
+        print(results)
+        
+        self.model.spike_params["spike results"] = results
 
         self.draw_figure()
 
@@ -344,7 +363,12 @@ class SpikeController:
             
             x_ticks = []
             x_ticks_label = []
-            all_spikes = self.model.spike_params["all_spikes_count"]
+            results = self.model.spike_params["spike results"]
+            all_spikes = {value: [] for t, value in self.model.targets.items()}
+            for target in results.keys():
+                for col in results[target].keys():
+                    all_spikes[target] += results[target][col]
+                    
             ymin = 0
             ymax = -math.inf
             
@@ -956,8 +980,8 @@ class SpikeController:
         """
         Exports the spike detection data to two CSV file.
 
-        This method allows the user to save the spike detection data contained in `self.model.spike_params["all_spikes_count"]` and
-        `self.model.spike_params["all_spikes_index"]` to a CSV file. It prompts the user to choose a file location and name, and then exports the data as a CSV file.
+        This method allows the user to save the spike detection data contained in `self.model.spike_params["spike results"]`
+        to a CSV file. It prompts the user to choose a file location and name, and then exports the data as a CSV file.
         If successful, it shows a success message; otherwise, it handles exceptions and displays an error message.
 
         Parameters
@@ -984,29 +1008,27 @@ class SpikeController:
             f = filedialog.asksaveasfilename(defaultextension=".csv",
                                              filetypes=[("Table", "*.csv"), ],
                                              initialfile="spike_detection_export")
-            df_count = pd.DataFrame.from_dict(self.model.spike_params["all_spikes_count"], orient="index").transpose()
+            indices = [target for target in self.model.spike_params["spike results"].keys()]
+            columns = [col for col in self.model.spike_params["spike results"][indices[0]].keys()]
+            df = pd.DataFrame(index=indices,
+                              columns=columns)
+            
+            for target in self.model.spike_params["spike results"].keys():
+                for col in self.model.spike_params["spike results"][target].keys():
+                    df.loc[target, col] = self.model.spike_params["spike results"][target][col]
+                    
+            print(df)
 
             if '.csv' not in f:
-                f += '_count.csv'
-            else:
-                f = f.replace('.csv', '_count.csv')
-            df_count.to_csv(f, index=False)
+                f += '.csv'
+            df.to_csv(f, index=False)
             
         except Exception as e:
             messagebox.showerror("", "An error has occurred while saving count.")
             print(e)
             is_error = True
         
-        try:
-            df_index = pd.DataFrame.from_dict(self.model.spike_params["all_spikes_index"], orient="index").transpose()
 
-            f = f.replace('_count.csv', '_index.csv')
-            df_index.to_csv(f, index=False)
-            
-        except Exception as e:
-            messagebox.showerror("", "An error has occurred while saving index.")
-            print(e)
-            is_error = True
             
         if not is_error:
             messagebox.showinfo("", "Files correctly saved")

@@ -876,65 +876,27 @@ class LearningController:
     
     def export(self, ):
         """
-        Exports classification and advanced metrics as CSV files based on the metrics displayed in the textbox.
+        Exports classification and advanced metrics as TXT files based on the metrics displayed in the textbox.
 
         Returns
         -------
         None
         """
-        # FIXME
-        classification_metrics = pd.DataFrame(columns=["Phase", "Iterations", "Accuracy", "Std"])
-        advanced_metrics = pd.DataFrame(columns=["Phase", "Target", "N true", "Mean CUP true", "Std CUP true",
-                                                 "N false", "Mean CUP false", "Std CUP false"])
-
-        filename = filedialog.asksaveasfilename(title="Save as",
-                                                filetypes=(("Coma Separated Value", "*.csv"),))
+        # filename = filedialog.asksaveasfilename(title="Save as",
+        #                                         filetypes=(("Text", "*.txt"),))
+        filename = ""
         text = self.view.textboxes["metrics"].get('1.0', tk.END)
-        classification_text = text.split("TRAINING")[0]
-        classification_lines = classification_text.split("\n")
-        training_iter = classification_lines[3].split(":")[1].strip()
-        testing_iter = classification_lines[4].split(":")[1].strip()
-        training_acc = classification_lines[5].split(":")[1].split(" ")[0].strip()
-        training_std = classification_lines[5].split(":")[1].split(" ")[2].strip()
-        testing_acc = classification_lines[6].split(":")[1].split(" ")[0].strip()
-        testing_std = classification_lines[6].split(":")[1].split(" ")[2].strip()
-        classification_metrics.loc[len(classification_metrics)] = ["training", training_iter, training_acc,
-                                                                   training_std]
-        classification_metrics.loc[len(classification_metrics)] = ["testing", testing_iter, testing_acc, testing_std]
-
-        training_metrics = text.split("TRAINING")[1].split("TESTING")[0]
-        training_targets = training_metrics.split("Target:")
-        for target_metric in training_targets[1:]:
-            target_lines = target_metric.split("\n")
-            phase = 'training'
-            target = target_lines[0]
-            n_true = target_lines[1].split(":")[1].strip()
-            n_false = target_lines[2].split(":")[1].strip()
-            cup_true = target_lines[3].split(":")[1].strip().split(" ")[0].strip()
-            cup_true_std = target_lines[3].split(":")[1].strip().split(" ")[2].strip()
-            cup_false = target_lines[4].split(":")[1].strip().split(" ")[0].strip()
-            cup_false_std = target_lines[4].split(":")[1].strip().split(" ")[2].strip()
-
-            advanced_metrics.loc[len(advanced_metrics)] = [phase, target, n_true, cup_true, cup_true_std,
-                                                           n_false, cup_false, cup_false_std]
-
-        testing_metrics = text.split("TESTING")[1]
-        testing_targets = testing_metrics.split("Target:")
-        for target_metric in testing_targets[1:]:
-            target_lines = target_metric.split("\n")
-            phase = 'testing'
-            target = target_lines[0]
-            n_true = target_lines[1].split(":")[1].strip()
-            n_false = target_lines[2].split(":")[1].strip()
-            cup_true = target_lines[3].split(":")[1].strip().split(" ")[0].strip()
-            cup_true_std = target_lines[3].split(":")[1].strip().split(" ")[2].strip()
-            cup_false = target_lines[4].split(":")[1].strip().split(" ")[0].strip()
-            cup_false_std = target_lines[4].split(":")[1].strip().split(" ")[2].strip()
-
-            advanced_metrics.loc[len(advanced_metrics)] = [phase, target, n_true, cup_true, cup_true_std,
-                                                           n_false, cup_false, cup_false_std]
-
-        advanced_metrics.to_csv(filename.split(".csv")[0], index=False)
+        
+        if not filename:
+            if ".rfc" in self.view.vars["save rfc"].get():
+                filename = self.view.vars["save rfc"].get().replace(".rfc", "_results.txt")
+            else:
+                filename = self.view.vars["save rfc"].get() +"_results.txt"
+            
+        with open(filename, 'w') as f:
+            f.write(text)
+            
+        messagebox.showinfo("", f"Results saved under {filename}")
 
     def save_model(self, ):
         """

@@ -4,6 +4,7 @@ import multiprocessing
 import os
 import random
 import string
+import threading
 import time
 from multiprocessing import Queue
 from queue import Empty
@@ -26,6 +27,7 @@ from scripts.CONTROLLER import data_processing as dpr, input_validation as ival
 from scripts.CONTROLLER.MainController import MainController
 from PIL import Image
 
+from scripts.PROCESSES.WatchDog import WatchDog
 from scripts.WIDGETS.ErrEntry import ErrEntry
 
 from scripts.params import resource_path
@@ -47,132 +49,167 @@ class ProcessingController:
         self.progress_queue = None
         self.result_queue = None
         
-        self.workers_alive = False
+        self.threads_alive = False
         self.cancelled = False
+        
+        self.processing_thread = None
     
     
+    def processing_thread_target(self, n_threads, harmonics, processing_basename):
+        processing_time_start = datetime.datetime.now()
+        
+        self.processing_progress.update_task("Threaded processing...")
+        
+        self.files_queue = multiprocessing.Queue()
+        self.progress_queue = multiprocessing.Queue()
+        self.result_queue = multiprocessing.Queue()
+        
+        # Populate the queue with files
+        for file in self.files_to_process:
+            self.files_queue.put(file)
+        
+        # Add sentinel values (one per worker)
+        for _ in range(n_threads):
+            self.files_queue.put(None)
+            
+        
+        lock = threading.Lock()
+        
+        all_prisoners = [FileProcess(self.files_queue,
+                                     self.result_queue,
+                                     self.progress_queue,
+                                     harmonics,
+                                     processing_basename,
+                                     self.model.vars,
+                                     lock) for _ in range(n_threads)]
+        
+        for p in all_prisoners:
+            print(p)
+            p.start()
+        
+        watch_dog = WatchDog(all_prisoners)
+        watch_dog.start()
+        results = {}
+        finished_prisoners = 0
+        while watch_dog.watching() and self.processing_progress.progress_window.winfo_exists() and not self.cancelled:
+            self.processing_progress.update_task("Threaded processing...")
+            
+            try:
+                while not self.result_queue.empty():
+                    self.processing_progress.update_task("Storing results...")
+                    
+                    result = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+                    if result:
+                        if type(result) == str:  # A Worker finished ! joining it
+                            finished_prisoners += 1
+                            print("Thread finishing", result, "finished threads:", finished_prisoners)
+                        else:
+                            filename, processed_files_to_make_dataset = result
+                            results[filename] = processed_files_to_make_dataset  # Store results dynamically
+            except Empty:
+                print("result empty")
+                pass  # No progress item was available; just continue looping.
+            
+            try:
+                while not self.progress_queue.empty():
+                    progress_item = self.progress_queue.get_nowait()
+                    if progress_item and not self.cancelled:
+                        self.processing_progress.increment_progress(progress_item)
+            except Empty:
+                print("progress empty")
+                pass  # No progress item was available; just continue looping.
+        
+        if finished_prisoners == len(all_prisoners):
+                watch_dog.stop()
+        
+        if self.cancelled:
+            print("Processing has been cancelled ! Cleaning threads and queues")
+            watch_dog.stop()
+            # emptying queues
+            while not self.files_queue.empty():
+                _ = self.files_queue.get_nowait()
+            
+            while not self.progress_queue.empty():
+                _ = self.progress_queue.get_nowait()
+            
+            while not self.result_queue.empty():
+                _, _ = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+            
+                
+        else: # process finished normally
+            self.processing_progress.update_task("Finishing distributed processing...")
+            while not self.progress_queue.empty():
+                self.processing_progress.increment_progress(self.progress_queue.get_nowait())
+            
+            while not self.result_queue.empty():
+                processed_files_to_make_dataset, filename = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+                results[filename] = processed_files_to_make_dataset  # Store results dynamically
+            
+            self.cancelled = True if any(
+                [w.is_alive() for w in all_prisoners]) and not self.processing_progress.is_alive() else False
+            
+            self.processing_progress.update_task("Terminating threads...")
+            for worker in all_prisoners:
+                print("joining ", worker.name)
+                worker.join(timeout=5)
+                if worker.is_alive():
+                    print("thread is alive, joining")
+                    worker.join()
+            watch_dog.join()
+            print("Watch dog is joined")
+            
+            if self.model.vars['filename make dataset'] == 1:
+                self._make_dataset(processing_basename, results)
+                
+        if self.cancelled:
+            messagebox.showinfo("Cancel Processing", "All threads properly terminated.")
+        else:
+            print("All threads properly terminated.")
+        
+        self.threads_alive = False
+        self.cancelled = False
+        
+        self.processing_thread.join()
+        processing_time_end = datetime.datetime.now()
+        print("Processing time: ", processing_time_end - processing_time_start)
     
     def processing(self, ):
         if self.check_params_validity():
             if self._check_steps():
-                processing_time_start = datetime.datetime.now()
                 local_vars = self.model.vars
-                local_cbox = self.model.cbboxes
                 
                 self.files_to_process = self._select_files()
-                
                 if not self.files_to_process:
                     messagebox.showerror("Missing files", "No files have been found using"
                                                           " your inclusion and exclusion parameters.")
                     return
-
+                
                 self._init_progress_bar(self.files_to_process)
                 
                 processing_basename = self._basename_preparation()
                 
                 harmonics = MainController.generate_harmonics(int(local_vars['signal filter harmonic frequency']),
-                                                                  int(local_vars['signal filter nth harmonic']),
-                                                                  local_vars['signal harmonics type'])\
+                                                              int(local_vars['signal filter nth harmonic']),
+                                                              local_vars['signal harmonics type']) \
                     if local_vars['signal harmonics type'] != "None" else []
                 
                 self.processing_progress.update_task("Distributed processing...")
                 n_cpu = multiprocessing.cpu_count()
-                # n_workers = 1
+                # n_threads = 1
                 if len(self.files_to_process) > int(0.7 * n_cpu):
-                    n_workers = 1 if int(0.7 * n_cpu) == 0 else int(0.7 * n_cpu)
+                    n_threads = 1 if int(0.7 * n_cpu) == 0 else int(0.7 * n_cpu)
                 elif len(self.files_to_process) < int(0.7 * n_cpu):
                     
-                    n_workers = len(self.files_to_process)
-
-                print("Using n workers for processing: ", n_workers)
-                self.processing_progress.update_task("Distributed processing...")
+                    n_threads = len(self.files_to_process)
+                else: n_threads = 1
+                print("Using n threads for processing: ", n_threads)
                 
-                with multiprocessing.Manager() as manager:
-                    self.files_queue = multiprocessing.Queue()
-                    self.progress_queue = multiprocessing.Queue()
-                    self.result_queue = multiprocessing.Queue()
-                    
-                    # Populate the queue with files
-                    for file in self.files_to_process:
-                        self.files_queue.put(file)
-                    
-                    # Add sentinel values (one per worker)
-                    for _ in range(n_workers):
-                        self.files_queue.put(None)
-                        
-                    all_processes = [FileProcess(self.files_queue,
-                                                 self.result_queue,
-                                                 self.progress_queue,
-                                                 harmonics,
-                                                 processing_basename,
-                                                 self.model.vars) for _ in range(n_workers)]
-                    # all_processes = [multiprocessing.Process(target=self.process_file_for_worker,
-                    #                                          args=(f"worker_{_}",
-                    #                                                harmonics, processing_basename,
-                    #                                                ))
-                    #                  for _ in range(n_workers)]
-                    
-                    for p in all_processes:
-                        print(p)
-                        p.start()
-                        
-                    results = {}
-                    finished_workers = 0
-                    while finished_workers != len(all_processes) and self.processing_progress.progress_window.winfo_exists():
-                        are_alive = []
-                        for w in all_processes:
-                            if w.is_alive():
-                                are_alive.append(w)
-                        print("Workers alive: ", [w.name for w in are_alive])
-                        
-                        try:
-                            result = self.result_queue.get()# Use get_nowait() to avoid blocking
-                            if type(result) == str: # A Worker finished ! joining it
-                                finished_workers += 1
-                                print("Worker finishing", result, "finished workers:", finished_workers)
-
-                            else:
-                                progress_item = self.progress_queue.get()
-                                self.processing_progress.increment_progress(progress_item)
-                                filename, processed_files_to_make_dataset = result
-                                results[filename] = processed_files_to_make_dataset  # Store results dynamically
-                        except Empty:
-                            # No progress item was available; just continue looping.
-                            pass
-                        
-                    self.processing_progress.update_task("Finishing distributed processing...")
-
-                    while not self.progress_queue.empty():
-                        self.processing_progress.increment_progress(self.progress_queue.get_nowait())
-                    
-                    while not self.result_queue.empty():
-                        processed_files_to_make_dataset, filename  = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
-                        results[filename] = processed_files_to_make_dataset  # Store results dynamically
-                        
-                    self.cancelled = True if any(
-                        [w.is_alive() for w in all_processes]) and not self.processing_progress.is_alive() else False
+                self.processing_thread = threading.Thread(target=self.processing_thread_target,
+                                                     args=(n_threads, harmonics, processing_basename), daemon=True)
+                self.processing_thread.start()
                 
-                    self.processing_progress.update_task("Terminating workers...")
-                    for worker in all_processes:
-                        print("joining ", worker.name)
-                        worker.join(timeout=5)
-                        if worker.is_alive():
-                            worker.terminate()
-                        
-                    if self.cancelled:
-                        messagebox.showinfo("Cancel Processing", "All workers properly terminated.")
-                    else:
-                        print("All workers properly terminated.")
-                        
-                    self.workers_alive = False
-                    self.cancelled = False
-                    if local_vars['filename make dataset'] == 1:
-                        
-                        self._make_dataset(processing_basename, results)
-                processing_time_end = datetime.datetime.now()
-                print("Processing time: ", processing_time_end-processing_time_start)
+        self.processing_thread.join()
     
-
     def _basename_preparation(self):
         """
         Prepare the base name of the final file depending on UI values.
@@ -301,7 +338,7 @@ class ProcessingController:
                             target_rows.append(value_target)
                             break  # Uncomment this line if only one match is expected per signal
                 
-            self.processing_progress.increment_progress(1)
+        self.processing_progress.increment_progress(1)
         self.processing_progress.update_task("Saving dataset...")
         # Create DataFrames from the accumulated lists
         dataset = pd.DataFrame(dataset_rows, columns=[str(x) for x in range(num_cols)])
@@ -374,7 +411,7 @@ class ProcessingController:
             n_columns = int(
                 len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
         
-        self.processing_progress = ProgressBar("Processing progression", app=self.view.app)
+        self.processing_progress = ProgressBar("Processing progression", app=self.view.app, controller=self)
         self.processing_progress.total_tasks = self.update_number_of_tasks(n_files, n_columns)
         self.processing_progress.start()
         
@@ -639,7 +676,7 @@ class ProcessingController:
         filtering = int(local_vars['signal filter'])
         fft = int(local_vars['signal fft'])
         
-        concat_result = n_file #* n_sample
+        concat_result = 1 #n_file #* n_sample
         
         saving_dataset = 1
         
@@ -647,12 +684,12 @@ class ProcessingController:
         sample_level_tasks = merge + interpolation # performed only once per sample (multiple times per file)
         column_level_tasks = filtering * n_col + fft * n_col # performed once per column (multiple times per sample)
         
-        total_tasks = n_file * (file_level_tasks + n_sample * (sample_level_tasks + column_level_tasks))
-        total_tasks = n_file
+        total_tasks = 0
+        # total_tasks += n_file * (file_level_tasks + n_sample * (sample_level_tasks + column_level_tasks))
+        # total_tasks = n_file
         
         if make_dataset:
-            
-            total_tasks += n_file + saving_dataset#  * n_sample  + concat_result
+            total_tasks += n_file + concat_result + saving_dataset#  * n_sample  + concat_result
         
         # total_tasks = n_file if not make_dataset else n_file + 1
         return total_tasks
@@ -819,14 +856,14 @@ class ProcessingController:
         filename_errors = []
         
         # -------- FILESORTER
-        if self.workers_alive:
+        if self.threads_alive:
             if self.cancelled:
-                messagebox.showerror("Workers alive",
-                                     "Workers from previous processing are still alive and being terminated."
+                messagebox.showerror("threads alive",
+                                     "threads from previous processing are still alive and being terminated."
                                      " Please wait a bit before starting a new processing")
                 return False
             else:
-                messagebox.showerror("Workers alive", "Workers are currently alive."
+                messagebox.showerror("threads alive", "threads are currently alive."
                                                       "To start a new processing, please either cancel the current one "
                                                       "or wait for it to finish.")
                 return False

@@ -306,7 +306,7 @@ class LearningView(ctk.CTkFrame):
         # row separator 4
 
         metrics_textbox = ctk.CTkTextbox(master=display_frame, state='disabled')
-        export_button = ctk.CTkButton(master=display_frame, text="Export results", fg_color="green", state='disabled')
+        export_button = ctk.CTkButton(master=display_frame, text="Export results", fg_color="green", )
 
         # --------------- MANAGE SEPARATORS
         general_params_separators_indices = [0, 1, 3, 4, 6]
