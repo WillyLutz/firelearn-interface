@@ -6,7 +6,8 @@ import pandas as pd
 
 from scripts.CONTROLLER import data_processing
 import traceback
-
+import logging
+logger = logging.getLogger("__SpikeDetector__")
 class SpikeDetectorProcess(threading.Thread):
     def __init__(self, model_vars, model_targets, n_cols, result_queue, files_queue, progress_queue,
                  columns_with_exception, lock, **kwargs):
@@ -32,25 +33,25 @@ class SpikeDetectorProcess(threading.Thread):
         self._detection_for_prisoner()
         with self.lock:
             self.result_queue.put((self.name, 0), timeout=10)
-        print(f"Prisoner {self.name} has exited")
+        logger.info(f"Prisoner {self.name} has exited")
 
     def _detection_for_prisoner(self):
 
         while True:
-            print("spike detection process progress queue size", self.progress_queue.qsize())
+            logger.debug("spike detection process progress queue size", self.progress_queue.qsize())
 
             try:
                 file = self.files_queue.get(timeout=1)
                 # check for sentinel value
                 if file is None:
-                    print(f"Prisoner {self.name} received stop signal and is exiting gracefully.")
+                    logger.info(f"Prisoner {self.name} received stop signal and is exiting gracefully.")
                     break
                 if self.stopped():
-                    print(self.name, "cancelled")
+                    logger.info(self.name, "cancelled")
                     break
                 result = self._spike_detection(file)
                 if self.stopped():
-                    print(self.name, "cancelled")
+                    logger.info(self.name, "cancelled")
                     break
                 target = None
 
@@ -58,25 +59,25 @@ class SpikeDetectorProcess(threading.Thread):
                     if v in file:
                         target = v
                 if self.stopped():
-                    print(self.name, "cancelled")
+                    logger.info(self.name, "cancelled")
                     break
                 if self.result_queue.full():
-                    print(f"Prisoner {self.name} encountered an error adding results of {file}:")
+                    logger.error(f"Prisoner {self.name} encountered an error adding results of {file}:")
                 with self.lock:
                     self.result_queue.put((result, target), timeout=10)
                     self.progress_queue.put(1)
-                print(f"Prisoner {self.name} DONE - file queue size: {self.files_queue.qsize()}")
+                logger.info(f"Prisoner {self.name} DONE - file queue size: {self.files_queue.qsize()}")
             except Exception:
-                print(f"Prisoner {self.name} encountered an error. Terminating.\n {traceback.format_exc()}")
+                logger.error(f"Prisoner {self.name} encountered an error. Terminating.\n {traceback.format_exc()}")
                 break
-        print(f"Prisoner {self.name} exiting. Final files queue size: {self.files_queue.qsize()}")
+        logger.info(f"Prisoner {self.name} exiting. Final files queue size: {self.files_queue.qsize()}")
 
     def _spike_detection(self, file):
         sf = int(self.model_vars["sampling frequency"])
         dead_window = float(self.model_vars["dead window"])
         threshold = float(self.model_vars["std threshold"])
         if self.stopped():
-            print(self.name, "cancelled")
+            logger.info(self.name, "cancelled")
             return None
         if self.model_vars["behead ckbox"]:
             df = pd.read_csv(file, skiprows=int(self.model_vars["behead"]), dtype=float, index_col=False,
@@ -85,7 +86,7 @@ class SpikeDetectorProcess(threading.Thread):
             df = pd.read_csv(file, dtype=float, index_col=False, usecols=self.columns)
 
         if self.stopped():
-            print(self.name, "cancelled")
+            logger.info(self.name, "cancelled")
             return None
         if self.model_vars["select columns ckbox"]:
             df = data_processing.top_n_columns(df, self.n_cols, self.model_vars["except column"])
@@ -98,11 +99,11 @@ class SpikeDetectorProcess(threading.Thread):
 
         data = df.values
         if self.stopped():
-            print(self.name, "cancelled")
+            logger.info(self.name, "cancelled")
             return None
         for i_col in range(0, data.shape[1]):
             if self.stopped():
-                print(self.name, "cancelled")
+                logger.info(self.name, "cancelled")
                 return None
             col_array = data[:, i_col]
 
@@ -111,7 +112,7 @@ class SpikeDetectorProcess(threading.Thread):
                 row = 0
                 std = col_array.std()
                 # indices = np.where((-thresh*std >= col_array) | (col_array >= thresh*std))[0]
-                # print(indices)
+                # logger.info(indices)
                 detected_indices = []
                 i = 0
 
@@ -130,7 +131,7 @@ class SpikeDetectorProcess(threading.Thread):
                     pass
                     # self.detected_spikes[self.columns[i_col]].append(0)
             if self.stopped():
-                print(self.name, "cancelled")
+                logger.info(self.name, "cancelled")
                 return None
             with self.lock:
                 self.progress_queue.put(1)

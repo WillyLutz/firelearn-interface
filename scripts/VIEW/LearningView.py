@@ -14,7 +14,8 @@ from scripts.WIDGETS.Helper import Helper
 from scripts.WIDGETS.Separator import Separator
 from fiiireflyyy import files as ff
 
-
+import logging
+logger = logging.getLogger("__LearningView__")
 class LearningView(ctk.CTkFrame):
     def __init__(self, app, master, parent_view):
         super().__init__(master=app)
@@ -440,15 +441,15 @@ class LearningView(ctk.CTkFrame):
         all_files = ff.get_all_files(os.path.dirname(dataset_path))
         for file in all_files:
             basename = os.path.basename(file)
-            print("found file", basename)
+            logger.info("Found file", basename)
 
             base_path = dataset_basename.split(".")
-            print(basename, base_path[0] + "_Xy_train." + base_path[1])
+            logger.info(basename, base_path[0] + "_Xy_train." + base_path[1])
             if basename == base_path[0] + "_Xy_train." + base_path[1]:
-                print("autoload", file)
+                logger.info("Autoload train", file)
                 self.controller.load_train_dataset(autoload=file)
             if basename == base_path[0] + "_Xy_test." + base_path[1]:
-                print("autoload test", file)
+                logger.info("Autoload test", file)
 
                 self.controller.load_test_dataset(autoload=file)
 

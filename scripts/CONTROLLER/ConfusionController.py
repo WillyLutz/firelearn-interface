@@ -1,3 +1,4 @@
+import logging
 import os
 import pickle
 import sys
@@ -22,6 +23,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 from scripts.WIDGETS.ErrEntry import ErrEntry
 
+logger = logging.getLogger("__Confusion__")
 
 class ConfusionController:
     def __init__(self, view, ):
@@ -209,7 +211,7 @@ class ConfusionController:
         if self.cancelled:
             messagebox.showinfo("Cancel Computation", "Process gracefully interrupted.")
         else:
-            print("Process finished.")
+            logger.info("Process finished.")
 
         self.cancelled = False
 

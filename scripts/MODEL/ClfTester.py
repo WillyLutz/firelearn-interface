@@ -2,7 +2,8 @@ import pickle
 
 import numpy as np
 from sklearn.model_selection import train_test_split
-
+import logging
+logger = logging.getLogger("__ClfTester__")
 
 class ClfTester:
     def __init__(self, clf):
@@ -20,7 +21,7 @@ class ClfTester:
             pickle.dump(self, open(path, "wb"))
             return True
         except Exception as e:
-            print(e)
+            logger.error(e)
             return False
 
     def load_model(self, path):
@@ -29,7 +30,7 @@ class ClfTester:
             self.__dict__.update(attr_dict)
             return True
         except Exception as e:
-            print(e)
+            logger.error(e)
             return False
 
     def train_test(self, X, y):  # works only for RFC !!

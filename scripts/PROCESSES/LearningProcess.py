@@ -7,7 +7,8 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 
-
+import logging
+logger = logging.getLogger("__LearningProcess__")
 class LearningProcess(threading.Thread):
     def __init__(self, params_queue, result_queue, progress_queue, x_train, y_train, x_test, y_test, x_full, y_full,
                  enable_kfold, kfold, lock, **kwargs):
@@ -44,38 +45,38 @@ class LearningProcess(threading.Thread):
     def run(self):
         self._learning_for_worker()
         self.result_queue.put(self.name, timeout=10)
-        print(f"Prisoner {self.name} has exited")
+        logger.info(f"Prisoner {self.name} has exited")
 
     def _learning_for_worker(self):
 
         while True:
             try:
                 if self.stopped():
-                    print(self.name, "cancelled")
+                    logger.info(self.name, "cancelled")
                     break
 
                 combination = self.params_queue.get(timeout=1)
                 # check for sentinel value
                 if combination is None:
-                    print(f"Worker {self.name} received stop signal and is exiting gracefully.")
+                    logger.info(f"Worker {self.name} received stop signal and is exiting gracefully.")
                     break
 
                 random_key, result = self._learning(combination)
 
                 if self.result_queue.full():
-                    print(f"Worker {self.name} encountered an error adding results of {combination}:")
+                    logger.info(f"Worker {self.name} encountered an error adding results of {combination}:")
 
                 if self.stopped():
-                    print(self.name, "cancelled")
+                    logger.info(self.name, "cancelled")
                     break
                 self.result_queue.put((random_key, result), timeout=10)
                 with self.lock:
                     self.progress_queue.put(1)
-                print(f"Worker {self.name} DONE - params queue size: {self.params_queue.qsize()}")
+                logger.info(f"Worker {self.name} DONE - params queue size: {self.params_queue.qsize()}")
             except Exception as e:
-                print(f"Worker {self.name} encountered an error. Terminating. {e}")
+                logger.info(f"Worker {self.name} encountered an error. Terminating. {e}")
                 break
-        print(f"Worker {self.name} exiting. Final params queue size: {self.params_queue.qsize()}")
+        logger.info(f"Worker {self.name} exiting. Final params queue size: {self.params_queue.qsize()}")
 
     def _learning(self, param_combination):
         formatted_metrics = []
@@ -86,11 +87,11 @@ class LearningProcess(threading.Thread):
             rfc.set_params(**param_combination)
             # clf_tester = ClfTester(rfc)
             if self.stopped():
-                print(self.name, "cancelled")
+                logger.info(self.name, "cancelled")
                 break
             rfc = self.train(self.X_train, self.y_train, rfc)
             if self.stopped():
-                print(self.name, "cancelled")
+                logger.info(self.name, "cancelled")
                 break
             self.test(self.X_test, self.y_test, rfc)
 
@@ -103,7 +104,7 @@ class LearningProcess(threading.Thread):
             test_scores.append(self.test_acc)
             # kfold
             if self.stopped():
-                print(self.name, "cancelled")
+                logger.info(self.name, "cancelled")
                 break
             if self.enable_kfold:
                 cv_scores = cross_val_score(rfc, self.X_full, self.y_full, cv=int(self.kfold))

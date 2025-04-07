@@ -36,6 +36,8 @@ from scripts.PROCESSES.FileProcessor import FileProcess
 
 pd.options.mode.chained_assignment = None
 
+import logging
+logger = logging.getLogger("__Processing__")
 
 class ProcessingController:
     def __init__(self, view):
@@ -82,7 +84,7 @@ class ProcessingController:
                                      lock) for _ in range(n_threads)]
 
         for p in all_prisoners:
-            print(p)
+            logger.info(p)
             p.start()
 
         watch_dog = WatchDog(all_prisoners)
@@ -100,12 +102,12 @@ class ProcessingController:
                     if result:
                         if type(result) == str:  # A Worker finished ! joining it
                             finished_prisoners += 1
-                            print("Thread finishing", result, "finished threads:", finished_prisoners)
+                            logger.info("Thread finishing", result, "finished threads:", finished_prisoners)
                         else:
                             filename, processed_files_to_make_dataset = result
                             results[filename] = processed_files_to_make_dataset  # Store results dynamically
             except Empty:
-                print("result empty")
+                logger.debug("result empty")
                 pass  # No progress item was available; just continue looping.
 
             try:
@@ -114,14 +116,14 @@ class ProcessingController:
                     if progress_item and not self.cancelled:
                         self.processing_progress.increment_progress(progress_item)
             except Empty:
-                print("progress empty")
+                logger.debug("progress empty")
                 pass  # No progress item was available; just continue looping.
 
         if finished_prisoners == len(all_prisoners):
             watch_dog.stop()
 
         if self.cancelled:
-            print("Processing has been cancelled ! Cleaning threads and queues")
+            logger.info("Processing has been cancelled ! Cleaning threads and queues")
             watch_dog.stop()
             # emptying queues
             while not self.files_queue.empty():
@@ -148,13 +150,13 @@ class ProcessingController:
 
             self.processing_progress.update_task("Terminating threads...")
             for worker in all_prisoners:
-                print("joining ", worker.name)
+                logger.info("joining ", worker.name)
                 worker.join(timeout=5)
                 if worker.is_alive():
-                    print("thread is alive, joining")
+                    logger.info("thread is alive, joining")
                     worker.join()
             watch_dog.join()
-            print("Watch dog is joined")
+            logger.info("Watch dog is joined")
 
             if self.model.vars['filename make dataset'] == 1:
                 self._make_dataset(processing_basename, results)
@@ -162,14 +164,14 @@ class ProcessingController:
         if self.cancelled:
             messagebox.showinfo("Cancel Processing", "All threads properly terminated.")
         else:
-            print("All threads properly terminated.")
+            logger.info("All threads properly terminated.")
 
         self.threads_alive = False
         self.cancelled = False
 
         # self.processing_thread.join()
         processing_time_end = datetime.datetime.now()
-        print("Processing time: ", processing_time_end - processing_time_start)
+        logger.info("Processing time: ", processing_time_end - processing_time_start)
 
     def processing(self, ):
         if self.check_params_validity():
@@ -208,7 +210,7 @@ class ProcessingController:
                     n_threads = len(self.files_to_process)
                 else:
                     n_threads = 1
-                print("Using n threads for processing: ", n_threads)
+                logger.debug("Using n threads for processing: ", n_threads)
                 self.processing_thread_target(n_threads, harmonics, processing_basename)
                 # self.processing_thread = threading.Thread(target=self.processing_thread_target,
                 #                                           args=(n_threads, harmonics, processing_basename), daemon=True)

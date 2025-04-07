@@ -9,6 +9,8 @@ from fiiireflyyy import process as fp
 from scripts.CONTROLLER import data_processing as dpr
 import threading
 
+import logging
+logger = logging.getLogger("__FileProcessor__")
 
 class FileProcess(threading.Thread):
     def __init__(self, files_queue, result_queue, progress_queue,
@@ -36,44 +38,44 @@ class FileProcess(threading.Thread):
     def run(self):
         self.process_file_for_worker(self.files_queue, self.harmonics, self.processing_basename, )
         self.result_queue.put(self.name, timeout=10)
-        print(f"Prisoner {self.name} has exited")
+        logger.info(f"Prisoner {self.name} has exited")
 
     def process_file_for_worker(self, files_queue, harmonics, processing_basename):
         """Processes files from the queue and updates the progress queue until a sentinel is received."""
         while True:
             try:
                 if self.stopped():
-                    print(self.name, "cancelled")
+                    logger.info(self.name, "cancelled")
                     break
 
                 file = files_queue.get(timeout=1)
 
                 # Check for the sentinel value to trigger shutdown
                 if file is None:
-                    print(f"Worker {self.name} received stop signal and is exiting gracefully.")
+                    logger.info(f"Worker {self.name} received stop signal and is exiting gracefully.")
                     break
 
-                # print(f"Worker {self.name} - file queue size: {files_queue.qsize()}, processing file: {file}")
+                logger.debug(f"Worker {self.name} - file queue size: {files_queue.qsize()}, processing file: {file}")
                 result = self._process_file(file, harmonics, processing_basename)
-                # print(self.name, f"Attempting to put result of size {sys.getsizeof(result)} in queue with size",
-                #       self.result_queue.qsize())
+                logger.debug(self.name, f"Attempting to put result of size {sys.getsizeof(result)} in queue with size",
+                      self.result_queue.qsize())
 
                 if self.stopped():
-                    print(self.name, "cancelled")
+                    logger.info(self.name, "cancelled")
                     break
 
                 if self.result_queue.full():
-                    print(f"Worker {self.name} encountered an error adding results of {file}:")
+                    logger.info(f"Worker {self.name} encountered an error adding results of {file}:")
 
                 self.result_queue.put((file, result), timeout=10)
                 with self.lock:
                     self.progress_queue.put(1)
-                print(f"Worker {self.name} DONE - file queue size: {files_queue.qsize()}, file: {file}")
+                logger.info(f"Worker {self.name} DONE - file queue size: {files_queue.qsize()}, file: {file}")
             except Exception as e:
-                print(f"Worker {self.name} encountered an error. Terminating. {e}")
+                logger.info(f"Worker {self.name} encountered an error. Terminating. {e}")
                 break
 
-        print(f"Worker {self.name} exiting. Final file queue size: {files_queue.qsize()}")
+        logger.info(f"Worker {self.name} exiting. Final file queue size: {files_queue.qsize()}")
 
     def _process_file(self, file, harmonics, processing_basename):
         """

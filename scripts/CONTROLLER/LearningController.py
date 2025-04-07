@@ -28,6 +28,8 @@ from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Separator import Separator
 from sklearn.model_selection import ParameterGrid
 
+import logging
+logger = logging.getLogger("__Learning__")
 
 class LearningController:
     def __init__(self, view, ):
@@ -406,7 +408,7 @@ class LearningController:
                          ]
 
         for p in all_prisoners:
-            print(p)
+            logger.info(p)
             p.start()
 
         watch_dog = WatchDog(all_prisoners)
@@ -432,7 +434,7 @@ class LearningController:
                     result = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                     if type(result) is str:  # A Worker finished ! joining it
                         finished_prisoners += 1
-                        print("Prisoner finishing", result, "finished prisoners:", finished_prisoners)
+                        logger.info("Prisoner finishing", result, "finished prisoners:", finished_prisoners)
 
                     else:
                         random_key, formatted_metrics = result
@@ -444,7 +446,7 @@ class LearningController:
 
 
         if self.cancelled:
-            print("Learning has been cancelled ! Cleaning threads and queues")
+            logger.info("Learning has been cancelled ! Cleaning threads and queues")
             watch_dog.stop()
             # emptying queues
             while not self.params_combination_queue.empty():
@@ -473,13 +475,13 @@ class LearningController:
 
             self.learning_progress.update_task("Terminating threads...")
             for worker in all_prisoners:
-                print("joining ", worker.name)
+                logger.info("joining ", worker.name)
                 worker.join(timeout=5)
                 if worker.is_alive():
-                    print("thread is alive, joining")
+                    logger.info("thread is alive, joining")
                     worker.join()
             watch_dog.join()
-            print("Watch dog is joined")
+            logger.info("Watch dog is joined")
 
             self.learning_progress.increment_progress(1)
 
@@ -513,7 +515,7 @@ class LearningController:
         if self.cancelled:
             messagebox.showinfo("Cancel Learning", "All workers properly terminated.")
         else:
-            print("All workers properly terminated.")
+            logger.info("All workers properly terminated.")
 
         self.threads_alive = False
         self.cancelled = False
@@ -538,7 +540,7 @@ class LearningController:
             # thread.start()
             self._learning_process()
             end_learning = datetime.datetime.now()
-            print("Learning time: ", end_learning - start_learning)
+            logger.info("Learning time: ", end_learning - start_learning)
 
     @staticmethod
     def _compute_trust_score(train_score, test_score, all_cv_scores):
@@ -578,7 +580,7 @@ class LearningController:
                 best_key = random_key if trust > best_trust else best_key
                 best_trust = max(trust, best_trust)
 
-                print(trust, metrics)
+                logger.debug(trust, metrics)
 
         if self.scoring == 'Relative K-Fold CV accuracy':
             best_rel_cv = 100

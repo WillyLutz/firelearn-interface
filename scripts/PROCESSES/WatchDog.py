@@ -6,7 +6,8 @@ from threading import Thread
 from scripts.PROCESSES.FileProcessor import FileProcess
 from scripts.PROCESSES.SpikeDetector import SpikeDetectorProcess
 
-
+import logging
+logger = logging.getLogger("__WatchDog__")
 class WatchDog(Thread):
     def __init__(self, prisoners: list[FileProcess] |
                                   list[SpikeDetectorProcess],
@@ -21,12 +22,12 @@ class WatchDog(Thread):
         return True if not self.stopped() else False
     
     def stop(self):
-        print("Stopping prisoners")
+        logger.info("Stopping prisoners")
         alive_prisoners = [p for p in self.prisoners if p.is_alive()]
         for prisoner in alive_prisoners:
             prisoner.stop()
         
-        print("Stopping watch dog")
+        logger.info("Stopping watch dog")
         self._stop_event.set()
     
     def stopped(self):
@@ -35,7 +36,7 @@ class WatchDog(Thread):
     def run(self):
         while not self.stopped():
             alive_prisoners = [p.name for p in self.prisoners if p.is_alive()]
-            print("Alive prisoners", alive_prisoners)
+            logger.info("Alive prisoners", alive_prisoners)
             if not alive_prisoners:
                 self.stop()
                 

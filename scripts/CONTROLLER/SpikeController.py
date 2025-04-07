@@ -28,6 +28,8 @@ from scripts.PROCESSES.WatchDog import WatchDog
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Separator import Separator
 
+import logging
+logger = logging.getLogger("__SpikeDetection__")
 
 class SpikeController:
     def __init__(self, view, ):
@@ -231,7 +233,7 @@ class SpikeController:
         else:
             n_workers = 1
 
-        # print("Using n workers for processing: ", n_workers)
+        logger.debug("Using n workers for processing: ", n_workers)
 
         self.files_queue = multiprocessing.Queue()
         self.progress_queue = multiprocessing.Queue()
@@ -259,7 +261,7 @@ class SpikeController:
                          for _ in range(1)]
 
         for p in all_prisoners:
-            print(p)
+            logger.info(p)
             p.start()
 
         watch_dog = WatchDog(all_prisoners)
@@ -276,7 +278,7 @@ class SpikeController:
                     progress_item = self.progress_queue.get_nowait()
                     if progress_item:
                         self.detection_progress.increment_progress(progress_item)
-                        print("increment progress")
+                        logger.debug("increment progress")
             except Empty:
                 pass
 
@@ -286,7 +288,7 @@ class SpikeController:
                     detected_spikes, target = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                     if type(detected_spikes) is str:  # A Worker finished ! joining it
                         finished_prisoners += 1
-                        print("Prisoner finishing", detected_spikes, "finished prisoners:", finished_prisoners)
+                        logger.info("Prisoner finishing", detected_spikes, "finished prisoners:", finished_prisoners)
 
                     else:
                         for col in detected_spikes.keys():
@@ -299,7 +301,7 @@ class SpikeController:
             self.view.app.update_idletasks()
 
         if self.cancelled:
-            print("Spike detection has been cancelled ! Cleaning threads and queues")
+            logger.info("Spike detection has been cancelled ! Cleaning threads and queues")
             watch_dog.stop()
             # emptying queues
             while not self.files_queue.empty():
@@ -329,13 +331,13 @@ class SpikeController:
 
             self.detection_progress.update_task("Terminating threads...")
             for worker in all_prisoners:
-                print("joining ", worker.name)
+                logger.info("joining ", worker.name)
                 worker.join(timeout=5)
                 if worker.is_alive():
-                    print("thread is alive, joining")
+                    logger.info("thread is alive, joining")
                     worker.join()
             watch_dog.join()
-            print("Watch dog is joined")
+            logger.info("Watch dog is joined")
 
             self.model.spike_params["spike results"] = results
 
@@ -344,7 +346,7 @@ class SpikeController:
         if self.cancelled:
             messagebox.showinfo("Cancel Learning", "All workers properly terminated.")
         else:
-            print("All threads properly terminated.")
+            logger.info("All threads properly terminated.")
 
         self.cancelled = False
 
@@ -352,7 +354,7 @@ class SpikeController:
         if thread.is_alive():
             self.view.app.after(500, self.check_thread_status, thread)  # Check again after 500ms
         else:
-            print("Thread finished!")  # Do any post-processing here
+            logger.info("Thread finished!")  # Do any post-processing here
 
     def compute_spikes(self):
         # thread = threading.Thread(target=self.compute_spike_thread, daemon=True)
@@ -1067,12 +1069,12 @@ class SpikeController:
             for itarget, target in enumerate(self.model.spike_params["spike results"].keys()):
                 for icol, col in enumerate(self.model.spike_params["spike results"][target].keys()):
                     item = self.model.spike_params["spike results"][target][col]
-                    print(item)
+                    logger.debug(item)
                     data[itarget, icol] = item
 
             df = pd.DataFrame(index=indices,
                               columns=columns, dtype=object, data=data)
-            print(df)
+            logger.debug(df)
 
             if '.csv' not in f:
                 f += '.csv'
@@ -1080,7 +1082,7 @@ class SpikeController:
 
         except Exception as e:
             messagebox.showerror("", "An error has occurred while saving count.")
-            print(e)
+            logger.error(e)
             is_error = True
 
         if not is_error:
