@@ -1,5 +1,6 @@
 import random
 import string
+import threading
 from multiprocessing import Process
 
 import numpy as np
@@ -7,9 +8,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 
 
-class LearningProcess(Process):
+class LearningProcess(threading.Thread):
     def __init__(self, params_queue, result_queue, progress_queue, x_train, y_train, x_test, y_test, x_full, y_full,
-                 enable_kfold, kfold, **kwargs):
+                 enable_kfold, kfold, lock, **kwargs):
         super().__init__(**kwargs)
 
         self.X_train = x_train
@@ -31,31 +32,45 @@ class LearningProcess(Process):
 
         self.iter = 0
 
+        self.lock = lock
+        self._stop_event = threading.Event()
 
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
 
     def run(self):
         self._learning_for_worker()
         self.result_queue.put(self.name, timeout=10)
-        print(f"Worker {self.name} has exited")
+        print(f"Prisoner {self.name} has exited")
 
     def _learning_for_worker(self):
 
         while True:
-            print("learning process progress queue size", self.progress_queue.qsize())
-
             try:
+                if self.stopped():
+                    print(self.name, "cancelled")
+                    break
+
                 combination = self.params_queue.get(timeout=1)
                 # check for sentinel value
                 if combination is None:
                     print(f"Worker {self.name} received stop signal and is exiting gracefully.")
                     break
+
                 random_key, result = self._learning(combination)
 
                 if self.result_queue.full():
                     print(f"Worker {self.name} encountered an error adding results of {combination}:")
 
+                if self.stopped():
+                    print(self.name, "cancelled")
+                    break
                 self.result_queue.put((random_key, result), timeout=10)
-                self.progress_queue.put(1)
+                with self.lock:
+                    self.progress_queue.put(1)
                 print(f"Worker {self.name} DONE - params queue size: {self.params_queue.qsize()}")
             except Exception as e:
                 print(f"Worker {self.name} encountered an error. Terminating. {e}")
@@ -63,34 +78,45 @@ class LearningProcess(Process):
         print(f"Worker {self.name} exiting. Final params queue size: {self.params_queue.qsize()}")
 
     def _learning(self, param_combination):
-        rfc = RandomForestClassifier()
+        formatted_metrics = []
+        key_str = ""
+        for _ in range(1):
+            rfc = RandomForestClassifier()
 
-        rfc.set_params(**param_combination)
-        # clf_tester = ClfTester(rfc)
+            rfc.set_params(**param_combination)
+            # clf_tester = ClfTester(rfc)
+            if self.stopped():
+                print(self.name, "cancelled")
+                break
+            rfc = self.train(self.X_train, self.y_train, rfc)
+            if self.stopped():
+                print(self.name, "cancelled")
+                break
+            self.test(self.X_test, self.y_test, rfc)
 
-        rfc = self.train(self.X_train, self.y_train, rfc)
-        self.test(self.X_test, self.y_test, rfc)
+            train_scores = []
+            test_scores = []
+            cv_scores = []
 
-        train_scores = []
-        test_scores = []
-        cv_scores = []
-        
-        train_scores.append(self.train_acc)
-        
-        test_scores.append(self.test_acc)
-        # kfold
-        if self.enable_kfold:
-            cv_scores = cross_val_score(rfc, self.X_full, self.y_full, cv=int(self.kfold))
-        # self.progress_queue.put(1)
+            train_scores.append(self.train_acc)
 
-        formatted_metrics = (param_combination, cv_scores, self.train_acc, self.test_acc, rfc)
+            test_scores.append(self.test_acc)
+            # kfold
+            if self.stopped():
+                print(self.name, "cancelled")
+                break
+            if self.enable_kfold:
+                cv_scores = cross_val_score(rfc, self.X_full, self.y_full, cv=int(self.kfold))
+            # self.progress_queue.put(1)
 
-        random_str = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-        key_str = f"{self.name}-{self.iter}-{random_str}"
-        self.iter += 1
-        # self.progress_queue.put(1)
+            formatted_metrics = (param_combination, cv_scores, self.train_acc, self.test_acc, rfc)
 
-        return key_str, formatted_metrics
+            random_str = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            key_str = f"{self.name}-{self.iter}-{random_str}"
+            self.iter += 1
+            # self.progress_queue.put(1)
+
+            return key_str, formatted_metrics
 
     def train(self, X, y, clf):
         labels = list(set(list(y)))

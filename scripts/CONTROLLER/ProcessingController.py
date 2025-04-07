@@ -44,37 +44,35 @@ class ProcessingController:
         self.view = view
         self.view.controller = self  # set controller
         self.files_to_process = []
-        
+
         self.files_queue = None
         self.progress_queue = None
         self.result_queue = None
-        
+
         self.threads_alive = False
         self.cancelled = False
-        
+
         self.processing_thread = None
-    
-    
+
     def processing_thread_target(self, n_threads, harmonics, processing_basename):
         processing_time_start = datetime.datetime.now()
-        
+
         self.processing_progress.update_task("Threaded processing...")
-        
+
         self.files_queue = multiprocessing.Queue()
         self.progress_queue = multiprocessing.Queue()
         self.result_queue = multiprocessing.Queue()
-        
+
         # Populate the queue with files
         for file in self.files_to_process:
             self.files_queue.put(file)
-        
+
         # Add sentinel values (one per worker)
         for _ in range(n_threads):
             self.files_queue.put(None)
-            
-        
+
         lock = threading.Lock()
-        
+
         all_prisoners = [FileProcess(self.files_queue,
                                      self.result_queue,
                                      self.progress_queue,
@@ -82,22 +80,22 @@ class ProcessingController:
                                      processing_basename,
                                      self.model.vars,
                                      lock) for _ in range(n_threads)]
-        
+
         for p in all_prisoners:
             print(p)
             p.start()
-        
+
         watch_dog = WatchDog(all_prisoners)
         watch_dog.start()
         results = {}
         finished_prisoners = 0
         while watch_dog.watching() and self.processing_progress.progress_window.winfo_exists() and not self.cancelled:
             self.processing_progress.update_task("Threaded processing...")
-            
+
             try:
                 while not self.result_queue.empty():
                     self.processing_progress.update_task("Storing results...")
-                    
+
                     result = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                     if result:
                         if type(result) == str:  # A Worker finished ! joining it
@@ -109,7 +107,7 @@ class ProcessingController:
             except Empty:
                 print("result empty")
                 pass  # No progress item was available; just continue looping.
-            
+
             try:
                 while not self.progress_queue.empty():
                     progress_item = self.progress_queue.get_nowait()
@@ -118,36 +116,36 @@ class ProcessingController:
             except Empty:
                 print("progress empty")
                 pass  # No progress item was available; just continue looping.
-        
+
         if finished_prisoners == len(all_prisoners):
-                watch_dog.stop()
-        
+            watch_dog.stop()
+
         if self.cancelled:
             print("Processing has been cancelled ! Cleaning threads and queues")
             watch_dog.stop()
             # emptying queues
             while not self.files_queue.empty():
-                _ = self.files_queue.get_nowait()
-            
+                self.files_queue.get_nowait()
+
             while not self.progress_queue.empty():
-                _ = self.progress_queue.get_nowait()
-            
+                self.progress_queue.get_nowait()
+
             while not self.result_queue.empty():
-                _, _ = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
-            
-                
-        else: # process finished normally
+                self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+
+
+        else:  # process finished normally
             self.processing_progress.update_task("Finishing distributed processing...")
             while not self.progress_queue.empty():
                 self.processing_progress.increment_progress(self.progress_queue.get_nowait())
-            
+
             while not self.result_queue.empty():
                 processed_files_to_make_dataset, filename = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                 results[filename] = processed_files_to_make_dataset  # Store results dynamically
-            
+
             self.cancelled = True if any(
                 [w.is_alive() for w in all_prisoners]) and not self.processing_progress.is_alive() else False
-            
+
             self.processing_progress.update_task("Terminating threads...")
             for worker in all_prisoners:
                 print("joining ", worker.name)
@@ -157,59 +155,67 @@ class ProcessingController:
                     worker.join()
             watch_dog.join()
             print("Watch dog is joined")
-            
+
             if self.model.vars['filename make dataset'] == 1:
                 self._make_dataset(processing_basename, results)
-                
+
         if self.cancelled:
             messagebox.showinfo("Cancel Processing", "All threads properly terminated.")
         else:
             print("All threads properly terminated.")
-        
+
         self.threads_alive = False
         self.cancelled = False
-        
-        self.processing_thread.join()
+
+        # self.processing_thread.join()
         processing_time_end = datetime.datetime.now()
         print("Processing time: ", processing_time_end - processing_time_start)
-    
+
     def processing(self, ):
         if self.check_params_validity():
             if self._check_steps():
                 local_vars = self.model.vars
-                
+
                 self.files_to_process = self._select_files()
+
                 if not self.files_to_process:
                     messagebox.showerror("Missing files", "No files have been found using"
                                                           " your inclusion and exclusion parameters.")
                     return
-                
+                else:
+                    yesno = messagebox.askyesno("Files found", f"{len(self.files_to_process)} files have been found using "
+                                                               f"the multiple file sorting option."
+                                                               f"\nProceed with the processing ?")
+                    if not yesno:
+                        return
+
                 self._init_progress_bar(self.files_to_process)
-                
+
                 processing_basename = self._basename_preparation()
-                
+
                 harmonics = MainController.generate_harmonics(int(local_vars['signal filter harmonic frequency']),
                                                               int(local_vars['signal filter nth harmonic']),
                                                               local_vars['signal harmonics type']) \
                     if local_vars['signal harmonics type'] != "None" else []
-                
+
                 self.processing_progress.update_task("Distributed processing...")
                 n_cpu = multiprocessing.cpu_count()
                 # n_threads = 1
                 if len(self.files_to_process) > int(0.7 * n_cpu):
                     n_threads = 1 if int(0.7 * n_cpu) == 0 else int(0.7 * n_cpu)
                 elif len(self.files_to_process) < int(0.7 * n_cpu):
-                    
+
                     n_threads = len(self.files_to_process)
-                else: n_threads = 1
+                else:
+                    n_threads = 1
                 print("Using n threads for processing: ", n_threads)
-                
-                self.processing_thread = threading.Thread(target=self.processing_thread_target,
-                                                     args=(n_threads, harmonics, processing_basename), daemon=True)
-                self.processing_thread.start()
-                
-        self.processing_thread.join()
-    
+                self.processing_thread_target(n_threads, harmonics, processing_basename)
+                # self.processing_thread = threading.Thread(target=self.processing_thread_target,
+                #                                           args=(n_threads, harmonics, processing_basename), daemon=True)
+                # self.processing_thread.start()
+                #
+                # self.processing_thread.join()
+
     def _basename_preparation(self):
         """
         Prepare the base name of the final file depending on UI values.
@@ -252,9 +258,9 @@ class ProcessingController:
                 local_vars['filename timestamp'] \
                 and not local_vars['filename filename']:
             processing_basename.append("FL_processed")
-            
+
         return processing_basename
-    
+
     def _check_steps(self):
         """
         Check if there are any steps in the processing UI that contains errors.
@@ -268,21 +274,21 @@ class ProcessingController:
             self.update_params(self.view.entries)
             self.update_params(self.view.ckboxes)
             self.update_params(self.view.vars)
-            
+
             return True
         else:
             return False
-    
+
     @staticmethod
     def iter_large_dict(large_dict):
         """Generator to iterate over a large dictionary containing lists of DataFrames."""
         i = 0
         for key, value in large_dict.items():
             i += 1
-            yield key,  value
+            yield key, value
             del value  # Free memory after yielding the list
             gc.collect()  # Force garbage collection
-    
+
     def _make_dataset(self, processing_basename, results):
         """
         Creates a dataset from the processed files by extracting signal data and
@@ -316,7 +322,7 @@ class ProcessingController:
         # Get a sample dataframe to determine number of columns
         first_df = next(iter(results.values()))[0][0]
         num_cols = len(first_df.values)
-        
+
         # Prepare lists to accumulate dataset rows and target labels
         dataset_rows = []
         target_rows = []
@@ -337,7 +343,7 @@ class ProcessingController:
                         if key_target in file:
                             target_rows.append(value_target)
                             break  # Uncomment this line if only one match is expected per signal
-                
+
         self.processing_progress.increment_progress(1)
         self.processing_progress.update_task("Saving dataset...")
         # Create DataFrames from the accumulated lists
@@ -345,14 +351,13 @@ class ProcessingController:
         # Assuming each row in dataset has a corresponding target
         targets = pd.DataFrame(target_rows, columns=['label'])
         dataset['label'] = targets['label']
-        
+
         dataset.to_csv(
             os.path.join(local_vars['filename save under'], '_'.join(processing_basename) + '.csv'),
             index=False)
-        
+
         self.processing_progress.increment_progress(1)
         messagebox.showinfo("Processing finished", "Processing finished")
-    
 
     def _select_files(self):
         """
@@ -370,11 +375,11 @@ class ProcessingController:
                 if all(i in file for i in self.model.to_include) and (
                         not any(e in file for e in self.model.to_exclude)):
                     all_files.append(file)
-        
+
         if self.model.vars['filesorter single']:
             all_files.append(self.model.single_file)
         return all_files
-    
+
     def _init_progress_bar(self, all_files):
         """
         Initializes and starts a progress bar for processing files.
@@ -398,42 +403,42 @@ class ProcessingController:
 
         """
         local_vars = self.model.vars
-        
+
         n_files = int(len(all_files))
         skiprow = 0
         if local_vars['signal ckbox behead']:
             skiprow = int(local_vars['signal behead'])
-        
+
         example_dataframe = pd.read_csv(all_files[0], index_col=False, skiprows=skiprow)
         if local_vars['signal select columns ckbox']:
             n_columns = int(local_vars['signal select columns number'])
         else:
             n_columns = int(
                 len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
-        
+
         self.processing_progress = ProgressBar("Processing progression", app=self.view.app, controller=self)
         self.processing_progress.total_tasks = self.update_number_of_tasks(n_files, n_columns)
         self.processing_progress.start()
-        
+
     def select_save_directory(self, strvar):
         dirname = filedialog.askdirectory(mustexist=True, title="select directory")
         if type(strvar) == ctk.StringVar:
             strvar.set(dirname)
             self.model.save_directory = dirname
-    
+
     def select_parent_directory(self, strvar):
         dirname = filedialog.askdirectory(mustexist=True, title="select directory")
         if type(strvar) == ctk.StringVar:
             strvar.set(dirname)
             self.model.parent_directory = dirname
-    
+
     def select_single_file(self, display_in):
         filename = filedialog.askopenfilename(title="Open file",
                                               filetypes=(("Tables", "*.txt *.xls *.xlsx *.csv"),))
         if type(display_in) == ctk.StringVar:
             display_in.set(filename)
             self.model.single_file = filename
-    
+
     def add_subtract_to_include(self, entry, textbox, mode='add'):
         """
         Adds or removes a value from the 'to_include' list in the model, based on user input.
@@ -463,7 +468,7 @@ class ProcessingController:
         if ival.value_has_forbidden_character(entry.get()) is False:
             entry.delete(0, ctk.END)
             return False
-        
+
         to_include = entry.get()
         if to_include:
             local_include = self.model.to_include
@@ -476,7 +481,7 @@ class ProcessingController:
             entry.delete(0, ctk.END)
         else:
             messagebox.showerror("Missing Value", "You need te indicate a value to include.")
-    
+
     def add_subtract_to_exclude(self, entry, textbox, mode='add'):
         """
         Adds or removes a value from the 'to_exclude' list in the model, based on user input.
@@ -518,7 +523,7 @@ class ProcessingController:
             entry.delete(0, ctk.END)
         else:
             messagebox.showerror("Missing Value", "You need te indicate a value to exclude.")
-    
+
     def add_subtract_target(self, key_entry, value_entry, textbox, mode='add'):
         """
         Adds or removes a target key-value pair in the model's targets, based on user input.
@@ -559,7 +564,7 @@ class ProcessingController:
             return False
         key = key_entry.get()
         value = value_entry.get()
-        
+
         local_targets = self.model.targets
         if mode == 'add':
             if key and value:
@@ -580,7 +585,7 @@ class ProcessingController:
         MainController.update_textbox(textbox, self.model.targets)
         key_entry.delete(0, ctk.END)
         value_entry.delete(0, ctk.END)
-    
+
     def update_params(self, widgets: dict, ):
         """
         Updates the model's variables, checkboxes, entries, comboboxes, or textboxes based on the provided widget values.
@@ -612,8 +617,8 @@ class ProcessingController:
         local_dict = {}
         if len(widgets.items()) > 0:
             if type(list(widgets.values())[0]) == ctk.StringVar or \
-                type(list(widgets.values())[0]) == ctk.IntVar or \
-                type(list(widgets.values())[0]) == ctk.DoubleVar:
+                    type(list(widgets.values())[0]) == ctk.IntVar or \
+                    type(list(widgets.values())[0]) == ctk.DoubleVar:
                 for key, value in widgets.items():
                     local_dict[key] = value.get()
                 self.model.vars.update(local_dict)
@@ -639,7 +644,7 @@ class ProcessingController:
                 for key, value in widgets.items():
                     local_dict[key] = value.get()
                 self.model.ckboxes.update(local_dict)
-    
+
     def update_number_of_tasks(self, n_file, n_col, ):
         """
         Calculates the total number of tasks to be processed based on the configuration and input parameters.
@@ -662,12 +667,11 @@ class ProcessingController:
             The total number of tasks to be completed.
         """
         local_vars = self.model.vars
-        
-        
+
         mea = int(local_vars['signal ckbox behead'])
         electrodes = int(local_vars['signal select columns ckbox'])
         sampling = int(local_vars['signal sampling ckbox'])
-        
+
         n_sample = int(local_vars['signal sampling']) if sampling else 1
 
         merge = int(local_vars['signal average'])
@@ -675,25 +679,25 @@ class ProcessingController:
         make_dataset = int(local_vars['filename make dataset'])
         filtering = int(local_vars['signal filter'])
         fft = int(local_vars['signal fft'])
-        
-        concat_result = 1 #n_file #* n_sample
-        
+
+        concat_result = 1  # n_file #* n_sample
+
         saving_dataset = 1
-        
-        file_level_tasks = mea + electrodes + sampling # performed only once per file
-        sample_level_tasks = merge + interpolation # performed only once per sample (multiple times per file)
-        column_level_tasks = filtering * n_col + fft * n_col # performed once per column (multiple times per sample)
-        
+
+        file_level_tasks = mea + electrodes + sampling  # performed only once per file
+        sample_level_tasks = merge + interpolation  # performed only once per sample (multiple times per file)
+        column_level_tasks = filtering * n_col + fft * n_col  # performed once per column (multiple times per sample)
+
         total_tasks = 0
         # total_tasks += n_file * (file_level_tasks + n_sample * (sample_level_tasks + column_level_tasks))
         # total_tasks = n_file
-        
+
         if make_dataset:
-            total_tasks += n_file + concat_result + saving_dataset#  * n_sample  + concat_result
-        
+            total_tasks += n_file + concat_result + saving_dataset  # * n_sample  + concat_result
+
         # total_tasks = n_file if not make_dataset else n_file + 1
         return total_tasks
-    
+
     def update_view_from_model(self, ):
         """
         Update the view's variables from the model's data.
@@ -724,14 +728,14 @@ class ProcessingController:
                 widget.delete(0, ctk.END)
                 widget.insert(0, self.model.entries[key])
                 widget.configure(state='disabled')
-        
+
         for key, widget in self.view.switches.items():
             if widget.cget('state') == 'normal':
                 if key in self.model.switches.keys():
                     widget.select()
                 else:
                     widget.deselect()
-                    
+
         for key, widget in self.view.ckboxes.items():
             if widget.cget('state') == 'normal':
                 if key in self.model.ckboxes.keys():
@@ -748,11 +752,9 @@ class ProcessingController:
                         widget.deselect()
                 widget.configure(state='disabled')
 
-
-        
         for key, widget in self.view.textboxes.items():
             MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
-    
+
     @staticmethod
     def modulate_entry_state_by_switch(switch, entry):
         """
@@ -778,9 +780,9 @@ class ProcessingController:
         - This method is static and relies on the `MainController` class for the actual state modification logic.
         - It is intended to be used in scenarios where the state of an entry widget needs to be tied to the status of a switch.
         """
-        
+
         MainController.modulate_entry_state_by_switch(switch, entry)
-    
+
     def load_config(self, ):
         """
         Loads a configuration file and updates the model.
@@ -803,12 +805,12 @@ class ProcessingController:
         - The method uses a file dialog to allow the user to select the configuration file.
         - If the file is successfully loaded, the view is updated to reflect the new state of the model.
         """
-        
+
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Processing config", "*.pcfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model()
-    
+
     def save_config(self, ):
         """
         Saves the current configuration to a file.
@@ -835,13 +837,12 @@ class ProcessingController:
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, self.view.labels]:
                 self.update_params(widgets)
-            
-            
+
             f = filedialog.asksaveasfilename(defaultextension=".pcfg",
                                              filetypes=[("Processing", "*.pcfg"), ])
             if f:
                 self.model.save_model(path=f, )
-    
+
     def check_params_validity(self):
         """
         Validates the processing parameters before starting the processing of the files.
@@ -854,7 +855,7 @@ class ProcessingController:
         filesorter_errors = []
         signal_errors = []
         filename_errors = []
-        
+
         # -------- FILESORTER
         if self.threads_alive:
             if self.cancelled:
@@ -867,21 +868,22 @@ class ProcessingController:
                                                       "To start a new processing, please either cancel the current one "
                                                       "or wait for it to finish.")
                 return False
-        
+
         if all([self.view.ckboxes['filesorter single'].get(), self.view.ckboxes['filesorter multiple'].get()]):
             filesorter_errors.append("You can only chose one between Single file analysis or Multiple files analysis.")
-        
+
         if not any([self.view.ckboxes['filesorter single'].get(), self.view.ckboxes['filesorter multiple'].get()]):
-            filesorter_errors.append("You have to select one between Single file analysis or Multiple files analysis.", )
-        
+            filesorter_errors.append(
+                "You have to select one between Single file analysis or Multiple files analysis.", )
+
         if self.view.ckboxes['filesorter multiple'].get():
             if not self.view.entries['filesorter multiple'].get():
                 filesorter_errors.append("You have to select a parent directory to run multi-file processing.")
-        
+
         if self.view.ckboxes['filesorter single'].get():
             if not self.view.entries['filesorter single'].get():
                 filesorter_errors.append("You have to select a file to run single file processing.")
-        
+
         # forbidden characters
         for key, textbox in self.view.textboxes.items():
             elements = textbox.get(1.0, ctk.END)
@@ -889,26 +891,26 @@ class ProcessingController:
                 fcs = ival.value_has_forbidden_character(element)
                 if fcs:
                     filesorter_errors.append(f"Forbidden characters in '{element}' : {fcs}")
-        
+
         # -------- PROCESSING
-        
+
         if self.view.vars['signal ckbox behead'].get():
             if not self.view.vars['signal behead'].get():
                 signal_errors.append("You have to indicate a number of rows to behead from the raw MEA files.")
-        
+
         if self.view.vars['signal select columns ckbox'].get():
             if not self.view.vars['signal select columns number'].get():
                 signal_errors.append("You have to indicate a number of columns to select.")
             if self.view.vars['signal select columns mode'].get() == 'None':
                 signal_errors.append("You have to select a mode for column selection.")
-            
+
             if self.view.vars['signal select columns metric'].get() == 'None':
                 signal_errors.append("You have to select a metric to use for the electrode selection.")
-        
+
         if self.view.vars['signal sampling ckbox'].get():
             if not self.view.vars['signal sampling'].get():
                 signal_errors.append("You have to indicate a number of samples.")
-        
+
         if self.view.vars['signal filter harmonic frequency'].get():
             if self.view.vars['signal filter nth harmonic'].get():
                 harmonic = int(self.view.vars['signal filter harmonic frequency'].get())
@@ -916,65 +918,65 @@ class ProcessingController:
                 frequency = int(self.view.vars['signal filter sf'].get())
                 if harmonic * nth > frequency / 2:
                     signal_errors.append("The chosen nth harmonic is superior to half the sampling frequency."
-                                  f" Please use maximum nth harmonic as nth<{int((frequency / 2) / harmonic)}")
+                                         f" Please use maximum nth harmonic as nth<{int((frequency / 2) / harmonic)}")
             else:
                 signal_errors.append("You have to fill both the harmonic frequency and the nth harmonics"
-                              " using valid numbers.")
-        
+                                     " using valid numbers.")
+
         if self.view.vars['signal filter'].get():
             if not gates.AND(
                     [self.view.vars[x].get() for x in
                      ['signal filter order', 'signal filter sf', 'signal filter first cut', ]]):
                 signal_errors.append('You have to fill at least the filter order, sampling '
-                              'frequency, and first cut to use the filtering function.')
-            
+                                     'frequency, and first cut to use the filtering function.')
+
             if self.view.vars['signal filter second cut'].get() and (
                     self.view.vars['signal filter type'].get() in ['Highpass", "Lowpass']):
                 signal_errors.append(f"The second frequency is not needed when using a "
-                              f"{self.view.vars['signal filter type'].get()} filter.")
+                                     f"{self.view.vars['signal filter type'].get()} filter.")
             if self.view.vars['signal filter type'].get() in ['Bandstop", "Bandpass'] and not gates.AND(
                     [self.view.vars['signal filter second cut'].get(),
                      self.view.vars['signal filter first cut'].get()]):
                 signal_errors.append(f"Both low cut and high cut frequencies are needed when"
-                              f" using a f{self.view.vars['signal filter type'].get()} filter")
-        
-       
-        
+                                     f" using a f{self.view.vars['signal filter type'].get()} filter")
+
         if self.view.vars['signal fft'].get():
             if not self.view.vars['signal fft sf'].get():
                 signal_errors.append("Sampling frequency rate needed to perform Fast Fourier Transform.")
-        
+
         if self.view.vars['signal interpolation ckbox'].get():
             if not self.view.vars['signal interpolation'].get():
                 signal_errors.append("Number of final values needed to perform interpolation.")
-        
+
         # -------- FILENAME
         if self.view.vars['filename save under'].get() == '':
             filename_errors.append('You have to select a directory where to save your file.')
         elif os.path.isdir(self.view.vars['filename save under'].get()) is False:
-            filename_errors.append(f"The selected path {self.view.vars['filename save under'].get()} is not a directory.")
-        
+            filename_errors.append(
+                f"The selected path {self.view.vars['filename save under'].get()} is not a directory.")
+
         if self.view.vars['filename keyword ckbox'].get():
             if not self.view.vars['filename keyword'].get():
                 filename_errors.append("Keyword needed.")
-        
+
         # for key, entry in self.view.entries.items():
         #     if type(entry) == ErrEntry:
         #         if entry.error_message.get() != '':
         #             filename_errors.append(f"{key} : {entry.error_message.get()}")
-        
+
         # forbidden characters
         for entry in ["filename keyword", ]:
             fc = self.view.parent_view.has_forbidden_characters(self.view.entries[entry])
             if not fc:
-                filename_errors.append(f"entry {entry} (\"{self.view.entries[entry].get()}\") contains forbidden characters")
-            
+                filename_errors.append(
+                    f"entry {entry} (\"{self.view.entries[entry].get()}\") contains forbidden characters")
+
         if self.view.vars['filename make dataset'].get():
             if not gates.AND(
                     [self.view.vars['signal average'].get(), self.view.vars['filesorter multiple'].get()]):
                 filename_errors.append(
                     "The 'make dataset' option is available only if 'Average' and 'Multiple files analysis' are both enabled.")
-        
+
         self.invalidate_step("filesorter") if filesorter_errors else self.validate_step("filesorter")
         self.invalidate_step("signal") if signal_errors else self.validate_step("signal")
         self.invalidate_step("filename") if filename_errors else self.validate_step("filename")
@@ -985,22 +987,25 @@ class ProcessingController:
             return False
         else:
             return True
-    
+
     def validate_step(self, step):
-        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_green.png")), size=self.view.image_buttons[step].get_image_size())
+        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_green.png")),
+                           size=self.view.image_buttons[step].get_image_size())
         self.view.image_buttons[step].configure(image=img)
         self.view.step_check[step] = 1
-    
+
     def invalidate_step(self, step):
 
-        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_red.png")), size=self.view.image_buttons[step].get_image_size())
+        img = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{step}_red.png")),
+                           size=self.view.image_buttons[step].get_image_size())
         self.view.image_buttons[str(step)].configure(image=img)
         self.view.step_check[step] = 0
-    
-    def delay(self, ms:int ):
+
+    def delay(self, ms: int):
         var = ctk.IntVar()
         self.view.app.after(ms, var.set, 1)
         self.view.app.wait_variable(var)
+
     def export_summary(self):
         """
         Generates and exports a detailed processing summary to a text file.
@@ -1025,7 +1030,7 @@ class ProcessingController:
         -----
         - The summary includes details such as signal processing settings (e.g., filtering, FFT, interpolation), file sorting parameters (e.g., included/excluded files, sorting options), and output management options (e.g., file naming, random key, timestamp).
         """
-        
+
         def symbol_frame(symbol, text, width=40):
             text_length = len(text)
             whitespaces = (width - text_length - 2) / 2
@@ -1035,71 +1040,71 @@ class ProcessingController:
                     f"{symbol}{' ' * before_text}{text}{' ' * after_text}{symbol}\n" \
                     f"{symbol * width}"
             return frame
-        
+
         text = f"{symbol_frame('*', text='FIRELEARN PROCESSING SUMMARY', width=60)}\n\n"
-        
+
         text += f"{symbol_frame('.', text='File sorting')}\n\n"
-        
+
         to_include_txt = [x for x in self.model.to_include]
         to_exclude_txt = [x for x in self.model.to_exclude]
-        targets_txt = [f"{k} - {v}"  for k, v in self.model.targets.items()]
-        text += (f"Sorting multiple files : {'disabled' if not self.view.vars['filesorter multiple ckbox'].get() else 'enabled'}\n"
-                 f"Parent path: {self.view.vars['filesorter multiple'].get()}\n\n"
-                 f""
-                 f"To include:\n"
-                 f"{to_include_txt}\n"
-                 f""
-                 f"To exclude:\n"
-                 f"{to_exclude_txt}\n"
-                 f""
-                 f"Targets:\n"
-                 f"{targets_txt}\n"
-                 f""
-                 f"Sorting single file: {'disabled' if not self.view.vars['filesorter single ckbox'].get() else 'enabled'}\n"
-                 f"File path: {self.view.vars['filesorter single'].get()}\n\n")
-        
+        targets_txt = [f"{k} - {v}" for k, v in self.model.targets.items()]
+        text += (
+            f"Sorting multiple files : {'disabled' if not self.view.vars['filesorter multiple ckbox'].get() else 'enabled'}\n"
+            f"Parent path: {self.view.vars['filesorter multiple'].get()}\n\n"
+            f""
+            f"To include:\n"
+            f"{to_include_txt}\n"
+            f""
+            f"To exclude:\n"
+            f"{to_exclude_txt}\n"
+            f""
+            f"Targets:\n"
+            f"{targets_txt}\n"
+            f""
+            f"Sorting single file: {'disabled' if not self.view.vars['filesorter single ckbox'].get() else 'enabled'}\n"
+            f"File path: {self.view.vars['filesorter single'].get()}\n\n")
+
         text += f"{symbol_frame('.', text='Signal processing')}\n\n"
-        
-        select_column = ('number: '+self.view.vars['signal select columns number'].get()+
-                         ' - mode: '+self.view.vars['signal select columns mode'].get()+
-                         ' - metric: '+ self.view.vars['signal select columns metric'].get())
-        text += (f"Beheading top-file metadata : {'disabled' if not self.view.vars['signal ckbox behead'].get() else self.view.vars['signal behead'].get() }\n"
-                 f"Select columns: "
-                 f"{'disabled' if not self.view.vars['signal select columns ckbox'].get() else select_column}\n"
-                 f"Divide file into: {'disabled' if not self.view.vars['signal sampling ckbox'].get() else self.view.vars['signal sampling'].get() }\n"
-                 f"Fast Fourier Transform sampling frequency (Hz): {'disabled' if not self.view.vars['signal fft'].get() else self.view.vars['signal fft sf'].get() }\n"
-                 f"Average of signal column-wise: {'disabled' if not self.view.vars['signal average'].get() else 'enabled' }\n"
-                 f"Linear interpolation of signal into n value: {'disabled' if not self.view.vars['signal interpolation ckbox'].get() else self.view.vars['signal interpolation'].get() }\n"
-                 f"\n"
-                 f"Filtering: {'disabled' if not self.view.vars['signal filter'].get() else 'enabled' }\n"
-                 f"Order: {self.view.vars['signal filter order'].get()}\n"
-                 f"Sampling frequency (Hz): {self.view.vars['signal filter sf'].get()}\n"
-                 f"Filter type: {self.view.vars['signal filter type'].get()}\n"
-                 f"First frequency cut (Hz): {self.view.vars['signal filter first cut'].get()}\n"
-                 f"Second frequency cut (Hz): {self.view.vars['signal filter second cut'].get()}\n"
-                 f"\n"
-                 f"Filtering harmonics: {'disabled' if not self.view.vars['signal harmonics ckbox'].get() else 'enabled' }\n"
-                 f"Type: {self.view.vars['signal harmonics type'].get()}\n"
-                 f"Frequency (Hz): {self.view.vars['signal filter harmonic frequency'].get()}\n"
-                 f"Up to Nth: {self.view.vars['signal filter nth harmonic'].get()}\n\n"
-                 f"Exception column from processing: {self.view.vars['except column'].get()}"
-                 )
-        
+
+        select_column = ('number: ' + self.view.vars['signal select columns number'].get() +
+                         ' - mode: ' + self.view.vars['signal select columns mode'].get() +
+                         ' - metric: ' + self.view.vars['signal select columns metric'].get())
+        text += (
+            f"Beheading top-file metadata : {'disabled' if not self.view.vars['signal ckbox behead'].get() else self.view.vars['signal behead'].get()}\n"
+            f"Select columns: "
+            f"{'disabled' if not self.view.vars['signal select columns ckbox'].get() else select_column}\n"
+            f"Divide file into: {'disabled' if not self.view.vars['signal sampling ckbox'].get() else self.view.vars['signal sampling'].get()}\n"
+            f"Fast Fourier Transform sampling frequency (Hz): {'disabled' if not self.view.vars['signal fft'].get() else self.view.vars['signal fft sf'].get()}\n"
+            f"Average of signal column-wise: {'disabled' if not self.view.vars['signal average'].get() else 'enabled'}\n"
+            f"Linear interpolation of signal into n value: {'disabled' if not self.view.vars['signal interpolation ckbox'].get() else self.view.vars['signal interpolation'].get()}\n"
+            f"\n"
+            f"Filtering: {'disabled' if not self.view.vars['signal filter'].get() else 'enabled'}\n"
+            f"Order: {self.view.vars['signal filter order'].get()}\n"
+            f"Sampling frequency (Hz): {self.view.vars['signal filter sf'].get()}\n"
+            f"Filter type: {self.view.vars['signal filter type'].get()}\n"
+            f"First frequency cut (Hz): {self.view.vars['signal filter first cut'].get()}\n"
+            f"Second frequency cut (Hz): {self.view.vars['signal filter second cut'].get()}\n"
+            f"\n"
+            f"Filtering harmonics: {'disabled' if not self.view.vars['signal harmonics ckbox'].get() else 'enabled'}\n"
+            f"Type: {self.view.vars['signal harmonics type'].get()}\n"
+            f"Frequency (Hz): {self.view.vars['signal filter harmonic frequency'].get()}\n"
+            f"Up to Nth: {self.view.vars['signal filter nth harmonic'].get()}\n\n"
+            f"Exception column from processing: {self.view.vars['except column'].get()}"
+            )
+
         text += f"{symbol_frame('.', text='Output management')}\n\n"
-        
+
         text += (f"Random key: {'disabled' if not self.view.vars['filename random key'].get() else 'enabled'}\n"
                  f"{'Timestamp: disabled' if not self.view.vars['filename timestamp'].get() else 'enabled'}\n"
-                 f"{'Keyword: disabled' if not self.view.vars['filename keyword ckbox'].get() else self.view.vars['filename keyword'].get() }\n"
+                 f"{'Keyword: disabled' if not self.view.vars['filename keyword ckbox'].get() else self.view.vars['filename keyword'].get()}\n"
                  f"{'Make files as dataset: disabled' if not self.view.vars['filename make dataset'].get() else 'enabled'}\n"
-                 f"{'Specified filename: disabled' if not self.view.vars['filename filename ckbox'].get() else self.view.vars['filename filename'].get() }\n"
-                 f" {'Save processed file(s) under: disabled' if not self.view.vars['filename save under'].get() else self.view.vars['filename save under'].get() }\n")
-        
+                 f"{'Specified filename: disabled' if not self.view.vars['filename filename ckbox'].get() else self.view.vars['filename filename'].get()}\n"
+                 f" {'Save processed file(s) under: disabled' if not self.view.vars['filename save under'].get() else self.view.vars['filename save under'].get()}\n")
+
         # todo : FIXME
         path = filedialog.asksaveasfilename(defaultextension='.txt',
-                                        filetypes=[('Text document', '*.txt'), ],
+                                            filetypes=[('Text document', '*.txt'), ],
                                             confirmoverwrite=True)
         if path:
-            with open(str(path), 'w', encoding='utf-8',) as file:
+            with open(str(path), 'w', encoding='utf-8', ) as file:
                 file.write(text)
-
-            

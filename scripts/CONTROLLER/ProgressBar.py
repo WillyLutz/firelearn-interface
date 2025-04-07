@@ -20,7 +20,7 @@ class ProgressBar(threading.Thread, ):
     app : tkinter.Tk
         The parent Tkinter application that the progress bar window will belong to.
     """
-    
+
     def __init__(self, name, app, controller):
         super().__init__()
         self.daemon = True
@@ -38,23 +38,30 @@ class ProgressBar(threading.Thread, ):
         self.progress_window.attributes("-topmost", 1)
         self.progress_bar = ctk.CTkProgressBar(self.progress_window, orientation='horizontal', mode='determinate')
         self.progress_bar.place(relx=0.05, rely=0.1, relwidth=0.9)
-        self.update_progress_stringvar("Processing")
+
+        # self.update_progress_stringvar("Processing")
         self.progress_label = ctk.CTkLabel(self.progress_window, textvariable=self.progress_stringvar)
         self.progress_label.place(anchor=tkinter.CENTER, relx=0.5, rely=0.5)
-        
+
         self.progress_window.protocol("WM_DELETE_WINDOW", self._on_cancel)
-        self.cancel_button = ctk.CTkButton(master=self.progress_window, text="Cancel", fg_color='tomato', command=self._on_cancel)
+        self.cancel_button = ctk.CTkButton(master=self.progress_window, text="Cancel", fg_color='tomato',
+                                           command=self._on_cancel,)
         self.cancel_button.place(anchor=tkinter.CENTER, rely=0.9, relx=0.5)
         self.progress_window.focus_force()
-        
+
         self.controller = controller
-    
+
+        self.completed = False
+
+        self.update_task("Calculating number of steps...")
+
     def run(self):
         """ Keeps the progress window active and updates it periodically. """
+
         while not self.stopped():
             self.app.update_idletasks()  # Keeps the Tkinter app responsive
             time.sleep(0.1)
-    
+
     def _on_cancel(self):
         """
         Cancel the processing, close the toplevel and stop the threads.
@@ -63,12 +70,12 @@ class ProgressBar(threading.Thread, ):
         -------
 
         """
-        self.controller.cancelled = True
+        if not self.completed:
+            self.controller.cancelled = True
         self.stop()
         if self.stopped():
             self.progress_window.destroy()
-        
-    
+
     def stop(self):
         """
         Stops the progress bar and halts the thread that is running the progress bar.
@@ -81,7 +88,7 @@ class ProgressBar(threading.Thread, ):
         None
         """
         self._stop_event.set()
-    
+
     def stopped(self):
         """
         Checks whether the progress bar thread has been stopped.
@@ -95,7 +102,7 @@ class ProgressBar(threading.Thread, ):
             True if the progress bar thread has been stopped, False otherwise.
         """
         return self._stop_event.is_set()
-    
+
     def update_progress(self):
         """
         Updates the progress bar's visual representation and the associated task text.
@@ -107,11 +114,11 @@ class ProgressBar(threading.Thread, ):
         -------
         None
         """
-        if self.progress_bar.get() <= 1:
+        if self.progress_bar.get() <= 1 and self.total_tasks:
             self.progress_bar.set((self.completed_tasks / self.total_tasks))
             self.update_progress_stringvar(self.task)
         self.app.update()
-    
+
     def update_progress_stringvar(self, taskname):
         """
         Updates the displayed progress text with the current task and percentage of completion.
@@ -132,10 +139,11 @@ class ProgressBar(threading.Thread, ):
         if self.completed_tasks == self.total_tasks:
             self.progress_stringvar.set(f"Processing finished. {percent}% "
                                         f"({int(self.completed_tasks)}/{int(self.total_tasks)})\nYou can close this window.")
+            self.completed = True
         else:
             self.progress_stringvar.set(f"Current Progress: {percent}%\n"
                                         f"{taskname}\n({int(self.completed_tasks)}/{int(self.total_tasks)})\n\nDo not close this window.")
-    
+
     def increment_progress(self, n=1):
         """
         Increments the number of completed tasks and updates the progress bar.
@@ -156,7 +164,7 @@ class ProgressBar(threading.Thread, ):
         self.completed_tasks = self.completed_tasks + n
         self.update_progress()
         return self
-    
+
     def update_task(self, task):
         """
         Updates the current task name displayed in the progress window.
@@ -176,4 +184,3 @@ class ProgressBar(threading.Thread, ):
         self.task = task
         self.update_progress()
         return self
-

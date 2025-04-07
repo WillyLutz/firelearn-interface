@@ -9,8 +9,8 @@ from fiiireflyyy import process as fp
 from scripts.CONTROLLER import data_processing as dpr
 import threading
 
+
 class FileProcess(threading.Thread):
-    
     def __init__(self, files_queue, result_queue, progress_queue,
                  harmonics, processing_basename, model_vars,
                  lock, **kwargs):
@@ -23,22 +23,21 @@ class FileProcess(threading.Thread):
         self.model_vars = model_vars
         self.daemon = True
         self.lock = lock
-        
+
         # super(FileProcess, self).__init__(**kwargs)
         self._stop_event = threading.Event()
-        
-    
+
     def stop(self):
         self._stop_event.set()
-        
+
     def stopped(self):
         return self._stop_event.is_set()
-    
+
     def run(self):
         self.process_file_for_worker(self.files_queue, self.harmonics, self.processing_basename, )
         self.result_queue.put(self.name, timeout=10)
-        print(f"Worker {self.name} has exited")
-    
+        print(f"Prisoner {self.name} has exited")
+
     def process_file_for_worker(self, files_queue, harmonics, processing_basename):
         """Processes files from the queue and updates the progress queue until a sentinel is received."""
         while True:
@@ -46,26 +45,26 @@ class FileProcess(threading.Thread):
                 if self.stopped():
                     print(self.name, "cancelled")
                     break
-                    
+
                 file = files_queue.get(timeout=1)
-        
+
                 # Check for the sentinel value to trigger shutdown
                 if file is None:
                     print(f"Worker {self.name} received stop signal and is exiting gracefully.")
                     break
-        
+
                 # print(f"Worker {self.name} - file queue size: {files_queue.qsize()}, processing file: {file}")
                 result = self._process_file(file, harmonics, processing_basename)
                 # print(self.name, f"Attempting to put result of size {sys.getsizeof(result)} in queue with size",
                 #       self.result_queue.qsize())
-                
+
                 if self.stopped():
                     print(self.name, "cancelled")
                     break
-                    
+
                 if self.result_queue.full():
                     print(f"Worker {self.name} encountered an error adding results of {file}:")
-                    
+
                 self.result_queue.put((file, result), timeout=10)
                 with self.lock:
                     self.progress_queue.put(1)
@@ -73,10 +72,9 @@ class FileProcess(threading.Thread):
             except Exception as e:
                 print(f"Worker {self.name} encountered an error. Terminating. {e}")
                 break
-            
-    
+
         print(f"Worker {self.name} exiting. Final file queue size: {files_queue.qsize()}")
-    
+
     def _process_file(self, file, harmonics, processing_basename):
         """
         Processes a single file by performing several operations such as filtering,
@@ -120,22 +118,22 @@ class FileProcess(threading.Thread):
                 break
             if self.model_vars['signal filter']:
                 df_s = self._filter(df_s, harmonics=harmonics)
-            
+
             if self.stopped():
                 break
             if self.model_vars['signal fft']:
                 df_s = self._fast_fourier_transform(df_s)
-            
+
             if self.stopped():
                 break
             if self.model_vars['signal average']:
                 df_s = self._average_columns(df_s)
-            
+
             if self.stopped():
                 break
             # interpolation signal
             df_s_processed = self._linear_interpolation(df_s)
-            
+
             if self.stopped():
                 break
             # saving file
@@ -143,9 +141,9 @@ class FileProcess(threading.Thread):
                 self._save_individual_processed_file(file, df_s_processed, processing_basename)
             else:
                 processed_files_to_make_dataset.append((df_s_processed, file))
-        
+
         return processed_files_to_make_dataset
-    
+
     def _behead(self, file):
         """
         Behead a csv file using the skiprows argument if enabled in the UI.
@@ -159,7 +157,7 @@ class FileProcess(threading.Thread):
         df : pd.Dataframe
             Beheaded (or not) dataframe depending on the UI values.
         """
-        
+
         if self.model_vars['signal ckbox behead']:
             df = pd.read_csv(file, index_col=False, skiprows=self._get_skiprows())
             # with self.lock:
@@ -167,7 +165,7 @@ class FileProcess(threading.Thread):
         else:
             df = pd.read_csv(file, index_col=False)
         return df
-    
+
     def _get_skiprows(self):
         """
         get the skiprow entry value in the UI
@@ -182,7 +180,7 @@ class FileProcess(threading.Thread):
         if self.model_vars['signal ckbox behead']:
             skiprow = int(self.model_vars['signal behead'])
         return skiprow
-    
+
     def _column_selection(self, df):
         """
         Select the top n columns based on UI values.
@@ -201,9 +199,9 @@ class FileProcess(threading.Thread):
                                    except_column=self.model_vars["except column"])
             # with self.lock:
             #     self.progress_queue.put(1)
-        
+
         return df
-    
+
     def _down_sampling(self, df):
         """
         Performs downsampling on the given dataframe based on the specified sampling rate.
@@ -232,14 +230,14 @@ class FileProcess(threading.Thread):
             samples = fp.equal_samples(df, int(self.model_vars['signal sampling']))
             # with self.lock:
             #     self.progress_queue.put(1)
-        
+
         else:
             # with self.lock:
             #     self.progress_queue.put(1)
             samples.append(df)
-        
+
         return samples
-    
+
     def _filter(self, df_s, harmonics):
         """
         Applies a series of filters to the signal data in the given dataframe.
@@ -308,13 +306,13 @@ class FileProcess(threading.Thread):
                                                 btype='bandstop', lowcut=h - 2,
                                                 highcut=h + 2,
                                                 fs=self.model_vars["signal filter sf"])
-            
+
             df_s[ch] = df_s_ch  # updating the dataframe for further processing
-            
+
             # with self.lock:
             #     self.progress_queue.put(1)
         return df_s
-    
+
     def _fast_fourier_transform(self, df_s):
         """
         Applies Fast Fourier Transform (FFT) to each signal channel in the given dataframe.
@@ -347,13 +345,13 @@ class FileProcess(threading.Thread):
             if "Frequency [Hz]" not in df_s_fft.columns:
                 df_s_fft['Frequency [Hz]'] = clean_freqs
             df_s_fft[ch] = clean_fft
-            
+
             # with self.lock:
             #     self.progress_queue.put(1)
         df_s = df_s_fft
-        
+
         return df_s
-    
+
     def _average_columns(self, df_s):
         """
         Average columns except the frequency column or teh 'exception column' provided in the UI.
@@ -367,17 +365,17 @@ class FileProcess(threading.Thread):
         -------
 
         """
-        
+
         if self.model_vars['signal fft']:
             df_s = dpr.merge_all_columns_to_mean(df_s, "Frequency [Hz]").round(3)
         else:
             df_s = dpr.merge_all_columns_to_mean(df_s, self.model_vars["except column"]).round(3)
-        
+
         # with self.lock:
         #     self.progress_queue.put(1)
-        
+
         return df_s
-    
+
     def _linear_interpolation(self, df_s):
         df_s_processed = pd.DataFrame()
         if self.model_vars['signal interpolation ckbox']:
@@ -388,9 +386,9 @@ class FileProcess(threading.Thread):
             #     self.progress_queue.put(1)
         else:
             df_s_processed = df_s
-        
+
         return df_s_processed
-    
+
     def _save_individual_processed_file(self, file, df_s_processed, processing_basename):
         """
         Saves an individual processed dataframe to a CSV file with a constructed filename.
@@ -419,7 +417,7 @@ class FileProcess(threading.Thread):
         """
         filename_constructor = []
         filename = os.path.basename(file).split(".")[0]
-        
+
         filename_constructor.append(filename)
         filename_constructor.append("_".join(processing_basename))
         filename_constructor.append(".csv")

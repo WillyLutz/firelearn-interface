@@ -1,6 +1,8 @@
+import ast
 import math
 import multiprocessing
 import random
+import threading
 import tkinter as tk
 from datetime import datetime
 from functools import partial
@@ -22,6 +24,7 @@ from scripts.CONTROLLER.MainController import MainController
 from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.MODEL.SpikeModel import SpikeModel
 from scripts.PROCESSES.SpikeDetector import SpikeDetectorProcess
+from scripts.PROCESSES.WatchDog import WatchDog
 from scripts.WIDGETS.ErrEntry import ErrEntry
 from scripts.WIDGETS.Separator import Separator
 
@@ -31,13 +34,14 @@ class SpikeController:
         self.model = SpikeModel()
         self.view = view
         self.view.controller = self  # set controller
-        
+
         self.files_queue = None
         self.detection_progress = None
         self.progress_queue = None
         self.result_queue = None
-        
-    
+
+        self.cancelled = False
+
     def check_params_validity(self):
         """
         Validates the processing parameters before starting the processing of the files and the plot of the figure.
@@ -55,58 +59,56 @@ class SpikeController:
             plot_params_errors.append("Either 'single file' or 'multiple file' analysis must be selected")
         if self.view.vars["single ckbox"].get() and self.view.vars["multiple ckbox"].get():
             plot_params_errors.append("Either 'single file' or 'multiple file' analysis must be selected")
-        
+
         if self.view.vars["single ckbox"].get() and not self.view.vars["single"].get():
             plot_params_errors.append("No file selected to analyze.")
         if self.view.vars["multiple ckbox"].get() and not self.view.vars["multiple"].get():
             plot_params_errors.append("No file selected to analyze.")
-        
+
         if self.view.vars['select columns ckbox'].get():
             if not self.view.vars['select columns number'].get():
                 plot_params_errors.append("You have to indicate a number of columns to select.")
             if self.view.vars['select columns mode'].get() == 'None':
                 plot_params_errors.append("You have to select a mode for column selection.")
-            
+
             if self.view.vars['select columns metric'].get() == 'None':
                 plot_params_errors.append("You have to select a metric to use for the electrode selection.")
-        
+
         targets = self.view.textboxes["targets"].get(1.0, ctk.END)
-        if len(targets)==0 and not self.view.vars["single ckbox"].get():
+        if len(targets) == 0 and not self.view.vars["single ckbox"].get():
             plot_params_errors.append('At least one target is needed to plot')
-            
+
         if float(self.view.vars["dead window"].get()) < 0:
             plot_params_errors.append('Dead window length must be a positive number.')
-        
+
         if int(self.view.vars["sampling frequency"].get()) <= 0:
             plot_params_errors.append('Sampling frequency must be a positive number.')
         if float(self.view.vars["std threshold"].get()) < 0:
             plot_params_errors.append('Std threshold must be a positive number.')
-        
+
         for key, textbox in self.view.textboxes.items():
             elements = textbox.get(1.0, ctk.END)
             for element in elements:
                 fcs = ival.value_has_forbidden_character(element)
                 if fcs:
                     plot_params_errors.append(f"Forbidden characters in '{element}' : {fcs}")
-        
-    
-        
+
         # ---- axis errors
         axes_entry_keys = ["round y ticks", "n y ticks"]
         for key in axes_entry_keys:
             e = self.view.entries[key].error_message.get()
             if e:
                 axes_errors.append(e)
-        
+
         # ---- figname errors
-        
+
         if plot_params_errors or axes_errors or figname_errors or legend_errors:
             errors = [error for errors in [plot_params_errors, axes_errors, figname_errors, legend_errors] for error in
                       errors]
             messagebox.showerror('Value Error', '\n'.join(errors))
             return False
         return True
-    
+
     def update_view_from_model(self, ):
         """
         Update the view's variables from the model's data.
@@ -137,14 +139,14 @@ class SpikeController:
                 widget.delete(0, ctk.END)
                 widget.insert(0, self.model.entries[key])
                 widget.configure(state='disabled')
-        
+
         for key, widget in self.view.switches.items():
             if widget.cget('state') == 'normal':
                 if key in self.model.switches.keys():
                     widget.select()
                 else:
                     widget.deselect()
-        
+
         for key, widget in self.view.ckboxes.items():
             if widget.cget('state') == 'normal':
                 if key in self.model.ckboxes.keys():
@@ -160,10 +162,10 @@ class SpikeController:
                     else:
                         widget.deselect()
                 widget.configure(state='disabled')
-        
+
         for key, widget in self.view.textboxes.items():
             MainController.update_textbox(widget, self.model.textboxes[key].split("\n"))
-    
+
     def update_number_of_tasks(self, n_file, n_col, ):
         """
         Calculates the total number of tasks to be processed based on the configuration and input parameters.
@@ -186,116 +188,165 @@ class SpikeController:
             The total number of tasks to be completed.
         """
         return n_file * n_col
-    
-    def compute_spike_thread(self):
+
+    def compute_spike_thread_launcher(self):
         # fig, ax = self.view.figures["plot"]
-        
+
         files = []
         start = datetime.now()
-        
+
         if self.view.vars["single"].get():
             files.append(self.view.vars["single"].get())
         elif self.view.vars["multiple"].get():
             files = ff.get_all_files(self.model.parent_directory, to_include=self.model.to_include,
                                      to_exclude=self.model.to_exclude)
+            yesno = messagebox.askyesno("Files found", f"{len(files)} files have been found using "
+                                                       f"the multiple file sorting option."
+                                                       f"\nProceed with the processing ?")
+            if not yesno:
+                return
+
         samples_per_target = {value: 0 for target, value in self.model.targets.items()}
         skiprow = 0
         if self.model.vars['behead ckbox']:
             skiprow = int(self.model.vars['behead'])
-        
+
         example_dataframe = pd.read_csv(files[0], dtype=float, index_col=False, skiprows=skiprow)
         if self.model.vars['select columns ckbox']:
             n_cols = int(self.model.vars['select columns number'])
         else:
             n_cols = int(
                 len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
-        self.detection_progress = ProgressBar("Processing progression", app=self.view.app)
+        self.detection_progress = ProgressBar("Processing progression", app=self.view.app, controller=self)
         self.detection_progress.total_tasks = self.update_number_of_tasks(len(files), n_cols)
         self.detection_progress.start()
         self.detection_progress.update_task("Spike detection...")
-        
+
         n_cpu = multiprocessing.cpu_count()
         # n_workers = 1
-        if len(files) > int(0.7 * n_cpu): n_workers = 1 if int(0.7 * n_cpu) == 0 else int(0.7 * n_cpu)
-        elif len(files) < int(0.7 * n_cpu): n_workers = len(files)
-        else: n_workers = 1
-        
-        print("Using n workers for processing: ", n_workers)
-        
-        with multiprocessing.Manager() as manager:
-            self.files_queue = multiprocessing.Queue()
-            self.progress_queue = multiprocessing.Queue()
-            self.result_queue = multiprocessing.Queue()
-            
-            # populate the queue with parameters combinations to test
-            for file in files:
-                self.files_queue.put(file)
-                
-                # add sentinel values
-            for _ in range(n_workers):
-                self.files_queue.put(None)
-                
-            all_processes = [SpikeDetectorProcess(self.model.vars,
-                                                  self.model.targets,
-                                                  n_cols,
-                                                  self.result_queue,
-                                                  self.files_queue,
-                                                  self.progress_queue, )
-                             for _ in range(n_workers)]
-            
-            for p in all_processes:
-                print(p)
-                p.start()
-                
-            columns_with_exception = [col for col in example_dataframe.columns if self.model.vars["except column"] not in col]
-            results = {value: {col: [] for col in columns_with_exception} for target, value in self.model.targets.items()}
-            finished_workers = 0
-            while finished_workers != len(all_processes) and self.detection_progress.progress_window.winfo_exists():
-                are_alive = []
-                for w in all_processes:
-                    if w.is_alive():
-                        are_alive.append(w)
-                print("Workers alive: ", [w.name for w in are_alive])
-                
-                try:
-                    detected_spikes, target = self.result_queue.get()  # Use get_nowait() to avoid blocking
-                    if type(detected_spikes) == str:  # A Worker finished ! joining it
-                        finished_workers += 1
-                        print("Worker finishing", detected_spikes, "finished workers:", finished_workers)
-                    
+        if len(files) > int(0.7 * n_cpu):
+            n_workers = 1 if int(0.7 * n_cpu) == 0 else int(0.7 * n_cpu)
+        elif len(files) < int(0.7 * n_cpu):
+            n_workers = len(files)
+        else:
+            n_workers = 1
+
+        # print("Using n workers for processing: ", n_workers)
+
+        self.files_queue = multiprocessing.Queue()
+        self.progress_queue = multiprocessing.Queue()
+        self.result_queue = multiprocessing.Queue()
+
+        # populate the queue with parameters combinations to test
+        for file in files:
+            self.files_queue.put(file)
+
+            # add sentinel values
+        for _ in range(n_workers):
+            self.files_queue.put(None)
+
+        columns_with_exception = [col for col in example_dataframe.columns if
+                                  self.model.vars["except column"] not in col]
+        lock = threading.Lock()
+        all_prisoners = [SpikeDetectorProcess(self.model.vars,
+                                              self.model.targets,
+                                              n_cols,
+                                              self.result_queue,
+                                              self.files_queue,
+                                              self.progress_queue,
+                                              columns_with_exception,
+                                              lock)
+                         for _ in range(1)]
+
+        for p in all_prisoners:
+            print(p)
+            p.start()
+
+        watch_dog = WatchDog(all_prisoners)
+        watch_dog.start()
+        results = {}
+        finished_prisoners = 0
+
+        results = {value: {col: [] for col in columns_with_exception} for target, value in self.model.targets.items()}
+        while watch_dog.watching() and finished_prisoners != len(
+                all_prisoners) and self.detection_progress.progress_window.winfo_exists():
+            self.detection_progress.update_task("Threaded spike detection...")
+            try:
+                while not self.progress_queue.empty():
+                    progress_item = self.progress_queue.get_nowait()
+                    if progress_item:
+                        self.detection_progress.increment_progress(progress_item)
+                        print("increment progress")
+            except Empty:
+                pass
+
+            try:
+                while not self.result_queue.empty():
+                    self.detection_progress.update_task("Storing results...")
+                    detected_spikes, target = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+                    if type(detected_spikes) is str:  # A Worker finished ! joining it
+                        finished_prisoners += 1
+                        print("Prisoner finishing", detected_spikes, "finished prisoners:", finished_prisoners)
+
                     else:
-                        progress_item = self.progress_queue.get()
-                        
                         for col in detected_spikes.keys():
                             results[target][col] += detected_spikes[col]
-                        samples_per_target[target] += 1
-                        
-                        self.detection_progress.increment_progress(progress_item)
+                        samples_per_target[target] += 1  # Store results dynamically
+            except Empty:
+                # No progress item was available; just continue looping.
+                pass
 
-                except Empty:
-                    # No progress item was available; just continue looping.
-                    pass
-        
-        # ensuring to empty queues
-        while not self.result_queue.empty():
-            detected_spikes, target = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
-            if type(detected_spikes) == str:  # A Worker finished ! joining it
-                finished_workers += 1
-                print("Worker finishing", detected_spikes, "finished workers:", finished_workers)
-            else:
+            self.view.app.update_idletasks()
+
+        if self.cancelled:
+            print("Spike detection has been cancelled ! Cleaning threads and queues")
+            watch_dog.stop()
+            # emptying queues
+            while not self.files_queue.empty():
+                self.files_queue.get_nowait()
+
+            while not self.progress_queue.empty():
+                self.progress_queue.get_nowait()
+
+            while not self.result_queue.empty():
+                self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
+
+        else:
+            self.detection_progress.update_task("Finishing threaded detection...")
+            if finished_prisoners == len(all_prisoners):
+                watch_dog.stop()
+            while not self.progress_queue.empty():
+                self.detection_progress.increment_progress(self.progress_queue.get_nowait())
+
+            while not self.result_queue.empty():
+                detected_spikes, target = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                 for col in detected_spikes.keys():
                     results[target][col] += detected_spikes[col]
-                samples_per_target[target] += 1
-        
-        while not self.progress_queue.empty():
-            progress_item = self.progress_queue.get()
-            self.detection_progress.increment_progress(progress_item)
-        
-        print(results)
-        
-        self.model.spike_params["spike results"] = results
+                samples_per_target[target] += 1  # Store results dynamically # Store results dynamically
 
-        self.draw_figure()
+            self.cancelled = True if any(
+                [w.is_alive() for w in all_prisoners]) and not self.detection_progress.is_alive() else False
+
+            self.detection_progress.update_task("Terminating threads...")
+            for worker in all_prisoners:
+                print("joining ", worker.name)
+                worker.join(timeout=5)
+                if worker.is_alive():
+                    print("thread is alive, joining")
+                    worker.join()
+            watch_dog.join()
+            print("Watch dog is joined")
+
+            self.model.spike_params["spike results"] = results
+
+            self.draw_figure()
+
+        if self.cancelled:
+            messagebox.showinfo("Cancel Learning", "All workers properly terminated.")
+        else:
+            print("All threads properly terminated.")
+
+        self.cancelled = False
 
     def check_thread_status(self, thread):
         if thread.is_alive():
@@ -309,11 +360,10 @@ class SpikeController:
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, ]:
                 self.update_params(widgets)
-            self.compute_spike_thread()
+            self.compute_spike_thread_launcher()
             # thread.start()
             # self.view.app.after(500, self.check_thread_status, thread)  # Check if thread is done
 
-       
     def check_plot_params_validity(self):
         """
         Validates the plot parameters before plotting the figure.
@@ -326,19 +376,19 @@ class SpikeController:
         errors = []
         if not self.model.n_labels > -1:
             errors.append("You need to add data to plot.")
-            
+
         indices = []
         for n_label in range(self.model.n_labels):
             index = self.view.vars[f"index {n_label}"].get()
             indices.append(index)
-        
+
         if len(indices) != len(set(indices)):
             errors.append("Two data point can not have the same plot index.")
-            
+
         if errors:
             messagebox.showerror("Not plottable", "\n".join(errors))
-        return True if len(errors)==0 else False
-        
+        return True if len(errors) == 0 else False
+
     def draw_figure(self):
         """
         Draws the Spike figure, setting up the plot, computing spikes, and rendering the visualization.
@@ -347,7 +397,7 @@ class SpikeController:
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, ]:
                 self.update_params(widgets)
-                
+
             fig, ax = plt.subplots(figsize=(4, 4))
             new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
             new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
@@ -360,7 +410,7 @@ class SpikeController:
             self.view.canvas["spike"] = new_canvas
             self.view.figures["spike"] = (fig, ax)
             ax.clear()
-            
+
             x_ticks = []
             x_ticks_label = []
             results = self.model.spike_params["spike results"]
@@ -368,47 +418,48 @@ class SpikeController:
             for target in results.keys():
                 for col in results[target].keys():
                     all_spikes[target] += results[target][col]
-                    
+
             ymin = 0
             ymax = -math.inf
-            
+
             new_indices = {self.model.vars[f"label data {n_label}"]: int(self.model.vars[f"index {n_label}"])
-                           for n_label in range(self.model.n_labels+1)}
+                           for n_label in range(self.model.n_labels + 1)}
             inverted_new_indices = {v: k for k, v in new_indices.items()}
             label_order = [inverted_new_indices[key] for key in sorted(inverted_new_indices, key=int)]
-            color_dict = {self.model.vars[f"label data {n_label}"]:self.model.vars[f"color {n_label}"]
-                          for n_label in range(self.model.n_labels+1)}
+            color_dict = {self.model.vars[f"label data {n_label}"]: self.model.vars[f"color {n_label}"]
+                          for n_label in range(self.model.n_labels + 1)}
 
-            for n_label in range(self.model.n_labels+1):
+            for n_label in range(self.model.n_labels + 1):
                 label = self.model.vars[f"label data {n_label}"]
                 label_legend = self.model.vars[f"label data legend {n_label}"]
                 index = self.model.vars[f"index {n_label}"]
                 x_ticks_label.append(label_legend) if label_legend else x_ticks_label.append(label)
                 x_ticks.append(index)
-                
-                height = int(np.sum(all_spikes[label])/self.model.spike_params["samples_per_target"][label])
+
                 for spike in all_spikes[label]:
                     if spike > ymax:
                         ymax = spike
-                    
+
                 if self.model.cbboxes[f"plot type"] == "bar":
+                    height = int(np.mean(all_spikes[label])) # / self.model.spike_params["samples_per_target"][label])
                     yerr = np.std(all_spikes[label]) if self.model.vars[f"error bar {index}"] else None
                     ax.bar(x=index, height=height,
                            yerr=yerr,
-                           color=self.model.vars[f"color {n_label}"],)
+                           color=self.model.vars[f"color {n_label}"], )
 
                 elif self.model.cbboxes[f"plot type"] == "violin":
-                    sns.violinplot({k: v for k, v in all_spikes.items() if k in label_order}, order=label_order, ax=ax, palette=color_dict)
-                
+                    sns.violinplot({k: v for k, v in all_spikes.items() if k in label_order}, order=label_order, ax=ax,
+                                   palette=color_dict)
+
             for n_label in range(self.model.n_labels + 1):
                 label = self.model.vars[f"label data {n_label}"]
                 if self.model.ckboxes["show points"] == 1:
                     for spike in all_spikes[label]:
                         offset = 0.15
-                        rand_index = random.uniform(new_indices[label] - offset, new_indices[label] + offset)  # Add jitter
+                        rand_index = random.uniform(new_indices[label] - offset,
+                                                    new_indices[label] + offset)  # Add jitter
                         ax.scatter(x=rand_index, y=spike, color='black', alpha=0.7, s=15)
-                        
-                        
+
             # ---- LABELS
             ax.set_xlabel(self.model.vars["x label"],
                           fontdict={"font": self.model.vars["axes font"],
@@ -419,17 +470,18 @@ class SpikeController:
             ax.set_title(self.model.entries["title"],
                          fontdict={"font": self.model.cbboxes["title font"],
                                    "fontsize": self.model.vars["title size"]}, )
-            
+
             # ----- TICKS
-            
             ax.set_xticks(x_ticks, x_ticks_label)
             ax.tick_params(axis='x',
                            labelsize=self.model.vars["x ticks size"],
                            labelrotation=float(self.model.vars["x ticks rotation"]))
-            
-            
+            bottom_limit, top_limit = ax.get_ylim()
+            ymin = min(ymin, bottom_limit)
+            ymax = max(ymax, top_limit)
             yticks = np.linspace(ymin, ymax, int(self.model.entries["n y ticks"]))
             rounded_yticks = list(np.around(np.array(yticks), int(self.model.entries["round y ticks"])))
+            ax.set_ylim(bottom=min(rounded_yticks), top=max(rounded_yticks))
             ax.set_yticks(rounded_yticks)
             ax.tick_params(axis='y',
                            labelsize=self.model.vars["y ticks size"],
@@ -460,12 +512,12 @@ class SpikeController:
             #
             # elif ax.get_legend():
             #     ax.get_legend().remove()
-                
+
             self.view.figures["spike"] = (fig, ax)
             self.view.canvas["spike"].draw()
         else:
             messagebox.showerror("", "Missing data", )
-            
+
     def trace_vars_to_model(self, key, *args):
         """
         Synchronizes UI variables with the model.
@@ -485,8 +537,7 @@ class SpikeController:
             self.model.plot_legend[key] = self.view.vars[key].get()
         elif key in self.model.spike_params.keys():
             self.model.spike_params[key] = self.view.vars[key].get()
-    
-   
+
     def select_parent_directory(self, strvar):
         """
         Opens a file dialog to select a parent directory and updates the model with the selected path.
@@ -508,7 +559,7 @@ class SpikeController:
         if type(strvar) == ctk.StringVar:
             strvar.set(dirname)
             self.model.parent_directory = dirname
-    
+
     def add_subtract_to_include(self, entry, textbox, mode='add'):
         """
         Adds or removes a value from the 'to_include' list in the model, based on user input.
@@ -538,7 +589,7 @@ class SpikeController:
         if ival.value_has_forbidden_character(entry.get()) is False:
             entry.delete(0, ctk.END)
             return False
-        
+
         to_include = entry.get()
         if to_include:
             local_include = self.model.to_include
@@ -551,7 +602,7 @@ class SpikeController:
             entry.delete(0, ctk.END)
         else:
             messagebox.showerror("Missing Value", "You need te indicate a value to include.")
-            
+
     def add_subtract_to_exclude(self, entry, textbox, mode='add'):
         """
         Adds or removes a value from the 'to_exclude' list in the model, based on user input.
@@ -593,7 +644,7 @@ class SpikeController:
             entry.delete(0, ctk.END)
         else:
             messagebox.showerror("Missing Value", "You need te indicate a value to exclude.")
-    
+
     def add_subtract_target(self, key_entry, value_entry, textbox, mode='add'):
         """
         Adds or removes a target key-value pair in the model's targets, based on user input.
@@ -634,7 +685,7 @@ class SpikeController:
             return False
         key = key_entry.get()
         value = value_entry.get()
-        
+
         local_targets = self.model.targets
         if mode == 'add':
             if key and value:
@@ -655,7 +706,7 @@ class SpikeController:
         MainController.update_textbox(textbox, self.model.targets)
         key_entry.delete(0, ctk.END)
         value_entry.delete(0, ctk.END)
-        
+
     def select_single_file(self, display_in):
         """
         Opens a file dialog to select a file and updates the model with the selected path.
@@ -678,7 +729,7 @@ class SpikeController:
         if type(display_in) == ctk.StringVar:
             display_in.set(filename)
             self.model.single_file = filename
-            
+
     def update_params(self, widgets: dict, ):
         """
         Updates the model's variables, checkboxes, entries, comboboxes, or textboxes based on the provided widget values.
@@ -710,8 +761,8 @@ class SpikeController:
         local_dict = {}
         if len(widgets.items()) > 0:
             if type(list(widgets.values())[0]) == ctk.StringVar or \
-                type(list(widgets.values())[0]) == ctk.IntVar or \
-                type(list(widgets.values())[0]) == ctk.DoubleVar:
+                    type(list(widgets.values())[0]) == ctk.IntVar or \
+                    type(list(widgets.values())[0]) == ctk.DoubleVar:
                 for key, value in widgets.items():
                     local_dict[key] = value.get()
                 self.model.vars.update(local_dict)
@@ -733,7 +784,7 @@ class SpikeController:
                 for key, value in widgets.items():
                     local_dict[key] = value.get(1.0, tk.END)
                 self.model.textboxes.update(local_dict)
-    
+
     def add_label_data(self, scrollable_frame):
         """
         Adds a new label entry to the provided scrollable frame, allowing the user to configure a label, its
@@ -770,7 +821,7 @@ class SpikeController:
         - The method also manages separators in the UI for better layout.
         - The relevant UI elements are stored in the `view` and `model` for further interaction.
         """
-        
+
         if self.model.targets:
             if self.model.n_labels + 1 <= self.model.max_n_labels:
                 targets = sorted(set(list(self.model.targets.values())))
@@ -800,7 +851,7 @@ class SpikeController:
                 color_var = tk.StringVar(value='green')
                 color_button = ctk.CTkButton(master=scrollable_frame, textvariable=color_var,
                                              fg_color=color_var.get(), text_color='black')
-               
+
                 # ----- MANAGE WIDGETS
                 n_labels_label.grid(row=1, column=column, sticky="we", padx=2)
                 labels_cbbox.grid(row=4, column=column, sticky='we', padx=2)
@@ -808,7 +859,7 @@ class SpikeController:
                 index_cbbox.grid(row=8, column=column, sticky='we', padx=2)
                 error_bar_cbbox.grid(row=10, column=column, sticky='we', padx=2)
                 color_button.grid(row=12, column=column, sticky='we', padx=2)
-                
+
                 # --------------- MANAGE SEPARATORS
                 general_params_separators_indices = [0, 2, 3, 5, 7, 9, 11, 13, ]
                 general_params_vertical_separator_ranges = [(0, 14), ]
@@ -819,14 +870,14 @@ class SpikeController:
                 # for couple in general_params_vertical_separator_ranges:
                 #     general_v_sep = Separator(master=scrollable_frame, orient='v')
                 #     general_v_sep.grid(row=couple[0], column=column, rowspan=couple[1] - couple[0], sticky='ns')
-                
+
                 # ----- CONFIGURE WIDGETS
                 color_button.configure(command=partial(self.view.select_color, view=self.view,
                                                        selection_button_name=f'color {n_labels}'))
-                
+
                 scrollable_frame.grid_columnconfigure(index=column, weight=1)
                 # ------- STORE WIDGETS
-                
+
                 # self.view.labels_subframes[str(n_labels)] = label_data_subframe
                 self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
                 self.view.cbboxes[f"error bar {n_labels}"] = error_bar_cbbox
@@ -843,7 +894,7 @@ class SpikeController:
         else:
             messagebox.showerror("Missing Values", "No targets indicated")
             return False
-    
+
     @staticmethod
     def clear_column(parent, column):
         """
@@ -871,12 +922,12 @@ class SpikeController:
         - Only widgets that are placed in the specified column will be removed.
         - If no widgets are placed in the specified column, this method has no effect.
         """
-        
+
         for widget in parent.winfo_children():
             grid_info = widget.grid_info()
             if grid_info and int(grid_info['column']) == column:
                 widget.destroy()
-    
+
     def remove_label_data(self, ):
         """
         Removes the label data UI components and related entries from the model.
@@ -895,16 +946,16 @@ class SpikeController:
         - The method assumes that the number of labels is non-negative (`n_labels >= 0`).
         - It clears widgets and updates dictionaries to ensure the UI and model remain synchronized.
         """
-        
+
         n_labels = self.model.n_labels
         column = n_labels + self.model.n_labels_offset
         if n_labels >= 0:
             self.clear_column(self.view.scrollable_frames["data"], column)
-            
+
             # remove the frame from self.view.labels_subframes
             # self.view.labels_subframes[str(n_labels)].destroy()
             # del self.view.labels_subframes[str(n_labels)]
-            
+
             # destroying all items related in dicts
             del self.view.buttons[f"color {n_labels}"]
             del self.view.cbboxes[f"label data {n_labels}"]
@@ -915,7 +966,7 @@ class SpikeController:
             del self.view.vars[f"index {n_labels}"]
             del self.view.vars[f"label data legend {n_labels}"]
             self.model.n_labels -= 1
-    
+
     def load_config(self, ):
         """
         Loads a configuration file and updates the model.
@@ -938,12 +989,12 @@ class SpikeController:
         - The method uses a file dialog to allow the user to select the configuration file.
         - If the file is successfully loaded, the view is updated to reflect the new state of the model.
         """
-        
+
         f = filedialog.askopenfilename(title="Open file", filetypes=(("Spike analysis config", "*.skcfg"),))
         if f:
             if self.model.load_model(path=f):
                 self.update_view_from_model()
-    
+
     def save_config(self, ):
         """
         Saves the current configuration to a file.
@@ -970,12 +1021,12 @@ class SpikeController:
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, self.view.labels, self.view.labels_subframes]:
                 self.update_params(widgets)
-            
+
             f = filedialog.asksaveasfilename(defaultextension=".skcfg",
                                              filetypes=[("Spike analysis config", "*.skcfg"), ])
             if f:
                 self.model.save_model(path=f, )
-                
+
     def export_data(self):
         """
         Exports the spike detection data to two CSV file.
@@ -1010,27 +1061,27 @@ class SpikeController:
                                              initialfile="spike_detection_export")
             indices = [target for target in self.model.spike_params["spike results"].keys()]
             columns = [col for col in self.model.spike_params["spike results"][indices[0]].keys()]
+
+            data = np.zeros((len(indices), len(columns)), dtype=object)
+
+            for itarget, target in enumerate(self.model.spike_params["spike results"].keys()):
+                for icol, col in enumerate(self.model.spike_params["spike results"][target].keys()):
+                    item = self.model.spike_params["spike results"][target][col]
+                    print(item)
+                    data[itarget, icol] = item
+
             df = pd.DataFrame(index=indices,
-                              columns=columns)
-            
-            for target in self.model.spike_params["spike results"].keys():
-                for col in self.model.spike_params["spike results"][target].keys():
-                    df.loc[target, col] = self.model.spike_params["spike results"][target][col]
-                    
+                              columns=columns, dtype=object, data=data)
             print(df)
 
             if '.csv' not in f:
                 f += '.csv'
             df.to_csv(f, index=False)
-            
+
         except Exception as e:
             messagebox.showerror("", "An error has occurred while saving count.")
             print(e)
             is_error = True
-        
 
-            
         if not is_error:
             messagebox.showinfo("", "Files correctly saved")
-        
-        
