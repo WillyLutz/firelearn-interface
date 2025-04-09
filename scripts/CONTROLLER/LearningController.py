@@ -434,7 +434,7 @@ class LearningController:
                     result = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                     if type(result) is str:  # A Worker finished ! joining it
                         finished_prisoners += 1
-                        logger.info("Prisoner finishing", result, "finished prisoners:", finished_prisoners)
+                        logger.info(f"Prisoner finishing {result} - finished prisoners: {finished_prisoners}")
 
                     else:
                         random_key, formatted_metrics = result
@@ -475,7 +475,7 @@ class LearningController:
 
             self.learning_progress.update_task("Terminating threads...")
             for worker in all_prisoners:
-                logger.info("joining ", worker.name)
+                logger.info(f"joining {worker.name}")
                 worker.join(timeout=5)
                 if worker.is_alive():
                     logger.info("thread is alive, joining")
@@ -540,7 +540,7 @@ class LearningController:
             # thread.start()
             self._learning_process()
             end_learning = datetime.datetime.now()
-            logger.info("Learning time: ", end_learning - start_learning)
+            logger.info(f"Learning time: {end_learning - start_learning}")
 
     @staticmethod
     def _compute_trust_score(train_score, test_score, all_cv_scores):
@@ -580,7 +580,7 @@ class LearningController:
                 best_key = random_key if trust > best_trust else best_key
                 best_trust = max(trust, best_trust)
 
-                logger.debug(trust, metrics)
+                logger.debug(f"{trust} {metrics}")
 
         if self.scoring == 'Relative K-Fold CV accuracy':
             best_rel_cv = 100

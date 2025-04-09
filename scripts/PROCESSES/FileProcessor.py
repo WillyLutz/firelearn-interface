@@ -45,7 +45,7 @@ class FileProcess(threading.Thread):
         while True:
             try:
                 if self.stopped():
-                    logger.info(self.name, "cancelled")
+                    logger.info(f"{self.name} cancelled")
                     break
 
                 file = files_queue.get(timeout=1)
@@ -57,11 +57,11 @@ class FileProcess(threading.Thread):
 
                 logger.debug(f"Worker {self.name} - file queue size: {files_queue.qsize()}, processing file: {file}")
                 result = self._process_file(file, harmonics, processing_basename)
-                logger.debug(self.name, f"Attempting to put result of size {sys.getsizeof(result)} in queue with size",
-                      self.result_queue.qsize())
+                logger.debug(f"{self.name} Attempting to put result of size {sys.getsizeof(result)} in queue"
+                             f" with size {self.result_queue.qsize()}")
 
                 if self.stopped():
-                    logger.info(self.name, "cancelled")
+                    logger.info(f"{self.name} cancelled")
                     break
 
                 if self.result_queue.full():

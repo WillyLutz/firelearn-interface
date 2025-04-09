@@ -16,7 +16,8 @@ from matplotlib import pyplot as plt
 from scripts import params
 from scripts.params import resource_path
 from scripts.VIEW.MainView import MainView
-
+import logging
+logger = logging.getLogger("__main__")
 
 class App(ctk.CTk):
     def __init__(self):
@@ -35,7 +36,7 @@ class App(ctk.CTk):
         splash.destroy()
         del splash
         loading_time_end = datetime.now()
-        print("Loading time:", loading_time_end - loading_time_start)
+        logger.info(f"Loading time: {loading_time_end - loading_time_start}")
         
         global usage_start_time
         usage_start_time = datetime.now()
@@ -43,8 +44,8 @@ class App(ctk.CTk):
 
     def onClosure(self):
         usage_end_time = datetime.now()
-        print("Usage time:", usage_end_time - usage_start_time)
-        print("Closing app and cleaning...")
+        logger.info(f"Usage time: {usage_end_time - usage_start_time}" )
+        logger.info("Closing app and cleaning...")
         start_closing = datetime.now()
         self.withdraw()
         plt.close('all')
@@ -53,7 +54,7 @@ class App(ctk.CTk):
         end_closing = datetime.now()
         
         del self
-        print("Closing time:", end_closing - start_closing)
+        logger.info(f"Closing time: {end_closing - start_closing}")
 
         sys.exit()
         
@@ -82,7 +83,8 @@ class Splash(ctk.CTkToplevel):
         self.iconphoto(False, logo)
         self.iconname('FireLearn')
         # self.protocol('WM_DELETE_WINDOW', self.onClosure)
-        fl_logo = ctk.CTkImage(dark_image=Image.open(resource_path("data/firelearn_img/logo firelearn light text.png")),
+        logo_path = "logo firelearn light text" if "dark" in params.theme else "logo firelearn dark text"
+        fl_logo = ctk.CTkImage(dark_image=Image.open(resource_path(f"data/firelearn_img/{logo_path}.png")),
                                 size=(500, 316))
         fl_label = ctk.CTkLabel(master=loading_frame, image=fl_logo, text="")
         fl_label.place(relx=0, rely=0, relwidth=1, relheight=1)
@@ -94,7 +96,7 @@ class Splash(ctk.CTkToplevel):
 usage_start_time = datetime.now()
 
 def main():
-    ctk.set_default_color_theme(resource_path("data/theme.json"))
+    ctk.set_default_color_theme(resource_path(f"data/theme-{params.theme}.json"))
     
     app = App()
     

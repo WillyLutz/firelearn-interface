@@ -521,7 +521,7 @@ class ProcessingView(ctk.CTkFrame):
         
         sorting_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
         sorting_label = ctk.CTkLabel(master=sorting_frame, text="Path to parent directory:",
-                                     text_color=gp.enabled_label_color)
+                                     )
         
         sorting_sv = ctk.StringVar()
         sorting_entry = ErrEntry(master=filesorter_frame, state='disabled', textvariable=sorting_sv)
@@ -529,7 +529,7 @@ class ProcessingView(ctk.CTkFrame):
         
         to_include_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
         to_include_label = ctk.CTkLabel(master=to_include_frame, text="To include:",
-                                        text_color=gp.enabled_label_color)
+                                        )
         include_sv = ctk.StringVar()
         include_entry = ErrEntry(master=filesorter_frame, state='normal', textvariable=include_sv)
         add_include_button = ctk.CTkButton(master=to_include_frame, text="+", width=25, height=25, state='normal')
@@ -538,7 +538,7 @@ class ProcessingView(ctk.CTkFrame):
         
         to_exclude_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
         to_exclude_label = ctk.CTkLabel(master=to_exclude_frame, text="To exclude:",
-                                        text_color=gp.enabled_label_color)
+                                        )
         exclude_sv = ctk.StringVar()
         exclude_entry = ErrEntry(master=filesorter_frame, state='normal', textvariable=exclude_sv)
         add_exclude_button = ctk.CTkButton(master=to_exclude_frame, text="+", width=25, height=25, state='normal')
@@ -549,9 +549,9 @@ class ProcessingView(ctk.CTkFrame):
         target_value_frame = ctk.CTkFrame(master=filesorter_frame, fg_color='transparent')
         
         key_target_label = ctk.CTkLabel(master=target_key_frame, text="Target key:",
-                                        text_color=gp.enabled_label_color)
+                                        )
         value_target_label = ctk.CTkLabel(master=target_value_frame, text="Target value:",
-                                          text_color=gp.enabled_label_color)
+                                          )
         id_target_sv = ctk.StringVar()
         id_target_entry = ErrEntry(master=filesorter_frame, state='normal', textvariable=id_target_sv)
         rename_target_sv = ctk.StringVar()
@@ -565,7 +565,7 @@ class ProcessingView(ctk.CTkFrame):
         single_file_ckbox_var = ctk.IntVar(value=0)
         single_file_ckbox = ctk.CTkCheckBox(master=filesorter_frame, text="Single file analysis", variable=single_file_ckbox_var)
         single_file_label = ctk.CTkLabel(master=single_file_frame, text="Path to file:",
-                                         text_color=gp.enabled_label_color)
+                                         )
         single_file_sv = ctk.StringVar()
         single_file_entry = ErrEntry(master=filesorter_frame, state='disabled', textvariable=single_file_sv)
         single_file_button = ctk.CTkButton(master=single_file_frame, text="Open", state='normal', width=40)
@@ -735,10 +735,10 @@ class ProcessingView(ctk.CTkFrame):
         # --------- signal select columns -------
         electrode_ckbox_var = ctk.IntVar(value=0)
         electrode_ckbox = ctk.CTkCheckBox(master=signal_frame, text="Select columns", variable=electrode_ckbox_var)
-        electrode_mode_label = ctk.CTkLabel(master=signal_frame, text="mode: ", text_color=gp.enabled_label_color)
+        electrode_mode_label = ctk.CTkLabel(master=signal_frame, text="mode: ", )
         
         electrode_metric_label = ctk.CTkLabel(master=signal_frame, text="metric: ",
-                                              text_color=gp.enabled_label_color)
+                                              )
         mode_electrode_var = ctk.StringVar(value='None')
         mode_electrode_cbox = tk.ttk.Combobox(master=signal_frame, values=["None", "max", ], state='readonly',
                                               textvariable=mode_electrode_var)
@@ -760,20 +760,20 @@ class ProcessingView(ctk.CTkFrame):
         filter_var_ckbox = ctk.IntVar(value=0)
         filter_ckbox = ctk.CTkCheckBox(master=signal_frame, text="Filtering", variable=filter_var_ckbox)
         
-        order_filter_label = ctk.CTkLabel(master=signal_frame, text="Order: ", text_color=gp.enabled_label_color)
+        order_filter_label = ctk.CTkLabel(master=signal_frame, text="Order: ", )
         order_filter_sv = ctk.StringVar()
         order_filter_entry = ErrEntry(master=signal_frame, state='normal', textvariable=order_filter_sv)
         sampling_filter_label = ctk.CTkLabel(master=signal_frame, text="Sampling frequency (Hz):",
-                                             text_color=gp.enabled_label_color)
+                                             )
         sampling_filter_sv = ctk.StringVar()
         sampling_filter_entry = ErrEntry(master=signal_frame, state='normal', textvariable=sampling_filter_sv)
         
         filter_type_var = ctk.StringVar(value='None')
-        type_filter_label = ctk.CTkLabel(master=signal_frame, text="Type: ", text_color=gp.enabled_label_color)
+        type_filter_label = ctk.CTkLabel(master=signal_frame, text="Type: ", )
         frequency1_filter_label = ctk.CTkLabel(master=signal_frame, text="1st cut frequency (Hz): ",
-                                               text_color=gp.enabled_label_color)
+                                               )
         frequency2_filter_label = ctk.CTkLabel(master=signal_frame, text="2nd cut frequency (optional, Hz): ",
-                                               text_color=gp.enabled_label_color)
+                                               )
         type_filter_cbox = tk.ttk.Combobox(master=signal_frame,
                                            values=["None", "Highpass", "Lowpass", "Bandstop", "Bandpass"],
                                            state="readonly", textvariable=filter_type_var)
@@ -786,11 +786,11 @@ class ProcessingView(ctk.CTkFrame):
         # ---------- HARMONICS
         harmonics_filter_var = ctk.IntVar(value=0)
         harmonics_filter_ckbox = ctk.CTkCheckBox(master=signal_frame, text="Filter harmonics", variable=harmonics_filter_var)
-        type_harmonics_label = ctk.CTkLabel(master=signal_frame, text="Type:", text_color=gp.enabled_label_color)
+        type_harmonics_label = ctk.CTkLabel(master=signal_frame, text="Type:", )
         freq_harmonics_label = ctk.CTkLabel(master=signal_frame, text="Frequency (Hz):",
-                                            text_color=gp.enabled_label_color)
+                                            )
         nth_harmonics_label = ctk.CTkLabel(master=signal_frame, text="Up to Nth:",
-                                           text_color=gp.enabled_label_color)
+                                           )
         
         harmonics_type_var = ctk.StringVar(value='None')
         type_harmonics_cbox = tk.ttk.Combobox(master=signal_frame,
@@ -814,7 +814,7 @@ class ProcessingView(ctk.CTkFrame):
         sampling_fft_entry = ErrEntry(master=signal_frame, state='normal', textvariable=sampling_fft_sv)
         average_ckbox = ctk.CTkCheckBox(master=signal_frame, text="Average electrodes signal",
                                         variable=average_ckbox_var)
-        interpolation_ckbox = ctk.CTkCheckBox(master=signal_frame, text="Linear interpolation into n values: ", 
+        interpolation_ckbox = ctk.CTkCheckBox(master=signal_frame, text="Linear interpolation into n values: ",
                                               variable=interpolation_ckbox_var)
 
         interpolation_entry_var = ctk.StringVar()
@@ -1051,7 +1051,7 @@ class ProcessingView(ctk.CTkFrame):
 
         # ----- EXECUTE
         random_key_var = ctk.IntVar(value=0)
-        random_key_exec_ckbox = ctk.CTkCheckBox(master=filename_frame, text="Add random key to file names", 
+        random_key_exec_ckbox = ctk.CTkCheckBox(master=filename_frame, text="Add random key to file names",
                                                 variable=random_key_var)
         timestamp_exec_var = ctk.IntVar(value=0)
         timestamp_exec_ckbox = ctk.CTkCheckBox(master=filename_frame, text="Add timestamp to file names",
@@ -1065,7 +1065,7 @@ class ProcessingView(ctk.CTkFrame):
         make_dataset_ckbox = ctk.CTkCheckBox(master=filename_frame,
                                             text="Make files as datasets", variable=make_dataset_var)
         save_files_exec_label = ctk.CTkLabel(master=filename_frame, text="Save processed files under:",
-                                             text_color=gp.enabled_label_color)
+                                             )
         save_exec_sv = ctk.StringVar()
         save_entry = ErrEntry(master=filename_frame, textvariable=save_exec_sv, state='disabled')
         save_exec_button = ctk.CTkButton(master=filename_frame, text="Open", width=40)

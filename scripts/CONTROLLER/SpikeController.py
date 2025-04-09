@@ -189,7 +189,7 @@ class SpikeController:
         int
             The total number of tasks to be completed.
         """
-        return n_file * n_col
+        return n_file + n_file * n_col
 
     def compute_spike_thread_launcher(self):
         # fig, ax = self.view.figures["plot"]
@@ -233,7 +233,7 @@ class SpikeController:
         else:
             n_workers = 1
 
-        logger.debug("Using n workers for processing: ", n_workers)
+        logger.debug(f"Using n workers for processing: {n_workers}")
 
         self.files_queue = multiprocessing.Queue()
         self.progress_queue = multiprocessing.Queue()
@@ -288,7 +288,7 @@ class SpikeController:
                     detected_spikes, target = self.result_queue.get_nowait()  # Use get_nowait() to avoid blocking
                     if type(detected_spikes) is str:  # A Worker finished ! joining it
                         finished_prisoners += 1
-                        logger.info("Prisoner finishing", detected_spikes, "finished prisoners:", finished_prisoners)
+                        logger.info(f"Prisoner finishing {detected_spikes} - finished prisoners: {finished_prisoners}")
 
                     else:
                         for col in detected_spikes.keys():
@@ -331,7 +331,7 @@ class SpikeController:
 
             self.detection_progress.update_task("Terminating threads...")
             for worker in all_prisoners:
-                logger.info("joining ", worker.name)
+                logger.info(f"joining {worker.name}")
                 worker.join(timeout=5)
                 if worker.is_alive():
                     logger.info("thread is alive, joining")
@@ -340,8 +340,8 @@ class SpikeController:
             logger.info("Watch dog is joined")
 
             self.model.spike_params["spike results"] = results
-
-            self.draw_figure()
+            logger.info("Results are stored")
+            # self.draw_figure()
 
         if self.cancelled:
             messagebox.showinfo("Cancel Learning", "All workers properly terminated.")
@@ -395,6 +395,7 @@ class SpikeController:
         """
         Draws the Spike figure, setting up the plot, computing spikes, and rendering the visualization.
         """
+        
         if self.check_plot_params_validity() and self.check_params_validity():
             for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
                             self.view.switches, self.view.textboxes, ]:
@@ -1078,7 +1079,7 @@ class SpikeController:
 
             if '.csv' not in f:
                 f += '.csv'
-            df.to_csv(f, index=False)
+            df.to_csv(f)
 
         except Exception as e:
             messagebox.showerror("", "An error has occurred while saving count.")

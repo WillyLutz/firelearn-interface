@@ -52,7 +52,7 @@ class LearningProcess(threading.Thread):
         while True:
             try:
                 if self.stopped():
-                    logger.info(self.name, "cancelled")
+                    logger.info(f"{self.name} cancelled")
                     break
 
                 combination = self.params_queue.get(timeout=1)
@@ -67,7 +67,7 @@ class LearningProcess(threading.Thread):
                     logger.info(f"Worker {self.name} encountered an error adding results of {combination}:")
 
                 if self.stopped():
-                    logger.info(self.name, "cancelled")
+                    logger.info(f"{self.name} cancelled")
                     break
                 self.result_queue.put((random_key, result), timeout=10)
                 with self.lock:
@@ -87,11 +87,11 @@ class LearningProcess(threading.Thread):
             rfc.set_params(**param_combination)
             # clf_tester = ClfTester(rfc)
             if self.stopped():
-                logger.info(self.name, "cancelled")
+                logger.info(f"{self.name} cancelled")
                 break
             rfc = self.train(self.X_train, self.y_train, rfc)
             if self.stopped():
-                logger.info(self.name, "cancelled")
+                logger.info(f"{self.name} cancelled")
                 break
             self.test(self.X_test, self.y_test, rfc)
 
@@ -104,7 +104,7 @@ class LearningProcess(threading.Thread):
             test_scores.append(self.test_acc)
             # kfold
             if self.stopped():
-                logger.info(self.name, "cancelled")
+                logger.info(f"{self.name} cancelled")
                 break
             if self.enable_kfold:
                 cv_scores = cross_val_score(rfc, self.X_full, self.y_full, cv=int(self.kfold))

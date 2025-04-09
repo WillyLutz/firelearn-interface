@@ -1,12 +1,12 @@
 import logging
 import logging.config
+logging.config.fileConfig("../firelearn-interface/logging.config", disable_existing_loggers=True)
 import os
 
 from matplotlib import pyplot as plt
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-logging.config.fileConfig("../firelearn-interface/logging.config", disable_existing_loggers=False)
 logger = logging.getLogger("__main__")
 
 from scripts import main

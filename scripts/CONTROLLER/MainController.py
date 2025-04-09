@@ -55,48 +55,6 @@ class MainController:
         file.close()
 
     @staticmethod
-    def category_enabling_switch(switch, parent_widget):
-        """
-        Enables or disables child widgets of a parent widget based on the state of a switch.
-
-        Parameters
-        ----------
-        switch : ctk.CTkSwitch
-            The switch that controls the enabling/disabling of the widgets.
-        parent_widget : tk.Widget
-            The parent widget whose children will be modified.
-
-        Returns
-        -------
-        None
-        """
-        children = parent_widget.winfo_children()
-        if switch.get() == 1:
-            for child in children:
-                if type(child) == ctk.CTkLabel:
-                    child.configure(text_color=gp.enabled_label_color)
-                elif type(child) == ctk.CTkEntry:
-                    child.configure(state="normal")
-                elif type(child) == ctk.CTkButton:
-                    child.configure(state="normal")
-                elif type(child) == tk.ttk.Combobox:
-                    child.configure(state="readonly")
-                elif type(child) == ctk.CTkSwitch and child != switch:
-                    child.configure(state="normal")
-        else:
-            for child in children:
-                if type(child) == ctk.CTkLabel:
-                    child.configure(text_color=gp.disabled_label_color)
-                elif type(child) == ctk.CTkEntry:
-                    child.configure(state="disabled")
-                elif type(child) == ctk.CTkButton:
-                    child.configure(state="disabled")
-                elif type(child) == tk.ttk.Combobox:
-                    child.configure(state="disabled")
-                elif type(child) == ctk.CTkSwitch and child != switch:
-                    child.configure(state="disabled")
-
-    @staticmethod
     def update_textbox(textbox, elements):
         """
         Updates a textbox widget with a list or dictionary of elements.

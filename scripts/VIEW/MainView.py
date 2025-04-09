@@ -111,7 +111,7 @@ class MainView(ttk.Frame):
 
         self.terminal = None
 
-        self.theme = json.load(open(resource_path("data/theme.json")))
+        self.theme = json.load(open(resource_path("data/theme-dark.json")))
 
     def open_web(self, url):
         if self.controller:

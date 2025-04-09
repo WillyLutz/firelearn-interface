@@ -36,7 +36,7 @@ class WatchDog(Thread):
     def run(self):
         while not self.stopped():
             alive_prisoners = [p.name for p in self.prisoners if p.is_alive()]
-            logger.info("Alive prisoners", alive_prisoners)
+            logger.info(f"Alive prisoners {alive_prisoners}")
             if not alive_prisoners:
                 self.stop()
                 

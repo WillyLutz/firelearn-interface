@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from markdown.extensions.extra import extensions
 
+from scripts import params
 from scripts.CONTROLLER.ProgressBar import ProgressBar
 from scripts.MODEL.ProcessingModel import ProcessingModel
 import customtkinter as ctk
@@ -102,7 +103,7 @@ class ProcessingController:
                     if result:
                         if type(result) == str:  # A Worker finished ! joining it
                             finished_prisoners += 1
-                            logger.info("Thread finishing", result, "finished threads:", finished_prisoners)
+                            logger.info(f"Thread finishing {result} - finished threads: {finished_prisoners}")
                         else:
                             filename, processed_files_to_make_dataset = result
                             results[filename] = processed_files_to_make_dataset  # Store results dynamically
@@ -150,7 +151,7 @@ class ProcessingController:
 
             self.processing_progress.update_task("Terminating threads...")
             for worker in all_prisoners:
-                logger.info("joining ", worker.name)
+                logger.info(f"joining {worker.name}")
                 worker.join(timeout=5)
                 if worker.is_alive():
                     logger.info("thread is alive, joining")
@@ -171,7 +172,7 @@ class ProcessingController:
 
         # self.processing_thread.join()
         processing_time_end = datetime.datetime.now()
-        logger.info("Processing time: ", processing_time_end - processing_time_start)
+        logger.info(f"Processing time: {processing_time_end - processing_time_start}")
 
     def processing(self, ):
         if self.check_params_validity():
@@ -210,7 +211,7 @@ class ProcessingController:
                     n_threads = len(self.files_to_process)
                 else:
                     n_threads = 1
-                logger.debug("Using n threads for processing: ", n_threads)
+                logger.debug(f"Using n threads for processing: {n_threads}")
                 self.processing_thread_target(n_threads, harmonics, processing_basename)
                 # self.processing_thread = threading.Thread(target=self.processing_thread_target,
                 #                                           args=(n_threads, harmonics, processing_basename), daemon=True)
@@ -271,6 +272,7 @@ class ProcessingController:
         -------
             True if all steps for processing are True
         """
+        ctk.set_default_color_theme(resource_path(f"data/theme-dark.json"))
         if all([value for key, value in self.view.step_check.items()]):
             self.update_params(self.view.cbboxes)
             self.update_params(self.view.entries)

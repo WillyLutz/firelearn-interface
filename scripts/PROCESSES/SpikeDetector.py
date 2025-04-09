@@ -38,7 +38,7 @@ class SpikeDetectorProcess(threading.Thread):
     def _detection_for_prisoner(self):
 
         while True:
-            logger.debug("spike detection process progress queue size", self.progress_queue.qsize())
+            logger.debug(f"spike detection process progress queue size {self.progress_queue.qsize()}")
 
             try:
                 file = self.files_queue.get(timeout=1)
@@ -47,11 +47,11 @@ class SpikeDetectorProcess(threading.Thread):
                     logger.info(f"Prisoner {self.name} received stop signal and is exiting gracefully.")
                     break
                 if self.stopped():
-                    logger.info(self.name, "cancelled")
+                    logger.info(f"{self.name} cancelled")
                     break
                 result = self._spike_detection(file)
                 if self.stopped():
-                    logger.info(self.name, "cancelled")
+                    logger.info(f"{self.name} cancelled")
                     break
                 target = None
 
@@ -59,7 +59,7 @@ class SpikeDetectorProcess(threading.Thread):
                     if v in file:
                         target = v
                 if self.stopped():
-                    logger.info(self.name, "cancelled")
+                    logger.info(f"{self.name} cancelled")
                     break
                 if self.result_queue.full():
                     logger.error(f"Prisoner {self.name} encountered an error adding results of {file}:")
@@ -73,20 +73,22 @@ class SpikeDetectorProcess(threading.Thread):
         logger.info(f"Prisoner {self.name} exiting. Final files queue size: {self.files_queue.qsize()}")
 
     def _spike_detection(self, file):
+        logger.debug(f"detecting file {file}")
         sf = int(self.model_vars["sampling frequency"])
         dead_window = float(self.model_vars["dead window"])
         threshold = float(self.model_vars["std threshold"])
         if self.stopped():
-            logger.info(self.name, "cancelled")
+            logger.info(f"{self.name} cancelled")
             return None
         if self.model_vars["behead ckbox"]:
-            df = pd.read_csv(file, skiprows=int(self.model_vars["behead"]), dtype=float, index_col=False,
-                             usecols=self.columns)
+            df = pd.read_csv(file, skiprows=int(self.model_vars["behead"]), dtype=float, index_col=False,)
         else:
-            df = pd.read_csv(file, dtype=float, index_col=False, usecols=self.columns)
+            df = pd.read_csv(file, dtype=float, index_col=False, )
+            
+        df = df.loc[:, self.columns]
 
         if self.stopped():
-            logger.info(self.name, "cancelled")
+            logger.info(f"{self.name} cancelled")
             return None
         if self.model_vars["select columns ckbox"]:
             df = data_processing.top_n_columns(df, self.n_cols, self.model_vars["except column"])
@@ -99,11 +101,11 @@ class SpikeDetectorProcess(threading.Thread):
 
         data = df.values
         if self.stopped():
-            logger.info(self.name, "cancelled")
+            logger.info(f"{self.name} cancelled")
             return None
         for i_col in range(0, data.shape[1]):
             if self.stopped():
-                logger.info(self.name, "cancelled")
+                logger.info(f"{self.name} cancelled")
                 return None
             col_array = data[:, i_col]
 
@@ -131,7 +133,7 @@ class SpikeDetectorProcess(threading.Thread):
                     pass
                     # self.detected_spikes[self.columns[i_col]].append(0)
             if self.stopped():
-                logger.info(self.name, "cancelled")
+                logger.info(f"{self.name} cancelled")
                 return None
             with self.lock:
                 self.progress_queue.put(1)

@@ -161,7 +161,7 @@ class LearningView(ctk.CTkFrame):
         # row separator 20
         training_target_frame = ctk.CTkFrame(master=dataset_frame, fg_color='transparent')
         key_target_label = ctk.CTkLabel(master=training_target_frame, text="Training targets:",
-                                        text_color=gp.enabled_label_color)
+                                        )
 
         id_target_sv = ctk.StringVar()
         id_target_cbbox = tk.ttk.Combobox(master=dataset_frame, state='readonly', textvariable=id_target_sv, )
@@ -441,15 +441,15 @@ class LearningView(ctk.CTkFrame):
         all_files = ff.get_all_files(os.path.dirname(dataset_path))
         for file in all_files:
             basename = os.path.basename(file)
-            logger.info("Found file", basename)
+            logger.info(f"Found file  {basename}")
 
             base_path = dataset_basename.split(".")
-            logger.info(basename, base_path[0] + "_Xy_train." + base_path[1])
+            logger.info(f"{basename, base_path[0] + '_Xy_train.' + base_path[1]}")
             if basename == base_path[0] + "_Xy_train." + base_path[1]:
-                logger.info("Autoload train", file)
+                logger.info(f"Autoload train {file}")
                 self.controller.load_train_dataset(autoload=file)
             if basename == base_path[0] + "_Xy_test." + base_path[1]:
-                logger.info("Autoload test", file)
+                logger.info(f"Autoload test {file}")
 
                 self.controller.load_test_dataset(autoload=file)
 

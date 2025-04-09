@@ -19,6 +19,7 @@ last_version_compatible_spike = "0.7.0-alpha"
 last_version_compatible_learning = "0.7.0-alpha"
 last_version_compatible_processing = "0.6.0-alpha"
 
+theme = "lightblue"
 
 description = "Description of FL project here"
 
