@@ -6,6 +6,8 @@
 #     def __init__(self, master, **kwargs):
 #         super().__init__(master=master, **kwargs)
 import json
+import os
+import sys
 
 import customtkinter as ctk
 import tkinter as tk
@@ -14,6 +16,11 @@ import tkinter.ttk as ttk
 from scripts import params
 from scripts.WIDGETS.ErrLabel import ErrLabel
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class Separator(ctk.CTkFrame):
     def __init__(self, master, orient="h", length=100, width=4,  **kwargs): # fg_color='gray28', bg_color='gray5',
@@ -25,8 +32,9 @@ class Separator(ctk.CTkFrame):
         else:
             frame_height = self.length
             frame_width = self.sep_width
-        
-        with open(f'data/theme-{params.theme}.json', 'r') as file:
+
+        theme_path = resource_path(f'data/theme-{params.theme}.json')
+        with open(theme_path, 'r') as file:
             theme_file = json.load(file)
         
         super().__init__(master=master, height=frame_height, width=frame_width,

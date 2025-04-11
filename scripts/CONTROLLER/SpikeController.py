@@ -57,35 +57,35 @@ class SpikeController:
         legend_errors = []
         figname_errors = []
         axes_errors = []
-        if not self.view.vars["single ckbox"].get() and not self.view.vars["multiple ckbox"].get():
+        if not self.view.vars["single_ckbox"].get() and not self.view.vars["multiple_ckbox"].get():
             plot_params_errors.append("Either 'single file' or 'multiple file' analysis must be selected")
-        if self.view.vars["single ckbox"].get() and self.view.vars["multiple ckbox"].get():
+        if self.view.vars["single_ckbox"].get() and self.view.vars["multiple_ckbox"].get():
             plot_params_errors.append("Either 'single file' or 'multiple file' analysis must be selected")
 
-        if self.view.vars["single ckbox"].get() and not self.view.vars["single"].get():
+        if self.view.vars["single_ckbox"].get() and not self.view.vars["single"].get():
             plot_params_errors.append("No file selected to analyze.")
-        if self.view.vars["multiple ckbox"].get() and not self.view.vars["multiple"].get():
+        if self.view.vars["multiple_ckbox"].get() and not self.view.vars["multiple"].get():
             plot_params_errors.append("No file selected to analyze.")
 
-        if self.view.vars['select columns ckbox'].get():
-            if not self.view.vars['select columns number'].get():
+        if self.view.vars['select_columns_ckbox'].get():
+            if not self.view.vars['select_columns_number'].get():
                 plot_params_errors.append("You have to indicate a number of columns to select.")
-            if self.view.vars['select columns mode'].get() == 'None':
+            if self.view.vars['select_columns_mode'].get() == 'None':
                 plot_params_errors.append("You have to select a mode for column selection.")
 
-            if self.view.vars['select columns metric'].get() == 'None':
+            if self.view.vars['select_columns_metric'].get() == 'None':
                 plot_params_errors.append("You have to select a metric to use for the electrode selection.")
 
         targets = self.view.textboxes["targets"].get(1.0, ctk.END)
-        if len(targets) == 0 and not self.view.vars["single ckbox"].get():
+        if len(targets) == 0 and not self.view.vars["single_ckbox"].get():
             plot_params_errors.append('At least one target is needed to plot')
 
-        if float(self.view.vars["dead window"].get()) < 0:
+        if float(self.view.vars["dead_window"].get()) < 0:
             plot_params_errors.append('Dead window length must be a positive number.')
 
-        if int(self.view.vars["sampling frequency"].get()) <= 0:
+        if int(self.view.vars["sampling_frequency"].get()) <= 0:
             plot_params_errors.append('Sampling frequency must be a positive number.')
-        if float(self.view.vars["std threshold"].get()) < 0:
+        if float(self.view.vars["std_threshold"].get()) < 0:
             plot_params_errors.append('Std threshold must be a positive number.')
 
         for key, textbox in self.view.textboxes.items():
@@ -142,6 +142,10 @@ class SpikeController:
                 widget.insert(0, self.model.entries[key])
                 widget.configure(state='disabled')
 
+        for key, widget in self.view.vars.items():
+            widget.set(self.model.vars[key])
+
+
         for key, widget in self.view.switches.items():
             if widget.cget('state') == 'normal':
                 if key in self.model.switches.keys():
@@ -193,7 +197,6 @@ class SpikeController:
 
     def compute_spike_thread_launcher(self):
         # fig, ax = self.view.figures["plot"]
-
         files = []
         start = datetime.now()
 
@@ -210,15 +213,15 @@ class SpikeController:
 
         samples_per_target = {value: 0 for target, value in self.model.targets.items()}
         skiprow = 0
-        if self.model.vars['behead ckbox']:
+        if self.model.vars['behead_ckbox']:
             skiprow = int(self.model.vars['behead'])
 
         example_dataframe = pd.read_csv(files[0], dtype=float, index_col=False, skiprows=skiprow)
-        if self.model.vars['select columns ckbox']:
-            n_cols = int(self.model.vars['select columns number'])
+        if self.model.vars['select_columns_ckbox']:
+            n_cols = int(self.model.vars['select_columns_number'])
         else:
             n_cols = int(
-                len([col for col in example_dataframe.columns if self.model.vars["except column"] not in col]))
+                len([col for col in example_dataframe.columns if self.model.vars["except_column"] not in col]))
         self.detection_progress = ProgressBar("Processing progression", app=self.view.app, controller=self)
         self.detection_progress.total_tasks = self.update_number_of_tasks(len(files), n_cols)
         self.detection_progress.start()
@@ -248,7 +251,7 @@ class SpikeController:
             self.files_queue.put(None)
 
         columns_with_exception = [col for col in example_dataframe.columns if
-                                  self.model.vars["except column"] not in col]
+                                  self.model.vars["except_column"] not in col]
         lock = threading.Lock()
         all_prisoners = [SpikeDetectorProcess(self.model.vars,
                                               self.model.targets,
@@ -339,7 +342,7 @@ class SpikeController:
             watch_dog.join()
             logger.info("Watch dog is joined")
 
-            self.model.spike_params["spike results"] = results
+            self.model.spike_params["spike_results"] = results
             logger.info("Results are stored")
             # self.draw_figure()
 
@@ -381,7 +384,7 @@ class SpikeController:
 
         indices = []
         for n_label in range(self.model.n_labels):
-            index = self.view.vars[f"index {n_label}"].get()
+            index = self.view.vars[f"index_{n_label}"].get()
             indices.append(index)
 
         if len(indices) != len(set(indices)):
@@ -402,11 +405,11 @@ class SpikeController:
                 self.update_params(widgets)
 
             fig, ax = plt.subplots(figsize=(4, 4))
-            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot frame"])
+            new_canvas = FigureCanvasTkAgg(fig, master=self.view.frames["plot_frame"])
             new_canvas.get_tk_widget().grid(row=0, column=0, sticky='nsew')
-            self.view.canvas["plot toolbar"].destroy()
+            self.view.canvas["plot_toolbar"].destroy()
             toolbar = NavigationToolbar2Tk(new_canvas,
-                                           self.view.frames["plot frame"], pack_toolbar=False)
+                                           self.view.frames["plot_frame"], pack_toolbar=False)
             toolbar.update()
             toolbar.grid(row=1, column=0, sticky='we')
             self.view.canvas["spike"].get_tk_widget().destroy()
@@ -416,7 +419,7 @@ class SpikeController:
 
             x_ticks = []
             x_ticks_label = []
-            results = self.model.spike_params["spike results"]
+            results = self.model.spike_params["spike_results"]
             all_spikes = {value: [] for t, value in self.model.targets.items()}
             for target in results.keys():
                 for col in results[target].keys():
@@ -425,17 +428,17 @@ class SpikeController:
             ymin = 0
             ymax = -math.inf
 
-            new_indices = {self.model.vars[f"label data {n_label}"]: int(self.model.vars[f"index {n_label}"])
+            new_indices = {self.model.vars[f"label_data_{n_label}"]: int(self.model.vars[f"index_{n_label}"])
                            for n_label in range(self.model.n_labels + 1)}
             inverted_new_indices = {v: k for k, v in new_indices.items()}
             label_order = [inverted_new_indices[key] for key in sorted(inverted_new_indices, key=int)]
-            color_dict = {self.model.vars[f"label data {n_label}"]: self.model.vars[f"color {n_label}"]
+            color_dict = {self.model.vars[f"label_data_{n_label}"]: self.model.vars[f"color_{n_label}"]
                           for n_label in range(self.model.n_labels + 1)}
 
             for n_label in range(self.model.n_labels + 1):
-                label = self.model.vars[f"label data {n_label}"]
-                label_legend = self.model.vars[f"label data legend {n_label}"]
-                index = self.model.vars[f"index {n_label}"]
+                label = self.model.vars[f"label_data_{n_label}"]
+                label_legend = self.model.vars[f"label_data_legend_{n_label}"]
+                index = self.model.vars[f"index_{n_label}"]
                 x_ticks_label.append(label_legend) if label_legend else x_ticks_label.append(label)
                 x_ticks.append(index)
 
@@ -443,20 +446,20 @@ class SpikeController:
                     if spike > ymax:
                         ymax = spike
 
-                if self.model.cbboxes[f"plot type"] == "bar":
+                if self.model.cbboxes[f"plot_type"] == "bar":
                     height = int(np.mean(all_spikes[label])) # / self.model.spike_params["samples_per_target"][label])
-                    yerr = np.std(all_spikes[label]) if self.model.vars[f"error bar {index}"] else None
+                    yerr = np.std(all_spikes[label]) if self.model.vars[f"error_bar_{index}"] else None
                     ax.bar(x=index, height=height,
                            yerr=yerr,
-                           color=self.model.vars[f"color {n_label}"], )
+                           color=self.model.vars[f"color_{n_label}"], )
 
-                elif self.model.cbboxes[f"plot type"] == "violin":
+                elif self.model.cbboxes[f"plot_type"] == "violin":
                     sns.violinplot({k: v for k, v in all_spikes.items() if k in label_order}, order=label_order, ax=ax,
                                    palette=color_dict)
 
             for n_label in range(self.model.n_labels + 1):
-                label = self.model.vars[f"label data {n_label}"]
-                if self.model.ckboxes["show points"] == 1:
+                label = self.model.vars[f"label_data_{n_label}"]
+                if self.model.ckboxes["show_points"] == 1:
                     for spike in all_spikes[label]:
                         offset = 0.15
                         rand_index = random.uniform(new_indices[label] - offset,
@@ -464,54 +467,54 @@ class SpikeController:
                         ax.scatter(x=rand_index, y=spike, color='black', alpha=0.7, s=15)
 
             # ---- LABELS
-            ax.set_xlabel(self.model.vars["x label"],
-                          fontdict={"font": self.model.vars["axes font"],
-                                    "fontsize": self.model.vars["x label size"]})
-            ax.set_ylabel(self.model.vars["y label"],
-                          fontdict={"font": self.model.vars["axes font"],
-                                    "fontsize": self.model.vars["y label size"]})
+            ax.set_xlabel(self.model.vars["x_label"],
+                          fontdict={"font": self.model.vars["axes_font"],
+                                    "fontsize": self.model.vars["x_label_size"]})
+            ax.set_ylabel(self.model.vars["y_label"],
+                          fontdict={"font": self.model.vars["axes_font"],
+                                    "fontsize": self.model.vars["y_label_size"]})
             ax.set_title(self.model.entries["title"],
-                         fontdict={"font": self.model.cbboxes["title font"],
-                                   "fontsize": self.model.vars["title size"]}, )
+                         fontdict={"font": self.model.cbboxes["title_font"],
+                                   "fontsize": self.model.vars["title_size"]}, )
 
             # ----- TICKS
             ax.set_xticks(x_ticks, x_ticks_label)
             ax.tick_params(axis='x',
-                           labelsize=self.model.vars["x ticks size"],
-                           labelrotation=float(self.model.vars["x ticks rotation"]))
+                           labelsize=self.model.vars["x_ticks_size"],
+                           labelrotation=float(self.model.vars["x_ticks_rotation"]))
             bottom_limit, top_limit = ax.get_ylim()
             ymin = min(ymin, bottom_limit)
             ymax = max(ymax, top_limit)
-            yticks = np.linspace(ymin, ymax, int(self.model.entries["n y ticks"]))
-            rounded_yticks = list(np.around(np.array(yticks), int(self.model.entries["round y ticks"])))
+            yticks = np.linspace(ymin, ymax, int(self.model.entries["n_y_ticks"]))
+            rounded_yticks = list(np.around(np.array(yticks), int(self.model.entries["round_y_ticks"])))
             ax.set_ylim(bottom=min(rounded_yticks), top=max(rounded_yticks))
             ax.set_yticks(rounded_yticks)
             ax.tick_params(axis='y',
-                           labelsize=self.model.vars["y ticks size"],
-                           labelrotation=float(self.model.vars["y ticks rotation"]))
+                           labelsize=self.model.vars["y_ticks_size"],
+                           labelrotation=float(self.model.vars["y_ticks_rotation"]))
             # ---------- LEGEND
-            # if self.model.ckboxes["show legend"]:
-            #     if not self.model.vars["legend fontsize"] == '':
-            #         if self.model.cbboxes["legend anchor"] == 'custom':
+            # if self.model.ckboxes["show_legend"]:
+            #     if not self.model.vars["legend_fontsize"] == '':
+            #         if self.model.cbboxes["legend_anchor"] == 'custom':
             #             ax.legend(loc='upper left',
-            #                       bbox_to_anchor=(float(self.model.sliders["legend x pos"]),
-            #                                       float(self.model.sliders["legend y pos"])),
-            #                       draggable=bool(self.model.ckboxes["legend draggable"]),
-            #                       ncols=int(self.model.entries["legend ncols"]),
-            #                       fontsize=int(self.model.vars["legend fontsize"]),
-            #                       framealpha=float(self.model.vars["legend alpha"]),
+            #                       bbox_to_anchor=(float(self.model.sliders["legend_x_pos"]),
+            #                                       float(self.model.sliders["legend_y_pos"])),
+            #                       draggable=bool(self.model.ckboxes["legend_draggable"]),
+            #                       ncols=int(self.model.entries["legend_ncols"]),
+            #                       fontsize=int(self.model.vars["legend_fontsize"]),
+            #                       framealpha=float(self.model.vars["legend_alpha"]),
             #                       )
             #         else:
-            #             ax.legend(loc=self.model.cbboxes["legend anchor"],
-            #                       draggable=bool(self.model.ckboxes["legend draggable"]),
-            #                       ncols=int(self.model.entries["legend ncols"]),
-            #                       fontsize=int(self.model.vars["legend fontsize"]),
-            #                       framealpha=float(self.model.vars["legend alpha"]),
+            #             ax.legend(loc=self.model.cbboxes["legend_anchor"],
+            #                       draggable=bool(self.model.ckboxes["legend_draggable"]),
+            #                       ncols=int(self.model.entries["legend_ncols"]),
+            #                       fontsize=int(self.model.vars["legend_fontsize"]),
+            #                       framealpha=float(self.model.vars["legend_alpha"]),
             #                       )
             #
             #         for t, lh in zip(ax.get_legend().texts, ax.get_legend().legendHandles):
-            #             t.set_alpha(float(self.model.vars["legend alpha"]))
-            #             lh.set_alpha(float(self.model.vars["legend alpha"]))
+            #             t.set_alpha(float(self.model.vars["legend_alpha"]))
+            #             lh.set_alpha(float(self.model.vars["legend_alpha"]))
             #
             # elif ax.get_legend():
             #     ax.get_legend().remove()
@@ -882,15 +885,15 @@ class SpikeController:
                 # ------- STORE WIDGETS
 
                 # self.view.labels_subframes[str(n_labels)] = label_data_subframe
-                self.view.cbboxes[f"label data {n_labels}"] = labels_cbbox
-                self.view.cbboxes[f"error bar {n_labels}"] = error_bar_cbbox
-                self.view.cbboxes[f"index {n_labels}"] = index_cbbox
-                self.view.vars[f"label data {n_labels}"] = label_var
-                self.view.vars[f"error bar {n_labels}"] = error_bar_var
-                self.view.vars[f"index {n_labels}"] = index_cbbox_var
-                self.view.vars[f"label data legend {n_labels}"] = labels_legend_var
-                self.view.buttons[f"color {n_labels}"] = color_button
-                self.view.vars[f"color {n_labels}"] = color_var
+                self.view.cbboxes[f"label_data_{n_labels}"] = labels_cbbox
+                self.view.cbboxes[f"error_bar_{n_labels}"] = error_bar_cbbox
+                self.view.cbboxes[f"index_{n_labels}"] = index_cbbox
+                self.view.vars[f"label_data_{n_labels}"] = label_var
+                self.view.vars[f"error_bar_{n_labels}"] = error_bar_var
+                self.view.vars[f"index_{n_labels}"] = index_cbbox_var
+                self.view.vars[f"label_data_legend_{n_labels}"] = labels_legend_var
+                self.view.buttons[f"color_{n_labels}"] = color_button
+                self.view.vars[f"color_{n_labels}"] = color_var
                 # ----- TRACE
             else:
                 messagebox.showinfo("", f"Maximum number of labels {self.model.max_n_labels} reached.")
@@ -960,14 +963,14 @@ class SpikeController:
             # del self.view.labels_subframes[str(n_labels)]
 
             # destroying all items related in dicts
-            del self.view.buttons[f"color {n_labels}"]
-            del self.view.cbboxes[f"label data {n_labels}"]
-            del self.view.vars[f"color {n_labels}"]
-            del self.view.cbboxes[f"error bar {n_labels}"]
-            del self.view.cbboxes[f"index {n_labels}"]
-            del self.view.vars[f"error bar {n_labels}"]
-            del self.view.vars[f"index {n_labels}"]
-            del self.view.vars[f"label data legend {n_labels}"]
+            del self.view.buttons[f"color_{n_labels}"]
+            del self.view.cbboxes[f"label_data_{n_labels}"]
+            del self.view.vars[f"color_{n_labels}"]
+            del self.view.cbboxes[f"error_bar_{n_labels}"]
+            del self.view.cbboxes[f"index_{n_labels}"]
+            del self.view.vars[f"error_bar_{n_labels}"]
+            del self.view.vars[f"index_{n_labels}"]
+            del self.view.vars[f"label_data_legend_{n_labels}"]
             self.model.n_labels -= 1
 
     def load_config(self, ):
@@ -1020,21 +1023,21 @@ class SpikeController:
         - The method ensures that all parameters in the view (checkboxes, entries, comboboxes, etc.) are updated before saving.
         - The file is saved with the `.skcfg` extension by default, but the user can specify a different filename or location.
         """
-        if self.check_params_validity():
-            for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
-                            self.view.switches, self.view.textboxes, self.view.labels, self.view.labels_subframes]:
-                self.update_params(widgets)
-
-            f = filedialog.asksaveasfilename(defaultextension=".skcfg",
-                                             filetypes=[("Spike analysis config", "*.skcfg"), ])
-            if f:
-                self.model.save_model(path=f, )
+        # if self.check_params_validity():
+        for widgets in [self.view.ckboxes, self.view.entries, self.view.cbboxes, self.view.sliders, self.view.vars,
+                        self.view.switches, self.view.textboxes, self.view.labels, self.view.labels_subframes]:
+            self.update_params(widgets)
+        logger.debug(f"sampling freq {self.model.vars["sampling_frequency"]}")
+        f = filedialog.asksaveasfilename(defaultextension=".skcfg",
+                                         filetypes=[("Spike analysis config", "*.skcfg"), ])
+        if f:
+            self.model.save_model(path=f, )
 
     def export_data(self):
         """
         Exports the spike detection data to two CSV file.
 
-        This method allows the user to save the spike detection data contained in `self.model.spike_params["spike results"]`
+        This method allows the user to save the spike detection data contained in `self.model.spike_params["spike_results"]`
         to a CSV file. It prompts the user to choose a file location and name, and then exports the data as a CSV file.
         If successful, it shows a success message; otherwise, it handles exceptions and displays an error message.
 
@@ -1062,14 +1065,14 @@ class SpikeController:
             f = filedialog.asksaveasfilename(defaultextension=".csv",
                                              filetypes=[("Table", "*.csv"), ],
                                              initialfile="spike_detection_export")
-            indices = [target for target in self.model.spike_params["spike results"].keys()]
-            columns = [col for col in self.model.spike_params["spike results"][indices[0]].keys()]
+            indices = [target for target in self.model.spike_params["spike_results"].keys()]
+            columns = [col for col in self.model.spike_params["spike_results"][indices[0]].keys()]
 
             data = np.zeros((len(indices), len(columns)), dtype=object)
 
-            for itarget, target in enumerate(self.model.spike_params["spike results"].keys()):
-                for icol, col in enumerate(self.model.spike_params["spike results"][target].keys()):
-                    item = self.model.spike_params["spike results"][target][col]
+            for itarget, target in enumerate(self.model.spike_params["spike_results"].keys()):
+                for icol, col in enumerate(self.model.spike_params["spike_results"][target].keys()):
+                    item = self.model.spike_params["spike_results"][target][col]
                     logger.debug(item)
                     data[itarget, icol] = item
 

@@ -80,11 +80,11 @@ class SpikeView(ctk.CTkFrame):
         title_entry = ErrEntry(master=general_params_scrollable_frame, width=180, textvariable=title_var)
         # row separator 6
         title_font_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Title font:")
-        title_font_var = tk.StringVar(value=self.controller.model.plot_general_settings['title font'])
+        title_font_var = tk.StringVar(value=self.controller.model.plot_general_settings['title_font'])
         title_font_cbbox = tk.ttk.Combobox(master=general_params_scrollable_frame, values=p.FONTS, state='readonly',
                                            textvariable=title_font_var)
         # row separator 8
-        title_size_var = tk.IntVar(value=self.controller.model.plot_general_settings['title size'])
+        title_size_var = tk.IntVar(value=self.controller.model.plot_general_settings['title_size'])
         title_size_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Title size:")
         title_size_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=8, to=32, number_of_steps=24,
                                           variable=title_size_var)
@@ -103,7 +103,7 @@ class SpikeView(ctk.CTkFrame):
         both_axes_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="X AND Y AXIS")
         # row separator 20
         axes_font_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Axes font:")
-        axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes font'])
+        axes_font_var = tk.StringVar(value=self.controller.model.plot_axes['axes_font'])
         axes_font_cbbox = tk.ttk.Combobox(master=general_params_scrollable_frame, values=p.FONTS, state='readonly',
                                           textvariable=axes_font_var)
         
@@ -111,17 +111,17 @@ class SpikeView(ctk.CTkFrame):
         x_major_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="X-AXIS")
         # row separator 24
         x_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Label:")
-        x_label_var = tk.StringVar(value=self.controller.model.plot_axes['x label'])
+        x_label_var = tk.StringVar(value=self.controller.model.plot_axes['x_label'])
         x_label_entry = ErrEntry(master=general_params_scrollable_frame, width=200, textvariable=x_label_var)
         # row separator 26
         x_label_size = ctk.CTkLabel(master=general_params_scrollable_frame, text="Label size:")
-        x_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['x label size'])
+        x_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['x_label_size'])
         x_label_size_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=8, to=32, number_of_steps=24,
                                             variable=x_label_size_var)
         x_label_size_value_label = ctk.CTkLabel(master=general_params_scrollable_frame, textvariable=x_label_size_var)
         # row separator 28
         xticks_rotation_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Tick rotation:")
-        xticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks rotation'])
+        xticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['x_ticks_rotation'])
         xticks_rotation_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=-180, to=180,
                                                number_of_steps=36,
                                                variable=xticks_rotation_var)
@@ -129,35 +129,35 @@ class SpikeView(ctk.CTkFrame):
                                                    textvariable=xticks_rotation_var)
         # row separator 30
         xticks_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Tick size:")
-        xticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['x ticks size'])
+        xticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['x_ticks_size'])
         xticks_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=8, to=32, number_of_steps=24,
                                       variable=xticks_size_var)
         xticks_value_label = ctk.CTkLabel(master=general_params_scrollable_frame, textvariable=xticks_size_var)
         
         # row separator 32
         # n_xticks_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Number of ticks:")
-        # n_xticks_var = tk.StringVar(value=self.controller.model.plot_axes['n x ticks'])
+        # n_xticks_var = tk.StringVar(value=self.controller.model.plot_axes['n_x_ticks'])
         # n_xticks_entry = ErrEntry(master=general_params_scrollable_frame, textvariable=n_xticks_var)
         # # row separator 34
         # xticks_round_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Round:")
-        # xticks_round_var = ctk.StringVar(value=self.controller.model.plot_axes["round x ticks"])
+        # xticks_round_var = ctk.StringVar(value=self.controller.model.plot_axes["round_x_ticks"])
         # xticks_round_entry = ErrEntry(master=general_params_scrollable_frame, textvariable=xticks_round_var)
         
         # row separator 36
         y_major_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Y-AXIS")
         # row separator 38
         y_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Label:")
-        y_label_var = tk.StringVar(value=self.controller.model.plot_axes['y label'])
+        y_label_var = tk.StringVar(value=self.controller.model.plot_axes['y_label'])
         y_label_entry = ErrEntry(master=general_params_scrollable_frame, width=200, textvariable=y_label_var)
         # row separator 40
         y_label_size = ctk.CTkLabel(master=general_params_scrollable_frame, text="Label size:")
-        y_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['y label size'])
+        y_label_size_var = tk.IntVar(value=self.controller.model.plot_axes['y_label_size'])
         y_label_size_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=8, to=32, number_of_steps=24,
                                             variable=y_label_size_var)
         y_label_size_value_label = ctk.CTkLabel(master=general_params_scrollable_frame, textvariable=y_label_size_var)
         # row separator 42
         yticks_rotation_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Tick rotation:")
-        yticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks rotation'])
+        yticks_rotation_var = tk.IntVar(value=self.controller.model.plot_axes['y_ticks_rotation'])
         yticks_rotation_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=-180, to=180,
                                                number_of_steps=36,
                                                variable=yticks_rotation_var)
@@ -165,17 +165,17 @@ class SpikeView(ctk.CTkFrame):
                                                    textvariable=yticks_rotation_var)
         # row separator 44
         yticks_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Tick size:")
-        yticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['y ticks size'])
+        yticks_size_var = tk.IntVar(value=self.controller.model.plot_axes['y_ticks_size'])
         yticks_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=8, to=32, number_of_steps=24,
                                       variable=yticks_size_var)
         yticks_value_label = ctk.CTkLabel(master=general_params_scrollable_frame, textvariable=yticks_size_var)
         # separator row 46
         n_yticks_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Number of ticks:")
-        n_yticks_var = tk.StringVar(value=self.controller.model.plot_axes['n y ticks'])
+        n_yticks_var = tk.StringVar(value=self.controller.model.plot_axes['n_y_ticks'])
         n_yticks_entry = ErrEntry(master=general_params_scrollable_frame, textvariable=n_yticks_var)
         # separator row 48
         yticks_round_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Round:")
-        yticks_round_var = ctk.StringVar(value=self.controller.model.plot_axes["round y ticks"])
+        yticks_round_var = ctk.StringVar(value=self.controller.model.plot_axes["round_y_ticks"])
         yticks_round_entry = ErrEntry(master=general_params_scrollable_frame, textvariable=yticks_round_var)
         # separator row 50
         # empty_frame2 = ctk.CTkFrame(master=general_params_scrollable_frame, fg_color='transparent', height=30)
@@ -184,43 +184,43 @@ class SpikeView(ctk.CTkFrame):
         # legend_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="LEGEND PARAMETERS", font=('', 20))
         # # row separator 55
         # # row separator 56
-        # show_legend_var = tk.IntVar(value=self.controller.model.plot_legend['show legend'])
+        # show_legend_var = tk.IntVar(value=self.controller.model.plot_legend['show_legend'])
         # show_legend_ckbox = ctk.CTkCheckBox(master=general_params_scrollable_frame, text="Show legend",
         #                                     variable=show_legend_var)
         # # row separator 58
-        # draggable_var = tk.BooleanVar(value=self.controller.model.plot_legend["legend draggable"])
+        # draggable_var = tk.BooleanVar(value=self.controller.model.plot_legend["legend_draggable"])
         # draggable_ckbox = ctk.CTkCheckBox(master=general_params_scrollable_frame, text="Draggable",
         #                                   variable=draggable_var, )
         # # row separator 60
         # legend_anchor_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Anchor:")
-        # legend_anchor_var = tk.StringVar(value=self.controller.model.plot_legend["legend anchor"])
+        # legend_anchor_var = tk.StringVar(value=self.controller.model.plot_legend["legend_anchor"])
         # legend_anchor_cbbox = tk.ttk.Combobox(master=general_params_scrollable_frame, values=p.LEGEND_POS,
         #                                       state='readonly',
         #                                       textvariable=legend_anchor_var)
         # # row separator 62
         # legend_alpha_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Alpha:")
-        # legend_alpha_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend alpha'])
+        # legend_alpha_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend_alpha'])
         # legend_alpha_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=0, to=1, number_of_steps=10,
         #                                     variable=legend_alpha_var)
         # legend_alpha_value_label = ctk.CTkLabel(master=general_params_scrollable_frame, textvariable=legend_alpha_var)
         # # row separator 64
         # legend_xpos_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="X position:")
-        # legend_xpos_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend x pos'])
+        # legend_xpos_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend_x_pos'])
         # legend_xpos_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=0, to=1, number_of_steps=10,
         #                                    variable=legend_xpos_var)
         # legend_xpos_value_label = ctk.CTkLabel(master=general_params_scrollable_frame, textvariable=legend_xpos_var)
         # # row separator 66
         # legend_ypos_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Y position:")
-        # legend_ypos_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend y pos'])
+        # legend_ypos_var = tk.DoubleVar(value=self.controller.model.plot_legend['legend_y_pos'])
         # legend_ypos_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=0, to=1, number_of_steps=10,
         #                                    variable=legend_ypos_var)
         # legend_ypos_value_label = ctk.CTkLabel(master=general_params_scrollable_frame, textvariable=legend_ypos_var)
         # # row separator 68
         # ncols_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Number of columns:")
-        # ncols_var = tk.StringVar(value=self.controller.model.plot_legend["legend ncols"])
+        # ncols_var = tk.StringVar(value=self.controller.model.plot_legend["legend_ncols"])
         # ncols_entry = ErrEntry(master=general_params_scrollable_frame, width=50, textvariable=ncols_var)
         # # row separator 70
-        # fontsize_var = tk.IntVar(value=self.controller.model.plot_legend['legend fontsize'])
+        # fontsize_var = tk.IntVar(value=self.controller.model.plot_legend['legend_fontsize'])
         # fontsize_label = ctk.CTkLabel(master=general_params_scrollable_frame, text="Font size:")
         # fontsize_slider = ctk.CTkSlider(master=general_params_scrollable_frame, from_=8, to=32, number_of_steps=24,
         #                                 variable=fontsize_var)
@@ -316,59 +316,59 @@ class SpikeView(ctk.CTkFrame):
         # fontsize_value_label.grid(row=71, column=0, sticky='e')
         # fontsize_slider.grid(row=71, column=2, sticky='we')
         
-        # -------------- STORE WIDGETS
+        # -------------- STORE_WIDGETS
         self.vars["title"] = title_var
         self.entries["title"] = title_entry
-        self.vars["title font"] = title_font_var
-        self.cbboxes["title font"] = title_font_cbbox
-        self.vars["title size"] = title_size_var
-        self.sliders["title size"] = title_size_slider
+        self.vars["title_font"] = title_font_var
+        self.cbboxes["title_font"] = title_font_cbbox
+        self.vars["title_size"] = title_size_var
+        self.sliders["title_size"] = title_size_slider
         self.entries["dpi"] = dpi_entry
         self.vars["dpi"] = dpi_strvar
         
-        self.entries["x label"] = x_label_entry
-        self.vars['x label'] = x_label_var
-        self.entries["y label"] = y_label_entry
-        self.vars['y label'] = y_label_var
-        self.vars["x label size"] = x_label_size_var
-        self.sliders["x label size"] = x_label_size_slider
-        self.vars["y label size"] = y_label_size_var
-        self.sliders["y label size"] = y_label_size_slider
-        self.vars["x ticks rotation"] = xticks_rotation_var
-        self.sliders["x ticks rotation"] = xticks_rotation_slider
-        self.vars["y ticks rotation"] = yticks_rotation_var
-        self.sliders["y ticks rotation"] = yticks_rotation_slider
-        self.vars["x ticks size"] = xticks_size_var
-        self.sliders["x ticks size"] = xticks_slider
-        self.vars["y ticks size"] = yticks_size_var
-        self.sliders["y ticks size"] = yticks_slider
-        self.cbboxes["axes font"] = axes_font_cbbox
-        self.vars["axes font"] = axes_font_var
-        # self.vars["n x ticks"] = n_xticks_var
-        self.vars["n y ticks"] = n_yticks_var
-        # self.vars["round x ticks"] = xticks_round_var
-        self.vars["round y ticks"] = yticks_round_var
-        # self.entries["round x ticks"] = xticks_round_entry
-        self.entries["round y ticks"] = yticks_round_entry
-        # self.entries["n x ticks"] = n_xticks_entry
-        self.entries["n y ticks"] = n_yticks_entry
+        self.entries["x_label"] = x_label_entry
+        self.vars['x_label'] = x_label_var
+        self.entries["y_label"] = y_label_entry
+        self.vars['y_label'] = y_label_var
+        self.vars["x_label_size"] = x_label_size_var
+        self.sliders["x_label_size"] = x_label_size_slider
+        self.vars["y_label_size"] = y_label_size_var
+        self.sliders["y_label_size"] = y_label_size_slider
+        self.vars["x_ticks_rotation"] = xticks_rotation_var
+        self.sliders["x_ticks_rotation"] = xticks_rotation_slider
+        self.vars["y_ticks_rotation"] = yticks_rotation_var
+        self.sliders["y_ticks_rotation"] = yticks_rotation_slider
+        self.vars["x_ticks_size"] = xticks_size_var
+        self.sliders["x_ticks_size"] = xticks_slider
+        self.vars["y_ticks_size"] = yticks_size_var
+        self.sliders["y_ticks_size"] = yticks_slider
+        self.cbboxes["axes_font"] = axes_font_cbbox
+        self.vars["axes_font"] = axes_font_var
+        # self.vars["n_x_ticks"] = n_xticks_var
+        self.vars["n_y_ticks"] = n_yticks_var
+        # self.vars["round_x_ticks"] = xticks_round_var
+        self.vars["round_y_ticks"] = yticks_round_var
+        # self.entries["round_x_ticks"] = xticks_round_entry
+        self.entries["round_y_ticks"] = yticks_round_entry
+        # self.entries["n_x_ticks"] = n_xticks_entry
+        self.entries["n_y_ticks"] = n_yticks_entry
         
-        # self.ckboxes["show legend"] = show_legend_ckbox
-        # self.vars["show legend"] = show_legend_var
-        # self.ckboxes["legend draggable"] = draggable_ckbox
-        # self.vars["legend draggable"] = draggable_var
-        # self.cbboxes["legend anchor"] = legend_anchor_cbbox
-        # self.vars["legend anchor"] = legend_anchor_var
-        # self.vars["legend alpha"] = legend_alpha_var
-        # self.sliders["legend alpha"] = legend_alpha_slider
-        # self.vars["legend x pos"] = legend_xpos_var
-        # self.sliders["legend x pos"] = legend_xpos_slider
-        # self.vars["legend y pos"] = legend_ypos_var
-        # self.sliders["legend y pos"] = legend_ypos_slider
-        # self.vars["legend ncols"] = ncols_var
-        # self.entries["legend ncols"] = ncols_entry
-        # self.vars["legend fontsize"] = fontsize_var
-        # self.sliders["legend fontsize"] = fontsize_slider
+        # self.ckboxes["show_legend"] = show_legend_ckbox
+        # self.vars["show_legend"] = show_legend_var
+        # self.ckboxes["legend_draggable"] = draggable_ckbox
+        # self.vars["legend_draggable"] = draggable_var
+        # self.cbboxes["legend_anchor"] = legend_anchor_cbbox
+        # self.vars["legend_anchor"] = legend_anchor_var
+        # self.vars["legend_alpha"] = legend_alpha_var
+        # self.sliders["legend_alpha"] = legend_alpha_slider
+        # self.vars["legend_x_pos"] = legend_xpos_var
+        # self.sliders["legend_x_pos"] = legend_xpos_slider
+        # self.vars["legend_y_pos"] = legend_ypos_var
+        # self.sliders["legend_y_pos"] = legend_ypos_slider
+        # self.vars["legend_ncols"] = ncols_var
+        # self.entries["legend_ncols"] = ncols_entry
+        # self.vars["legend_fontsize"] = fontsize_var
+        # self.sliders["legend_fontsize"] = fontsize_slider
         
         # --------------- CONFIGURE
         dpi_entry.configure(validate='focus',
@@ -437,9 +437,9 @@ class SpikeView(ctk.CTkFrame):
         toolbar.grid(row=1, column=0, sticky='we')
         
         self.canvas["spike"] = canvas
-        self.canvas["plot toolbar"] = toolbar
+        self.canvas["plot_toolbar"] = toolbar
         
-        self.frames['plot frame'] = plot_frame
+        self.frames['plot_frame'] = plot_frame
         self.figures["spike"] = (fig, ax)
     
     def manage_execution_frame(self, execution_frame):
@@ -564,9 +564,9 @@ class SpikeView(ctk.CTkFrame):
         
         self.scrollable_frames["data"] = data_scrollable_frame
         
-        self.cbboxes[f"plot type"] = plot_type
-        self.vars["plot type"] = plot_type_var
-        self.ckboxes[f"show points"] = show_points
+        self.cbboxes[f"plot_type"] = plot_type
+        self.vars["plot_type"] = plot_type_var
+        self.ckboxes[f"show_points"] = show_points
 
     
         # ------- CONFIGURE
@@ -763,24 +763,24 @@ class SpikeView(ctk.CTkFrame):
         except_label.grid(row=38, column=0, sticky='w')
         except_entry.grid(row=38, column=2, sticky='we')
         
-        # --------- STORE WIDGETS
+        # --------- STORE_WIDGETS
         self.ckboxes["multiple"] = sorting_files_ckbox
         self.entries["multiple"] = sorting_entry
         self.ckboxes["single"] = single_file_ckbox
         self.entries["single"] = single_file_entry
-        self.entries["key target"] = id_target_entry
-        self.entries["value target"] = rename_target_entry
+        self.entries["key_target"] = id_target_entry
+        self.entries["value_target"] = rename_target_entry
         self.entries["exclusion"] = exclude_entry
         self.entries["inclusion"] = include_entry
         self.entries["behead"] = behead_entry
-        self.vars["behead ckbox"] = behead_ckbox_var
+        self.vars["behead_ckbox"] = behead_ckbox_var
         self.vars["behead"] = behead_sv
-        self.vars["multiple ckbox"] = sorting_files_ckbox_var
+        self.vars["multiple_ckbox"] = sorting_files_ckbox_var
         self.vars["multiple"] = sorting_sv
         self.vars["single"] = single_file_sv
-        self.vars["single ckbox"] = single_file_ckbox_var
-        self.vars["key target"] = id_target_sv
-        self.vars["value target"] = rename_target_sv
+        self.vars["single_ckbox"] = single_file_ckbox_var
+        self.vars["key_target"] = id_target_sv
+        self.vars["value_target"] = rename_target_sv
         self.vars["exclusion"] = exclude_sv
         self.vars["inclusion"] = include_sv
         self.textboxes['inclusion'] = include_textbox
@@ -788,21 +788,21 @@ class SpikeView(ctk.CTkFrame):
         self.textboxes["targets"] = target_textbox
         self.checkboxes["behead"] = behead_ckbox
 
-        self.vars["std threshold"] = std_thresh_var
-        self.vars["dead window"] = dead_window_var
-        self.vars["sampling frequency"] = sampling_freq_var
+        self.vars["std_threshold"] = std_thresh_var
+        self.vars["dead_window"] = dead_window_var
+        self.vars["sampling_frequency"] = sampling_freq_var
         
-        self.ckboxes["select columns"] = select_columns_ckbox
-        self.cbboxes["select columns mode"] = mode_select_columns_cbox
-        self.cbboxes["select columns metric"] = metric_select_columns_cbox
-        self.entries["select columns number"] = n_select_columns_entry
-        self.vars["select columns number"] = n_select_columns_sv
-        self.vars["select columns ckbox"] = select_columns_ckbox_var
-        self.vars["select columns mode"] = metric_select_columns_var
-        self.vars["select columns metric"] = mode_select_columns_var
+        self.ckboxes["select_columns"] = select_columns_ckbox
+        self.cbboxes["select_columns_mode"] = mode_select_columns_cbox
+        self.cbboxes["select_columns_metric"] = metric_select_columns_cbox
+        self.entries["select_columns_number"] = n_select_columns_entry
+        self.vars["select_columns_number"] = n_select_columns_sv
+        self.vars["select_columns_ckbox"] = select_columns_ckbox_var
+        self.vars["select_columns_mode"] = metric_select_columns_var
+        self.vars["select_columns_metric"] = mode_select_columns_var
         
-        self.vars["except column"] = except_var
-        self.entries["except column"] = except_entry
+        self.vars["except_column"] = except_var
+        self.entries["except_column"] = except_entry
         
         
         # --------------- CONFIGURE
