@@ -1,4 +1,4 @@
-# FireLearn GUI v0.8.0-alpha: Walkthrough tutorial
+# FireLearn GUI v0.9.0-alpha: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 
 This README file will use the firelearnGUI_demo data set as example. The archive being too big to host on github,
@@ -9,23 +9,43 @@ will then be sent to you.
 For more information on the features that have been developed, go to the [Versioning](#versioning) section. The latest 
 update is right below and not in the versioning section.
 
-# v0.8.0-alpha - What's new ?
-* File Processing
-  * CRITIC - bug fix where sampling frequency was not taken in account, and was always 10000 Hz.
-  * Fixing multiprocessing, where the last worker would get stuck without finishing and blocking progress.
+# v0.9.0-alpha - What's new ? 
+>***Dev's Note**: For this version, the focus was to replace the multiprocessing functionality that was critical on Windows, 
+>and to further enhance the Spike detection feature.
+>Furthermore, As bonus, I changed the theme of the App for a lighter one. For dark theme lovers, do not worry, the ability to switch themes
+>will come with later versions :)*
+
+* General 
+  * Remove tear offs for menu bars.
+  * Change in the progress bars behaviour when cancelling (some bugs needing to restart the software when cancelling 
+  may occur).
+  * Adding Watch Dogs for multithreading (file processing, learning, spike detection).
+  * Addition of light theme (as default).
+  * Addition of logging formatted output.
+  * Cleaning of some of the unused functions.
+* Processing 
+  * Remove ErrEntry validation in processing that could cause issues when loading config files.
+  * Removing multiprocessing that caused the app to restart and crash.
+  * Adding multithreading.
+  * Before starting the processing, ask confirmation to user on the number of files found through a pop-up.
   
 * Learning
-  * Fixing cases where the targets are numbers (representation of numbers).
-  * Remove the use of ClfTester.
-  * Bug fix where the parameters in entries where considered as strings instead of their type
-  representation for RFC parameters.
-  * Update number of tasks.
-  * Use of multiprocessing along with queues (as for FileProcessing).
-* General
-  * Cleaning requirements.txt
+  * Add learning time in console.
+  * Add 'Trust' scoring system for learning optimization.
+  * Clean unnecessary prints
+  * Enabling export function
 
-* Known issues:
-  * The 'Cancel' button in the multiple progress bars is mostly broken.
+* Spike detection
+  * Before starting the processing, ask confirmation to user on the number of files found through a pop-up.
+  * Change of format for spike detection where now the resulting dataframe has the targets as columns,
+  the data files columns as index, and the indices of detected spikes as string of lists.
+  * Start renaming correctly the keys of variables (preparation to writable config files).
+  * Start modifications on model (preparation to writable config files).
+  * Fix issue where all variables were not correctly loaded on a spike config loading.
+  * Set minimal version for model at 0.9.0-alpha.
+  * Fix an issue where the number of steps where not correctly computed for the progress bar.
+  * Decoupling compute from drawing. The drawing now needs to be executed afterward.
+  * 
 
 
 # Processing
@@ -622,6 +642,24 @@ of the GitHub repository, and to use the in-place tags system to specify your po
 
 
 # Versioning
+# v0.8.0-alpha - What's new ?
+* File Processing
+  * CRITIC - bug fix where sampling frequency was not taken in account, and was always 10000 Hz.
+  * Fixing multiprocessing, where the last worker would get stuck without finishing and blocking progress.
+  
+* Learning
+  * Fixing cases where the targets are numbers (representation of numbers).
+  * Remove the use of ClfTester.
+  * Bug fix where the parameters in entries where considered as strings instead of their type
+  representation for RFC parameters.
+  * Update number of tasks.
+  * Use of multiprocessing along with queues (as for FileProcessing).
+* General
+  * Cleaning requirements.txt
+
+* Known issues:
+  * The 'Cancel' button in the multiple progress bars is mostly broken.
+
 
 ### v0.7.3-alpha
 * Analysis
