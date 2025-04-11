@@ -132,7 +132,6 @@ class SpikeModel:
 
                 self.n_labels = before_load
 
-                logger.debug(f"sampling freq {self.vars["sampling_frequency"]}")
                 messagebox.showinfo("Info", f"Analysis configuration correctly loaded.\nVersion {self.version}")
                 return True
             else:
