@@ -2,6 +2,8 @@ import logging
 import logging.config
 
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0 = all logs, 1 = info, 2 = warning, 3 = error
+
 import sys
 
 import logging
@@ -38,7 +40,7 @@ from matplotlib import pyplot as plt
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 logger = logging.getLogger("__main__")
 
-from scripts import main
+from QtScripts import main
 
 if __name__ == '__main__':
     main.main()

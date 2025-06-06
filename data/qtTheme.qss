@@ -1,0 +1,31 @@
+QLabel#TitleLabel1 {
+    color: black;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 8px;
+}
+
+QLabel#TitleLabel2 {
+    color: black;
+    font-size: 16px;
+    padding: 5px;
+}
+
+QComboBox {
+    combobox-popup: 0;
+}
+
+QPushButton#StartProcessButton {
+    background-color: #3fa144;  /* green background */
+    color: white;               /* White text */
+    border-radius: 8px;         /* Rounded corners */
+    font-weight: bold;
+    font-size: 14px;
+    min-height: 30px;
+}
+QPushButton#StartProcessButton:hover {
+    background-color: #348a39;  /* Darker green on hover */
+}
+QPushButton#StartProcessButton:pressed {
+    background-color: #246628;  /* Darker green on click */
+}

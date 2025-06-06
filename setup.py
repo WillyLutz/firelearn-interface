@@ -1,5 +1,5 @@
 from setuptools import setup
-from scripts import params
+from QtScripts import params
 
 setup(
     name=params.name,
@@ -16,10 +16,10 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
     ],
-    packages=["scripts", "data", "venv"],
+    packages=["Qtscripts", "data", "venv"],
     include_package_data=True,
     install_requires=[
         "fiiireflyyy", "customtkinter", "pillow"
     ],
-    entry_points={"console_scripts": ["firelearnGUI=scripts.firelearnGUI.__main__:main"]},
+    entry_points={"console_scripts": ["firelearnGUI=Qtscripts.firelearnGUI.__main__:main"]},
 )
