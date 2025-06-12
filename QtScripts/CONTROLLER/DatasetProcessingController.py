@@ -197,7 +197,7 @@ class DatasetProcessingController:
     
     def init_processing(self):
         if self.check_params_validity():
-            self.parent_controller.update_model_from_view(self.model, self.view)
+            self.parent_controller.parent_controller.update_model_from_view(self.model, self.view)
             self.model.update_tableEditors()
             
             if not self._select_files():
@@ -219,7 +219,7 @@ class DatasetProcessingController:
             
             processing_basename = self._basename_preparation()
             
-            harmonics = self.parent_controller.generate_harmonics(int(self.model.widgets_values['harmonics_frequency_edit']),
+            harmonics = self.parent_controller.parent_controller.generate_harmonics(int(self.model.widgets_values['harmonics_frequency_edit']),
                                                           int(self.model.widgets_values['harmonics_nth_edit']),
                                                           self.model.widgets_values['harmonics_type_cbbox']) \
                 if self.model.widgets_values['harmonics_ckbox'] else []

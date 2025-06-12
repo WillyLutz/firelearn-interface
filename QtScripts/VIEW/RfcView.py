@@ -117,10 +117,10 @@ class RfcView(QFrame):
     
     def _manage_train_test_layout(self):
         learn_title = TitleLabel(parent=self, text="Training and validation", section="title1")
-        learn_load_train_btn = QPushButton(text="Load train full_dataset", parent=self)
+        learn_load_train_btn = QPushButton(text="Load train dataset", parent=self)
         learn_load_train_edit = QLineEdit(parent=self)
         learn_load_train_edit.setEnabled(False)
-        learn_load_test_btn = QPushButton(text="Load test full_dataset", parent=self)
+        learn_load_test_btn = QPushButton(text="Load test dataset", parent=self)
         learn_load_test_edit = QLineEdit(parent=self)
         learn_load_test_edit.setEnabled(False)
         

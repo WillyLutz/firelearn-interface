@@ -77,6 +77,7 @@ class DatasetController:
                 sub = df[df[targets_column] == target]
                 sub = sub.reset_index(drop=True)
                 sub = sub.loc[:, ~df.columns.isin([targets_column,])]
+                sub = sub.astype(float)
                 
                 stds = sub.std(axis=0)
                 means = sub.mean(axis=0)

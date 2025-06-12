@@ -399,9 +399,9 @@ class RfcController:
                 all_cv_scores = metrics[1]
                 train_score = metrics[2]
                 test_score = metrics[3]
-                trust = self.parent_controller.compute_normalized_(train_score=train_score,
-                                                  test_score=test_score,
-                                                  all_cv_scores=all_cv_scores)
+                trust = self.parent_controller.compute_normalized_trust(acc_train=train_score,
+                                                  acc_test=test_score,
+                                                  acc_kfolds=all_cv_scores)
 
                 best_key = random_key if trust > best_trust else best_key
                 best_trust = max(trust, best_trust)
