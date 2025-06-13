@@ -51,7 +51,10 @@ class ConfusionController:
             return True
         
     def draw(self):
+        print("1")
         if self._check_computation_compatible():
+            print("2")
+
             self.update_model_from_view()
             if self._check_params():
                 if not self.results:
@@ -87,6 +90,7 @@ class ConfusionController:
                                "confusion_table_test_ckbox_" in key}
                 checked_test_targets = [key for key, value in test_target_ckboxes.items() if value]
                 test_target_label = []
+                print("3")
                 for checked in checked_test_targets:
                     test_target_label.append(self.view.widgets[checked].text())
                     
@@ -106,7 +110,8 @@ class ConfusionController:
                 print(self.model.test_targets)
                 print(compute_train_index_to_plot_index)
                 print(compute_test_index_to_plot_index)
-                
+                print("4")
+
                 if (not self.parent_controller.parent_controller.has_unique_second_elements(compute_train_index_to_plot_index)
                         or not self.parent_controller.parent_controller.has_unique_second_elements(
                         TRAIN_CORRESPONDENCE)):
@@ -143,7 +148,8 @@ class ConfusionController:
                             mixed_labels_matrix[r][c] = case
                 
                 translated_mixed_labels_matrix = [row.copy() for row in mixed_labels_matrix]
-                
+                print("5")
+
                 for r in range(len(acc_array)):
                     for c in range(len(acc_array[0])):
                         translated_r = compute_train_index_to_plot_index[r]
@@ -236,7 +242,19 @@ class ConfusionController:
         print("checked update", test_target_label)
         self.model.test_targets = test_target_label
         
-        
+
+    def _init_progress_bar(self, sub_df):
+
+        dataset_prep = 1
+        n_test_targets = len(self.model.test_targets)
+        n_train_targets = len(self.model.train_targets)
+        matrix_proba_averaging = n_train_targets * n_test_targets
+        prediction = len(sub_df)
+        mix_counts_and_probs = n_test_targets * n_train_targets
+        build_confusion_matrix = 1
+        self.view.progress_bar.set_range(0, dataset_prep+matrix_proba_averaging + prediction + mix_counts_and_probs + build_confusion_matrix)
+        self.view.progress_bar.set_value(0)
+
 
     
     def compute_confusion(self):
@@ -244,6 +262,7 @@ class ConfusionController:
         if self._check_params():
             target_col = self.model.widgets_values["specific_target_col_cbbox"]
             sub_df = self.model.full_dataset.loc[self.model.full_dataset[target_col].isin(self.model.test_targets)]
+            self._init_progress_bar(sub_df)
             self.confusion_thread = ConfusionProcess(name="ConfusionWorker1",
                                                      train_targets=self.model.train_targets,
                                                      test_targets=self.model.test_targets,
@@ -270,7 +289,7 @@ class ConfusionController:
     
     def handle_progress(self, count):
         self.view.progress_bar.increment_steps(count)
-    
+        logger.debug("Progress made")
     def handle_error(self, worker_name, error_msg):
         logger.error(f"Error from {worker_name}: {error_msg}")
     

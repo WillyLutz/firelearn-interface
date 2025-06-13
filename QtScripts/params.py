@@ -9,11 +9,11 @@ def resource_path(relative_path):
         base_path = sys._MEIPASS
     else:
         base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+    return os.path.normpath(os.path.join(base_path, relative_path))
 
 
 name = 'FireLearn GUI'
-version = "1.0.0-beta"
+version = "1.0.2-beta"
 last_version_compatible = "1.0.0-beta"
 last_version_compatible_spike = "1.0.0-beta"
 last_version_compatible_learning = "1.0.0-beta"

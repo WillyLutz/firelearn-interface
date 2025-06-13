@@ -5,7 +5,7 @@ a = Analysis(
     ['firelearnGUI.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:/Users/wlutz/PycharmProjects/firelearn-interface/venv/Lib/site-packages/customtkinter', 'customtkinter'), ('C:/Users/wlutz/PycharmProjects/firelearn-interface/data', 'data')],
+    datas=[('C:\\Users\\wlutz\\PycharmProjects\\firelearn-interface\\data', 'data'), ('logo firelearn.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -21,7 +21,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='firelearnGUI',
+    name='FireLearn',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -32,6 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=r"logo firelearn.ico"
 )
 coll = COLLECT(
     exe,
