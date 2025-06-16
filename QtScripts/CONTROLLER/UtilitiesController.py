@@ -47,7 +47,7 @@ class UtilitiesController:
         """
         self.parent_controller.parent_controller.update_model_from_view(self.model, self.view)
         
-        ratio = self.model.widgets_values["split_ratio_slider"]
+        ratio = float(self.model.widgets_values["split_ratio_slider"])/100
         path = self.model.widgets_values["split_load_edit"]
         
         if path:

@@ -240,6 +240,9 @@ class SpikeAnalysisController:
         if self.model.dataset is None:
             errors.append("No dataset loaded.")
             
+        if not os.path.exists(self.model.widgets_values["specific_load_edit"]):
+            errors.append("Parent path does not exist.")
+            
         if self.model.widgets_values["raster_as_colormap_cbbox"] == "Filtered values" and self.model.widgets_values["specific_subsample_cbbox"] == "None":
             errors.append("You can not specify 'Filtered values' as colormap if you've not filtered any values.")
         if errors:

@@ -1,6 +1,7 @@
 import datetime
 import logging
 import multiprocessing
+import os
 import random
 import string
 
@@ -80,8 +81,14 @@ class SpikeDetectionController:
                 return False
         
         # ------- PROCESSING
+        if not os.path.exists(self.model.widgets_values["path_to_parent_edit"]):
+            errors.append("Parent path does not exist.")
+            
+        
+        
         if self.model.widgets_values["detection_behead_ckbox"] and not self.model.widgets_values["detection_behead_edit"]:
             errors.append("You have to indicate a number of rows to behead the file(s).")
+        
         
         if self.model.widgets_values["detection_column_selection_ckbox"]:
             if not self.model.widgets_values["detection_column_selection_edit"]:
@@ -90,7 +97,9 @@ class SpikeDetectionController:
         
         if not self.model.widgets_values["detection_save_edit"]:
             errors.append("You have to indicate a directory to save you file(s).")
-        
+        elif not os.path.exists(os.path.dirname(self.model.widgets_values["detection_save_edit"])):
+            errors.append("Save path does not exist.")
+            
         if not all([self.model.widgets_values["detection_behead_edit"],
                     self.model.widgets_values["detection_threshold_edit"],
                     self.model.widgets_values["detection_dead_window_edit"],
