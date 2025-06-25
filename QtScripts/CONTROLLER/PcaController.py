@@ -161,6 +161,14 @@ class PcaController:
                            alpha=self.model.widgets_values[f"pcaplot_alpha_slider_{artist}"]/100,
                            label=current_label)
                 
+            for artist in range(n_artists):
+                color_btn = self.view.widgets[f"pcaplot_color_btn_{artist}"]
+                palette = color_btn.palette()
+                bg_color = palette.color(QPalette.ColorRole.Button)
+                color = bg_color.name()
+                current_label = self.model.widgets_values[f"pcaplot_target_cbbox_{artist}"]
+                x_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label, pcdf_applied.columns[0]]
+                y_data = pcdf_applied.loc[pcdf_applied[label_column] == current_label, pcdf_applied.columns[1]]
                 if self.model.widgets_values["specific_ellipsis_ckbox"]:
                     ax.scatter(np.mean(x_data), np.mean(y_data), marker="+", color=color,
                                linewidth=2, s=160)

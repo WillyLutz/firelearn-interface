@@ -82,7 +82,7 @@ class UtilitiesController:
     
     def rename_targets(self):
         path = self.model.widgets_values["rename_load_edit"]
-        
+        self.parent_controller.parent_controller.update_model_from_view(self.model, self.view)
         if path:
             df = pd.read_csv(path)
             target_col = self.model.widgets_values["rename_target_column_cbbox"]

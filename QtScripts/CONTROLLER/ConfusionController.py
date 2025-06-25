@@ -160,9 +160,17 @@ class ConfusionController:
                 
                 annot_kws = {"font": self.model.widgets_values["plot_axes_font_cbbox"],
                              "size": self.model.widgets_values["specific_annotation_size_slider"]}
-                heatmap = sns.heatmap(ax=self.view.ax, data=translated_acc_array, annot=translated_mixed_labels_matrix, annot_kws=annot_kws, fmt='',
-                            cmap=self.model.widgets_values["plot_colorbar_cbbox"],
-                            square=True, cbar_kws={'shrink': 0.5, 'location': 'right'}, cbar=False)
+                
+                if self.model.widgets_values["specific_annotation_cbbox"] == 'percent':
+                    heatmap = sns.heatmap(ax=self.view.ax, data=translated_acc_array, annot=translated_mixed_labels_matrix, annot_kws=annot_kws, fmt='',
+                                cmap=self.model.widgets_values["plot_colorbar_cbbox"],
+                                square=True, cbar_kws={'shrink': 0.5, 'location': 'right'}, cbar=False,
+                                          vmin=0, vmax=100)
+                else:
+                    heatmap = sns.heatmap(ax=self.view.ax, data=translated_acc_array,
+                                          annot=translated_mixed_labels_matrix, annot_kws=annot_kws, fmt='',
+                                          cmap=self.model.widgets_values["plot_colorbar_cbbox"],
+                                          square=True, cbar_kws={'shrink': 0.5, 'location': 'right'}, cbar=False,)
                 self.view.figure.colorbar(
                     heatmap.get_children()[0],   # pass the AxesImage or QuadMesh
                     ax=self.view.ax,
