@@ -555,7 +555,7 @@ class DatasetProcessingController:
         
     def load_model(self):
         model_path = \
-        QFileDialog.getOpenFileName(parent=self.view, caption="Loading processing configuration", directory=".",
+        QFileDialog.getOpenFileName(parent=self.view, caption="Loading processing configuration",
                                     filter="*"+self.model.extension)[0]
         if model_path:
             self.model.load_model(path=model_path)
@@ -564,7 +564,7 @@ class DatasetProcessingController:
     def save_model(self):
         self.parent_controller.parent_controller.update_model_from_view(self.model, self.view)
         model_path = \
-        QFileDialog.getSaveFileName(parent=self.view, caption="Save processing configuration", directory=".",
+        QFileDialog.getSaveFileName(parent=self.view, caption="Save processing configuration",
                                     filter="*"+self.model.extension)[0]
         if model_path:
             self.model.save_model(path=model_path)

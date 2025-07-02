@@ -174,6 +174,7 @@ class RfcView(QFrame):
         
         #----CONNECT
         learn_load_train_btn.clicked.connect(self.controller.load_train_dataset)
+        learn_load_test_btn.clicked.connect(self.controller.load_test_dataset)
         (learn_target_column_cbbox.currentIndexChanged.
          connect(lambda: self.controller.update_combotable_items("learn_combotable")))
         learn_save_btn.clicked.connect(lambda:

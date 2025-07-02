@@ -103,8 +103,8 @@ class ConfusionProcess(QThread):
             
             if self._stop_flag:
                 self.cancelled.emit()
-            X = test_dataset.loc[:, ~test_dataset.columns.isin(['label', 'ID'])]
-            y = test_dataset["label"]
+            X = test_dataset.loc[:, ~test_dataset.columns.isin([self.model_vars["specific_target_col_cbbox"],])]
+            y = test_dataset[self.model_vars["specific_target_col_cbbox"]]
             
             X.reset_index(drop=True, inplace=True)
             

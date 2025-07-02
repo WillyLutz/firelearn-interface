@@ -366,7 +366,7 @@ class SpikeDetectionController:
     
     def load_model(self):
         model_path = \
-            QFileDialog.getOpenFileName(parent=self.view, caption="Loading spike detection configuration", directory=".",
+            QFileDialog.getOpenFileName(parent=self.view, caption="Loading spike detection configuration",
                                         filter="*" + self.model.extension)[0]
         if model_path:
             self.model.load_model(path=model_path)
@@ -375,7 +375,7 @@ class SpikeDetectionController:
     def save_model(self):
         self.parent_controller.parent_controller.update_model_from_view(self.model, self.view)
         model_path = \
-            QFileDialog.getSaveFileName(parent=self.view, caption="Save spike detection configuration", directory=".",
+            QFileDialog.getSaveFileName(parent=self.view, caption="Save spike detection configuration",
                                         filter="*" + self.model.extension)[0]
         if model_path:
             self.model.save_model(path=model_path)
