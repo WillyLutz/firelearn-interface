@@ -251,14 +251,13 @@ class ConfusionController:
         build_confusion_matrix = 1
         self.view.progress_bar.set_range(0, dataset_prep+matrix_proba_averaging + prediction + mix_counts_and_probs + build_confusion_matrix)
         self.view.progress_bar.set_value(0)
-
-
-    
+        
     def compute_confusion(self):
         self.update_model_from_view()
         if self._check_params():
             target_col = self.model.widgets_values["specific_target_col_cbbox"]
             sub_df = self.model.full_dataset.loc[self.model.full_dataset[target_col].astype(str).isin(self.model.test_targets)]
+            sub_df[target_col] = sub_df[target_col].astype(str)
             self._init_progress_bar(sub_df)
             self.confusion_thread = ConfusionProcess(name="ConfusionWorker1",
                                                      train_targets=self.model.train_targets,
@@ -278,18 +277,19 @@ class ConfusionController:
             self.view.progress_bar.set_task("Confusion computation...")
             self.confusion_thread.start()
             self.app.add_thread("ConfusionWorker1", self.confusion_thread)
-        
+            
     def handle_cancel(self):
         self.view.progress_bar.reset()
         self.results = {}
         QMessageBox.information(self.view, "Canceled", "Computation canceled")
-    
+        
     def handle_progress(self, count):
         self.view.progress_bar.increment_steps(count)
         logger.debug("Progress made")
+        
     def handle_error(self, worker_name, error_msg):
         logger.error(f"Error from {worker_name}: {error_msg}")
-    
+        
     def handle_finished(self, worker_name, overall_matrix_numeric, overall_matrix_percent, overall_matrix_cup,
                                TRAIN_CORRESPONDENCE, TEST_CORRESPONDENCE):
     
@@ -313,7 +313,12 @@ class ConfusionController:
             df = pd.read_csv(dialog, index_col=False)
             combo = self.view.widgets["specific_target_col_cbbox"]
             self.model.full_dataset = df
-
+            
+            previous_test_targets = [key for key in self.model.widgets_values.keys() if "confusion_table_test_ckbox_" in key]
+            for previous_key in previous_test_targets:
+                del self.view.widgets[previous_key]
+                del self.model.widgets_values[previous_key]
+                
             combo.currentIndexChanged.disconnect()
             combo.clear()
             columns = ["", ] + self.model.full_dataset.columns.tolist()
@@ -332,6 +337,8 @@ class ConfusionController:
             if autoload_col:
                 logger.info(f"Autoload column {autoload_col}")
                 combo.setCurrentText(autoload_col)
+                
+            self.update_model_from_view()
                 
     def load_classifier(self):
         dialog = self.parent_controller.parent_controller.load_path_and_update_edit(
