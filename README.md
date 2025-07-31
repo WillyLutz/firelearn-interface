@@ -1,4 +1,4 @@
-# FireLearn GUI v0.9.0-alpha: Walkthrough tutorial
+# FireLearn GUI v1.0.9-beta: Walkthrough tutorial
 This document is aimed at the users of FireLearn GUI. 
 
 This README file will use the firelearnGUI_demo data set as example. The archive being too big to host on github,
@@ -8,44 +8,57 @@ will then be sent to you.
 
 For more information on the features that have been developed, go to the [Versioning](#versioning) section. The latest 
 update is right below and not in the versioning section.
+# v1.0.9-beta - What's new ? 
+>**Dev's Note**: For this first major update, I completely reworked the system of the software, migrating from 
+> Tkinter oriented software to a PyQt6 oriented code. This resulted in a great boost in performance, such as removing
+> the "lag" when loading views. Few functionalities have been added, and some have been removed since they were 
+> bug-inducing. As of note, FireLearn now has entered the beta development cycle with its planned publication and 
+> public release.
 
-# v0.9.0-alpha - What's new ? 
->***Dev's Note**: For this version, the focus was to replace the multiprocessing functionality that was critical on Windows, 
->and to further enhance the Spike detection feature.
->Furthermore, As bonus, I changed the theme of the App for a lighter one. For dark theme lovers, do not worry, the ability to switch themes
->will come with later versions :)*
+GENERAL
+* Complete rework of the software: Use of PyQt6 library instead of Tkinter-based.
+* Enhanced user input verification
+* Enhanced performances
+* Progress bars are now embedded into the UI, and are not separated pop-ups anymore.
+* Remove the default directory when loading or saving configs.
 
-* General 
-  * Remove tear offs for menu bars.
-  * Change in the progress bars behaviour when cancelling (some bugs needing to restart the software when cancelling 
-  may occur).
-  * Adding Watch Dogs for multithreading (file processing, learning, spike detection).
-  * Addition of light theme (as default).
-  * Addition of logging formatted output.
-  * Cleaning of some of the unused functions.
-* Processing 
-  * Remove ErrEntry validation in processing that could cause issues when loading config files.
-  * Removing multiprocessing that caused the app to restart and crash.
-  * Adding multithreading.
-  * Before starting the processing, ask confirmation to user on the number of files found through a pop-up.
-  
-* Learning
-  * Add learning time in console.
-  * Add 'Trust' scoring system for learning optimization.
-  * Clean unnecessary prints
-  * Enabling export function
+PROCESSING
+* Addition of the "Spike detection" feature. The old 'processing function' has now been moved into 'Processing > 
+Dataset' tabs.
+* The spike detection feature has now been splitted into the processsing part and the analysis part.
+* Addition of multiple options for spike detection, to allow for a better control over the detection parameters
+* Rework of the resulting dataset, for a better readability and to encapsulate much more metrics available for 
+the user and the analysis.
+* Fixing of the _split dataset_ functionality.
+* Fixed a bug where single file processing would not terminate and crash.
+* Minor bug fixes.
 
-* Spike detection
-  * Before starting the processing, ask confirmation to user on the number of files found through a pop-up.
-  * Change of format for spike detection where now the resulting dataframe has the targets as columns,
-  the data files columns as index, and the indices of detected spikes as string of lists.
-  * Start renaming correctly the keys of variables (preparation to writable config files).
-  * Start modifications on model (preparation to writable config files).
-  * Fix issue where all variables were not correctly loaded on a spike config loading.
-  * Set minimal version for model at 0.9.0-alpha.
-  * Fix an issue where the number of steps where not correctly computed for the progress bar.
-  * Decoupling compute from drawing. The drawing now needs to be executed afterward.
-  * 
+LEARNING
+* Rework of the trust metrics for model auto-tuning. It now selects better model with more finess.
+* Addition of the Support Vector Classifier. It supports the same functions as RFC. **N.B: the Feature importance 
+analysis is not available with support vector machine.**
+* Addition of a Utilities section. Users will be able to do basic manipulation on their datasets, such as dataset 
+splitting for learning, rename targets, merge multiple datasets, or explore a dataset construction.
+* Fix on the _target renaming_ functionality.
+* Minor bug fixes.
+
+ANALYSIS
+* Addition of 'Dataset' section. It allows the user to plot the data issued from the dataset processing 
+function of the software.
+* It is now possible to choose a colormap for confusion matrices.
+* Addition of spike detection analysis. This section is a Work in progress. It may be used by the users, 
+but this section will go through many more optimization cycles. It allows the user to visualize detected 
+spikes from a dataset issued from the spike detection function of the software. The data will be represented 
+in the form of a raster plot, and some spikes can be selected to be plotted individually.
+* Fixed bug when the label column contained numerical values instead of str in the dataset for confusion.
+* Fixed bug when loading a test dataset in ConfusionController.py was not cleaning the widgets from a previous test.
+* Fix issue where confusion matrix was not correctly initialized.
+* Minor bug fixes.
+
+SPECIAL NOTES
+
+Please be aware that as the software has received a huge migration, some unexpected bugs may occur. 
+Please report them in the 'Issues' section of the github, as well as the way to reproduce the bug. Thank you.
 
 
 # Processing
@@ -58,7 +71,7 @@ update is right below and not in the versioning section.
 > As such, it can be considered to be
 > 
 > [sorting](#sorting-multiple-files) > [file beheading](#file-beheading) > 
-> [column-based selection](#column-based-selection) > [down sampling](#down-sampling) >
+> [column-based selection](#column-based-selection) > [down sampling](#sub-sampling) >
 > [filtering](#filtering) > [fast fourier transform](#fast-fourier-transform) >
 > [interpolation](#interpolation) > [averaging electrode signal](#averaging-columns) >
 > [dataset making](#resulting-datasets) > [post-processing](#post-processing) 
@@ -85,7 +98,7 @@ DATA (most parent common directory)
     └───[...]
 ```
 ### Processing steps
-In the processing tab <img src="data/help/firelearn_tabs.png" width="200" height="40" style="vertical-align:middle"> ,
+In the processing tab, under the _Dataset_ sub tab,
 you will find three image buttons, representing respectively `File selection`, `Signal processing`
 , and `File name post-processing` as below:
 
@@ -96,7 +109,7 @@ you will find three image buttons, representing respectively `File selection`, `
 Clicking those will change the middle panel accordingly, allowing you to specify the different processing steps 
 you wish to apply to your files and data. These buttons will change colors depending on the 
 [step value verification](#check-all-steps), as green for no errors detected, red for errors detected, blue for 
-current selected panel (will also grow bigger), and gray for unvisited panel.
+a currently selected panel, and gray for an unchecked panel.
 
 For the demonstration purpose, all the functions available will be enabled.
 
@@ -108,7 +121,7 @@ directory, no matter how distant it is.
 ### Selecting parent directory
 Click the `Open` button of `Path to parent directory` entry to select the parent directory.
 The selected directory must be a parent of all the files you want to process.
-For a multiple files processing, you _must_ switch on the `Sorting multiple files` switch.
+For a multiple files processing, you _must_ check the `Sorting multiple files` checkbox.
 
 For instance, using [this directory structure](#example-directory-structure), all the files that
 are children to the most parent directory (here `/DATA`) are subject to be comprised in the processing.
@@ -133,17 +146,12 @@ Combining both gates, a file will be included for the processing if its absolute
 Those `to include` and `to exclude` specifications are case-sensitive, so `Analog.csv` is different 
 from `analog.csv`.
 
-To add a specification, type it in the corresponding entry, then either click on the `+` button, or press 
-the `Return` key. To remove a specification, type it in the corresponding entry, then either click on the 
-`-` button or press `Ctrl-BackSpace` combination.
+To add a specification, click the `Add element` button, then type it in the corresponding table cell.
+To remove a specification, simply click on the `Remove` button next to the cell you wish to remove.
 
 In this example, all the files containing `Analog.csv` and who does not contain `T30` in their absolute
 paths will be included for further processing.
 
-> <img height="30" src="data/help/tip.png" width="30"/>
-> 
-> In the entries `to include`, `to exclude`, and `target key` you can use the key combination `Enter` as a substitute 
-> to the '+' button, and `Ctrl+Backspace` for the '-' button.
 
 #### Indicating targets for learning
 
@@ -169,7 +177,7 @@ we want to rename them for the final dataset. Thus, we indicate the couples `con
 
 > <img height="30" width="30" src="data/help/red_warning.png">
 > 
-> The said sequences does not search for "separated sequences" and does not recognise if the sequence
+> The said sequences do not search for "separated sequences" and does not recognise if the sequence
 > is a word in itself. It will only look at the sequence character-wise. As such when choosing the 
 > sequences you want to include or exclude, be aware of what can be in your absolute paths.
 > 
@@ -191,6 +199,8 @@ we want to rename them for the final dataset. Thus, we indicate the couples `con
 > If you do not wish for your key to be different from your file label, you can leave the `Target value` entry empty - 
 > the value will take the same value as the key.
 
+If some of the selected files do not correspond to none of the given target keys, an alert will be issued.
+
 ### Single file analysis
 In order to process a single file, switch on the corresponding switch and select the wanted file
 using the `Open` button.
@@ -198,9 +208,6 @@ using the `Open` button.
 On this demo, we will not use the 'Single file processing' option. Note that it is not compatible with the
 [sorting multiple files](#sorting-multiple-files) option.
 
-
-At this point, our summary of the 'File sorting' panel section should look like this:
-<img height="450" src="data/help/summary_processing_screenshot.png">
 
 ### File beheading
 This functionality simply behead the file a specified number of rows. In the case of normed files from
@@ -215,19 +222,19 @@ Any column that contains the [exception value](#exception-column) (case-sensitiv
 
 In our demo we choose to keep the 35 columns with the biggest (max) standard deviation (std).
 
-### Down sampling
+### Sub sampling
 
 This functionality will divide row-wisely every file in `n` selected pieces of equal lengths.
-e.g. In our walkthrough example, we use 1 minute long recordings.
-Specifying a down sampling at `30` implies that the recordings will be divided in 30 pieces of 2 seconds.
+e.g. In our walkthrough example, we use 1-minute long recordings.
+Specifying a sub sampling at `30` implies that the recordings will be divided in 30 pieces of 2 seconds.
 
-In our demo, we choose to use 20, as it will produce sub-samples of 3 seconds.
+In our demo, we choose to use 20, as it will produce subsamples of 3 seconds.
 
 > <img src="data/help/red_warning.png" width="30" height="30">
 >
 > If the [make resulting files as dataset](#post-processing) function is not used, be aware that each file
 selected during the [selection process](#sorting-multiple-files) will generate an equal number of different files
-based on the [down sampling](#down-sampling).
+based on the [down sampling](#sub-sampling).
 
 ### Filtering
 
@@ -245,7 +252,7 @@ E.g. with an harmonic frequency of 100 Hz, filtering the odd harmonics up to the
 following frequencies : 
 _100 Hz(1st), 300 Hz(3rd), 500 Hz(5th), 700 Hz(7th), 900 Hz(9th)_
 
-For the demonstration, we use the following parameters (screenshot from the summary panel):
+For the demonstration, we use the following parameters :
 
 <img src="data/help/firelearn_demo_filtering.png" width="300">
 
@@ -270,7 +277,7 @@ the time) into one column.
 We enable this feature in the demonstration.
 ### Exception column
 
-Allow the user to specify a character chain that will exclude certain columns from the processing.
+Allow the user to specify a character chain that will exclude a single column from the processing.
 If the entered value is **found** in a column name in the file, this column will then not be processed
 if possible (e.g. when [averaging columns](#averaging-columns), or [selecting columns](#column-based-selection))
 
@@ -290,7 +297,7 @@ In our demonstration, we choose to except our column `Time`.
 > <img src="data/help/red_warning.png" width="30 height=30">
 > 
 >This feature overwrites the saving of the intermediate files (e.g. those created 
-> from the [down sampling](#down-sampling) functionality) and save only
+> from the [down sampling](#sub-sampling) functionality) and save only
 > a final file 'DATASET' csv file.
 
 > <img src="data/help/yellow_warning.png" width="30 height=30">
@@ -352,16 +359,10 @@ On the menu bar, in `File` > `Save config`, it will store the software variable 
 This file can then be opened with the `Load config` option to restore the software variable state, to avoid having to 
 fill everything again between different runs of the software if the same (or close) processing is needed. 
 
-#### Summary (and export)
-
-On the right side of the processing tab, there is a 'Summary' panel that will update based on the processing steps 
-selected and their values. This summary can be exported using the `Export summary` button on le left side. It will 
-produce a `.txt` file that sums up all the processing steps used when exporting. 
-
 
 # Learning
-At this moment, FireLearn offers only the possibility to use Random forest classifier. With time, many more algorithms
-will be added.
+At this moment, FireLearn offers only the possibility to use Random forest classifier and Support vector classifier.
+With time, many more algorithms will be added.
 
 ## Random Forest classifier
 We use random forest classifier of the `scikit learn` library, as of version 1.3.1.
@@ -387,9 +388,8 @@ After loading the train and test datasets, it is needed to select the target/lab
 add the targets you wish to train your RFC instance on.
 
 The `scoring function` option allows to train the model multiple times, and return average metrics in the right
-panel 'METRICS', and save the best performing trained model according to the specified metrics. `Relative 
-K-Fold CV accuracy` is used as default.
-
+panel 'METRICS', and save the best performing trained model according to the specified metrics. `Trust score` is 
+used as default.
 
 In our demonstration case, our label column is `label`, and we want to train our model on targets `targetA` 
 and `targetB`. 
@@ -450,6 +450,9 @@ left panel.
 > Note that the more values you add, the longer the training will be.
 > Special Note : the n_estimator parameter can increase significantly the training time, the bigger is it.
 
+## Support vector classifier
+We use Svc of the `scikit learn` library. The available functionalities are similar to those of 
+[Random forest classifier](#random-forest-classifier).
 
 # Analysis
 > <img src="data/help/tip.png" width="30" height="30">
@@ -491,7 +494,7 @@ data that will be analyzed.
 
 The following section should appear in the middle panel:
 
-<img src="data/help/pca_add_data.png" width="300" height="300">
+<img src="data/help/pca_add_data.png" width="400" height="300">
 
 The `label` combobox will allow you to select which label you want to analyze with PCA. The proposed values are
 based on the unique values in the `labels column` specified beforehand. Make sure your `labels column` is 
@@ -506,9 +509,7 @@ on the said label. After this is customization for this label.
 > the panels with the middle mouse button are yet to be implemented.
 
 For the demonstration we chose to fit our PCA on ours targets `targetA` and `targetC`, and apply
-on our three targets, as in the following screenshot:
-
-<img src="data/help/pca_data_demo.png" width="250" >
+on our three targets.
 
 
 Computing the PCA and drawing it (after tweaking some graphical parameters) would show 
@@ -556,7 +557,7 @@ the percentage/numerical value.
 >
 > Note that `compute confusion` will do the whole computation and display the figure according to the specified
 > parameters in the other panels, so the process may be long. If you only want to change the plot appearance
-> (axes, titles...), please use the `update figure` button.
+> (axes, titles...), please use the `Draw` button.
 
 In our demonstration, we loaded the `demo_dataset_Xy_test.csv` dataset, and enabled the classification
 on all three of our targets A, B and C. After computing, we obtained a result similar as following: 
@@ -566,43 +567,40 @@ on all three of our targets A, B and C. After computing, we obtained a result si
 > <img src="data/help/tip.png" width="30" height="30">
 >
 > As of version 0.8.0-alpha, you can now choose the position of the columns and rows, using a combobox text to the said 
-> targets. Note that two different targets can not have the same index. Also, if you wish to not show some targets 
+> targets. Note that two different targets cannot have the same index. Also, if you wish to not show some targets 
 > (to uncheck some checkboxes), a new confusion computation will be required.
 
 ## Spike detection
-Allow the user to compute the number of spikes. 
+Allow the user to detect spikes in raw electrical recordings.
+In the spike detection feature, there is a section left for file sorting similar to 
+[dataset processing](#sorting-multiple-files). The second part of the tab contains parameters used for the 
+processing of the file then spike detection. Some parameters are similar to those of [dataset processing](#processing) 
+and will not be explained here.
+A spike is considered relevant if its absolute value is above `Standard deviation threshold` times the std of the signal.
+By default, the value is set at 5,5. 
+The spike detection algorithm is based on a moving window that is specified with the parameter `Dead window` in seconds.
+Which means that a new spike cannot be detected for this duration. After the detection, a .csv file is generated
+that comprises the following columns : 
 
-The general parameters such as the labels, title, and ticks, are located in a separated window you can access by 
-clicking the "GENERAL PARAMETERS" button on the bottom right.
+| Columns                  | 
+|--------------------------|
+| File                     |
+| Target                   |
+| Column ID                |
+| Threshold crossing index |
+| Peak value [pV]          |
+| Peak index               |
+| Minimum value [pV]       |
+| Maximum value [pV]       |
+| Slope                    |
+| Extrema ratio (min/max)  |
+| Extraction first index   |
+| Extraction last index    |
+| Extracted data [pV]      |
 
-The leftmost panel, the `SPECIFIC PARAMETERS` allow you to apply a simple file sorting with the same principle as 
-the processing steps [(sorting multiple files)](#sorting-multiple-files). You can also apply basic file processing
-in the same way that [file beheading](#file-beheading), [column-based selection](#column-based-selection),
-and the [exception column](#exception-column). 
-
-However, you have parameters specific to the spike detection such as the sampling frequency, the std threshold, and a 
-dead window. To detect a spike, the standard deviation is computed.
-you then specify a threshold (5.5 by default). If the amplitude of the signal is lower than `-std*threshold` or greater
-than `std*threshold` then a spike is detected, and a dead window of length `dead window (s)` (0.1 s by default) is 
-applied during which a new spike can not be detected.
-
-On the middle panel `DATA PARAMETERS` you can specify multiple parameters for the plot, such as the data that will
-be plotted and the type of plot.
-
-Please note that `compute spikes` and `draw figure` are separated options so once the computation is done, you can 
-still change the plot appearance without recomputing. The computation still call the `draw figure` automatically.
-
-You can then obtain figures as the following:
-
-<img src="data/help/spike_detection_violin_demo.png" width="300" >
-
-<img src="data/help/spike_detection_bar_demo.png" width="300" >
-
-> <img src="data/help/tip.png" width="30" height="30">
->  [BROKEN]
-> Clicking the 'export' button allow you to export the computed data into a csv file. 
-
-
+N.B. : Note that the pV unit depends on the unit you specify in the `Unit` entry. Also the index correspond 
+to the index of the value in the processed files. `Extracted data` corresponds to a chunk of the original signal
+that has been extracted and put in the csv as a string of list.						
 
 # Miscellaneous
 ## Plot customization toolbar
@@ -642,6 +640,46 @@ of the GitHub repository, and to use the in-place tags system to specify your po
 
 
 # Versioning
+
+# v0.9.0-alpha - What's new ? 
+>***Dev's Note**: For this version, the focus was to replace the multiprocessing functionality that was critical on Windows, 
+>and to further enhance the Spike detection feature.
+>Furthermore, As bonus, I changed the theme of the App for a lighter one. For dark theme lovers, do not worry, the ability to switch themes
+>will come with later versions :)*
+
+* General 
+  * Remove tear offs for menu bars.
+  * Change in the progress bars behaviour when cancelling (some bugs needing to restart the software when cancelling 
+  may occur).
+  * Adding Watch Dogs for multithreading (file processing, learning, spike detection).
+  * Addition of light theme (as default).
+  * Addition of logging formatted output.
+  * Cleaning of some of the unused functions.
+* Processing 
+  * Remove ErrEntry validation in processing that could cause issues when loading config files.
+  * Removing multiprocessing that caused the app to restart and crash.
+  * Adding multithreading.
+  * Before starting the processing, ask confirmation to user on the number of files found through a pop-up.
+  
+* Learning
+  * Add learning time in console.
+  * Add 'Trust' scoring system for learning optimization.
+  * Clean unnecessary prints
+  * Enabling export function
+
+* Spike detection
+  * Before starting the processing, ask confirmation to user on the number of files found through a pop-up.
+  * Change of format for spike detection where now the resulting dataframe has the targets as columns,
+  the data files columns as index, and the indices of detected spikes as string of lists.
+  * Start renaming correctly the keys of variables (preparation to writable config files).
+  * Start modifications on model (preparation to writable config files).
+  * Fix issue where all variables were not correctly loaded on a spike config loading.
+  * Set minimal version for model at 0.9.0-alpha.
+  * Fix an issue where the number of steps where not correctly computed for the progress bar.
+  * Decoupling compute from drawing. The drawing now needs to be executed afterward.
+  * 
+
+
 # v0.8.0-alpha - What's new ?
 * File Processing
   * CRITIC - bug fix where sampling frequency was not taken in account, and was always 10000 Hz.
