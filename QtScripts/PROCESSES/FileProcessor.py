@@ -162,7 +162,7 @@ class FileProcess(QThread):
                 processed_files_to_make_dataset.append((df_s_processed, file))
             else:
                 self._save_individual_processed_file(file, df_s_processed, processing_basename)
-
+                processed_files_to_make_dataset.append((df_s_processed, file))
         return processed_files_to_make_dataset
 
     def _behead(self, file):

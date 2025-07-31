@@ -285,7 +285,7 @@ class ConfusionController:
         
     def handle_progress(self, count):
         self.view.progress_bar.increment_steps(count)
-        logger.debug("Progress made")
+        # logger.debug("Progress made")
         
     def handle_error(self, worker_name, error_msg):
         logger.error(f"Error from {worker_name}: {error_msg}")
