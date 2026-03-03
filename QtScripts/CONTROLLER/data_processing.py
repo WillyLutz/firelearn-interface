@@ -52,7 +52,7 @@ def butter_filter(signal, order, btype, lowcut=None, highcut=None, cut=None, fs=
     return filtered_signal  # , xanswer, yanswer
 
 
-def fast_fourier(signal, freq):
+def fast_fourier_deprecated(signal, freq):
     """
     Computes the Fast Fourier Transform (FFT) of a signal.
 
@@ -76,6 +76,37 @@ def fast_fourier(signal, freq):
     clean_freqs = abs(freqs[0:len(freqs // 2)])
     return clean_fft_df[:int(len(clean_fft_df) / 2)], clean_freqs[:int(len(clean_freqs) / 2)]
 
+def fast_fourier(signal, freq):
+    """
+    Computes the FFT magnitude of a windowed signal.
+
+    Parameters
+    ----------
+    signal : np.ndarray
+        Input signal.
+    freq : int
+        Sampling frequency in Hz.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Magnitude spectrum and corresponding frequencies (positive only).
+    """
+    N = len(signal)
+
+    # Apply Hann window
+    window = np.hanning(N)
+    signal_windowed = signal * window
+
+    # Compute FFT
+    fft_vals = np.fft.fft(signal_windowed)
+    fft_magnitude = np.abs(fft_vals) / N  # normalize
+
+    # Compute frequencies
+    freqs = np.fft.fftfreq(N, d=1/freq)
+
+    # Return only positive frequencies
+    return fft_magnitude[:N//2], freqs[:N//2]
 
 
 def merge_all_columns_to_mean(df: pd.DataFrame, except_column=""):

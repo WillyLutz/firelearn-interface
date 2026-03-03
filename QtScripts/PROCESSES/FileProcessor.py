@@ -3,6 +3,8 @@ import os
 
 import pandas as pd
 from PyQt6.QtCore import pyqtSignal, QThread
+from matplotlib import pyplot as plt
+
 from QtScripts.CONTROLLER import data_processing as dpr
 from fiiireflyyy import process as fp
 
@@ -361,7 +363,7 @@ class FileProcess(QThread):
             if "Frequency [Hz]" not in df_s_fft.columns:
                 df_s_fft['Frequency [Hz]'] = clean_freqs
             df_s_fft[ch] = clean_fft
-
+            
             self.progress_made.emit(1)
         df_s = df_s_fft
 
