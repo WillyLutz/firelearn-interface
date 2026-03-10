@@ -287,7 +287,7 @@ class DatasetProcessingController:
         self.view.progress_bar.reset()
     
     def handle_progress(self, count):
-        logger.info(f"Progress made: {count}")
+        logger.debug(f"Progress made: {count}")
         self.view.progress_bar.increment_steps(count)
         # Update progress bar, etc.
 
@@ -391,17 +391,17 @@ class DatasetProcessingController:
             processing_basename.append(self.model.widgets_values['filename_edit'])
         else:
             if self.model.widgets_values['select_column_ckbox']:
-                processing_basename.append(f"Sel{self.model.widgets_values['select_column_mode_edit'].capitalize()}"
-                                           f"{self.model.widgets_values['select_column_metric_edit'].capitalize()}"
+                processing_basename.append(f"Sel{self.model.widgets_values['select_column_mode_cbbox'].capitalize()}"
+                                           f"{self.model.widgets_values['select_column_metric_cbbox'].capitalize()}"
                                            f"{self.model.widgets_values['select_column_edit']}")
             if self.model.widgets_values['subsample_ckbox']:
                 processing_basename.append(f"Ds{self.model.widgets_values['subsample_edit']}")
-            if self.model.widgets_values['signal filter']:
+            if self.model.widgets_values['filter_ckbox']:
                 processing_basename.append(
                     f"O{self.model.widgets_values['filter_order_edit']}{self.model.widgets_values['filter_type_cbbox']}"
                     f"{self.model.widgets_values['filter_first_cut_edit']}-{self.model.widgets_values['filter_second_cut_edit']}"
                     f"H{self.model.widgets_values['harmonics_type_cbbox']}{self.model.widgets_values['harmonics_frequency_edit']}-"
-                    f"{self.model.widgets_values['signal filter nth harmonic']}")
+                    f"{self.model.widgets_values['harmonics_nth_edit']}")
             if self.model.widgets_values['fft_ckbox']:
                 processing_basename.append("signal fft")
             if self.model.widgets_values['average_ckbox']:
