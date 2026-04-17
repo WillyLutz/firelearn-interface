@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, freqz, filtfilt
-
+import logging
+logger = logging.getLogger("__data_processing__")
 
 def butter_filter(signal, order, btype, lowcut=None, highcut=None, cut=None, fs=None ):
     """
@@ -182,9 +183,10 @@ def top_n_columns(df, n, except_column=""):
         for col in df.columns:
             if except_column in col:
                 except_column = col
-
+    
     # managing 'except_column'
         dfc = df.drop(except_column, axis=1)
+    logger.debug(f"Excepted column from selection: {except_column}")
     df_filtered = pd.DataFrame()
     if except_column:
         df_filtered[except_column] = df[except_column]

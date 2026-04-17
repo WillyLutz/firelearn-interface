@@ -7,6 +7,7 @@ import pandas as pd
 from PyQt6.QtCore import pyqtSignal, QThread
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
+from sklearn.metrics import f1_score, recall_score, precision_score
 
 logger = logging.getLogger("__RfcLearningProcess__")
 class RfcLearningProcess(QThread):
@@ -30,6 +31,7 @@ class RfcLearningProcess(QThread):
         self.train_metrics = {}
         self.test_acc = 0
         self.test_metrics = {}
+        self.performance_metrics = {}
 
         self.iter = 0
         self._stop_flag = False
@@ -98,8 +100,10 @@ class RfcLearningProcess(QThread):
                 y_full = pd.concat([self.y_train, self.y_test], ignore_index=True)
                 cv_scores = cross_val_score(rfc, X_full, y_full, cv=int(self.model_vars["learn_kfold_edit"]))
             # self.progress_queue.put(1)
-
-            formatted_metrics = (param_combination, cv_scores, self.train_acc, self.test_acc, rfc)
+            
+            self.performance_metrics_computation(self.X_test, self.y_test, rfc)
+            
+            formatted_metrics = (param_combination, cv_scores, self.train_acc, self.test_acc, rfc, self.performance_metrics)
 
             random_str = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
             key_str = f"{self.objectName()}-{self.iter}-{random_str}"
@@ -168,3 +172,11 @@ class RfcLearningProcess(QThread):
             false_preds.append(len(target_metric[1]))
 
         return round(sum(true_preds, 0) / (sum(true_preds, 0) + sum(false_preds, 0)), 3)
+
+    def performance_metrics_computation(self, X, y, clf):
+        
+        y_preds = clf.predict(X)
+        
+        self.performance_metrics["f1-score"] = round(f1_score(y_true=y, y_pred=y_preds, average="macro"), 3)
+        self.performance_metrics["recall"] = round(recall_score(y_true=y, y_pred=y_preds, average="macro"), 3)
+        self.performance_metrics["precision"] = round(precision_score(y_true=y, y_pred=y_preds, average="macro"), 3)

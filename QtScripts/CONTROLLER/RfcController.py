@@ -548,6 +548,10 @@ class RfcController:
         metrics_text_elements.append("Best performing model metrics:")
         metrics_text_elements.append(f"Training accuracy: {display_colored_scores(all_param_combinations[best_key][2])}")
         metrics_text_elements.append(f"Testing accuracy: {display_colored_scores(all_param_combinations[best_key][3])}")
+        metrics_text_elements.append(f"F1-score: {display_colored_scores(all_param_combinations[best_key][5]['f1-score'])}")
+        metrics_text_elements.append(f"Recall: {display_colored_scores(all_param_combinations[best_key][5]['recall'])}")
+        metrics_text_elements.append(f"Precision: {display_colored_scores(all_param_combinations[best_key][5]['precision'])}")
+
         if self.model.widgets_values["learn_kfold_ckbox"]:
             acc = all_param_combinations[best_key][2]
             kcv = round(np.array(all_param_combinations[best_key][1]).mean(), 3)
