@@ -2,6 +2,7 @@ import datetime
 import logging
 import multiprocessing
 import os
+import pathlib
 import random
 import string
 import time
@@ -168,10 +169,16 @@ class DatasetProcessingController:
                 self.view.widgets["single_file_ckbox"].checkState() == Qt.CheckState.Checked]):
             errors.append("You must chose one between Single file analysis or Multiple files analysis.")
             filesorter_errors = True
-            
+
         if self.view.widgets["multiple_files_ckbox"].checkState() == Qt.CheckState.Checked and not self.view.widgets["path_to_parent_edit"].text():
             errors.append("You have to select a parent directory to run multi-file processing.")
             filesorter_errors = True
+
+        if self.view.widgets["multiple_files_ckbox"].checkState() == Qt.CheckState.Checked:
+            path = pathlib.Path(self.view.widgets["path_to_parent_edit"].text())
+            if not path.exists():
+                errors.append("The selected parent directory is not valid.")
+                filesorter_errors = True
         
         if self.view.widgets["single_file_ckbox"].checkState() == Qt.CheckState.Checked and not self.view.widgets["path_to_file_edit"].text():
             errors.append("You have to select a file to run single-file processing.")
