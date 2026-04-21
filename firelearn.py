@@ -47,7 +47,7 @@ if __name__ == '__main__':
     # exit()
 
 # to generate the distribution for linux, with the venv activated
-# >>> pyinstaller firelearnGUI.spec
+# >>> pyinstaller firelearn.spec
 # >>> y
 
 # to run the distribution
@@ -55,4 +55,4 @@ if __name__ == '__main__':
 # >>> ./firelearnGUI
 
 # to generate the distribution for windows,
-# pyinstaller --noconfirm --onedir firelearnGUI.py --add-data "C:\Users\wlutz\PycharmProjects\firelearn-interface\venv\Lib\site-packages\customtkinter;customtkinter." --add-data "C:\Users\wlutz\PycharmProjects\firelearn-interface\data;data"
+# pyinstaller --noconfirm --onedir firelearn.py --add-data "C:\Users\wlutz\PycharmProjects\firelearn-interface\venv\Lib\site-packages\customtkinter;customtkinter." --add-data "C:\Users\wlutz\PycharmProjects\firelearn-interface\data;data" --icon="C:\Users\wlutz\PycharmProjects\firelearn-interface\data\firelearn_img\logo-firelearn-no-text.ico"
