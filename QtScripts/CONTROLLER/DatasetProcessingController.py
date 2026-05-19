@@ -121,6 +121,7 @@ class DatasetProcessingController:
                 errors.append("For filters of type bandpass and bandstop, you need to indicate the second frequency cut.")
                 signal_errors = True
                 
+            
         if self.view.widgets["filter_first_cut_edit"].text() and self.view.widgets["filter_second_cut_edit"].text():
             if int(self.view.widgets["filter_first_cut_edit"].text()) > int(self.view.widgets["filter_second_cut_edit"].text()):
                 errors.append("The first cut must be smaller than the second cut frequency.")
@@ -131,6 +132,16 @@ class DatasetProcessingController:
             errors.append("You have to indicate a sampling frequency to use FFT.")
             signal_errors = True
             
+        if self.view.widgets["fft_ckbox"].checkState() == Qt.CheckState.Checked:
+            if self.view.widgets["filter_type_cbbox"].currentText() in ["Bandpass", "Bandstop"]:
+                if int(self.view.widgets["filter_second_cut_edit"].text()) >=  int(self.view.widgets["filter_sampling_frequency_edit"].text())/2:
+                    errors.append("Digital filter second cut frequency must be < 1/2 * sampling frequency.")
+                    signal_errors = True
+            if self.view.widgets["filter_type_cbbox"].currentText() in ["Lowpass", "Highpass"]:
+                if int(self.view.widgets["filter_first_cut_edit"].text()) >=  int(self.view.widgets["filter_sampling_frequency_edit"].text())/2:
+                    errors.append("Digital filter first cut frequency must be < 1/2 * sampling frequency.")
+                    signal_errors = True
+                    
         if self.view.widgets["lin_interp_ckbox"].checkState() == Qt.CheckState.Checked \
             and not self.view.widgets["lin_interp_edit"].text():
             errors.append("You have to indicate a number of values to interpolate.")
@@ -179,7 +190,8 @@ class DatasetProcessingController:
             
         if self.view.widgets["make_dataset_ckbox"].checkState() == Qt.CheckState.Checked and not \
             (self.view.widgets["average_ckbox"].checkState() == Qt.CheckState.Checked and
-            self.view.widgets["multiple_files_ckbox"].checkState() == Qt.CheckState.Checked):
+            (self.view.widgets["multiple_files_ckbox"].checkState() == Qt.CheckState.Checked or
+             self.view.widgets["single_file_ckbox"].checkState() == Qt.CheckState.Checked)):
             errors.append("The 'make full_dataset' option is available only if 'Average' and 'Multiple files analysis' are both enabled.")
             filename_errors = True
         
@@ -454,7 +466,8 @@ class DatasetProcessingController:
                     untargeted_files.append(file)
                         
         if self.model.widgets_values['single_file_ckbox']:
-            if any(value in self.model.widgets_values["path_to_file_edit"] for value in self.model.targets.values()):
+            
+            if any(value in self.model.widgets_values["path_to_file_edit"] for value in self.model.targets.keys()):
                 all_files.append(self.model.widgets_values["path_to_file_edit"])
             else:
                 untargeted_files.append(self.model.widgets_values["path_to_file_edit"])
@@ -551,7 +564,7 @@ class DatasetProcessingController:
         return total_tasks
     
     def export_summary(self):
-        print('exporting summary')
+        print('exporting summary (doing nothing)')
         
     def load_model(self):
         model_path = \

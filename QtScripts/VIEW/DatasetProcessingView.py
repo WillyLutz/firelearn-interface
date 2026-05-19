@@ -307,7 +307,8 @@ class DatasetProcessingView(QFrame):
         
         check_steps_btn = QPushButton(parent=self.filename_tab, text="Check processing steps")
         process_btn = QPushButton(parent=self.filename_tab, text="Start processing")
-        export_summary_btn = QPushButton(parent=self.filename_tab, text="Export processing summary")
+        export_summary_btn = QPushButton(parent=self.filename_tab, text="Export processing summary", )
+        export_summary_btn.setEnabled(False)
         
         grid.addWidget(random_key_ckbox, 0, 0)
         grid.addWidget(timestamp_ckbox, 1, 0)
